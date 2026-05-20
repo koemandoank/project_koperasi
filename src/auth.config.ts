@@ -31,13 +31,17 @@ export const authConfig = {
     signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request: { nextUrl, headers } }) {
       const isLoggedIn = !!auth?.user;
+
+      const userAgent = headers.get("user-agent") || "";
+      const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(userAgent);
 
       const publicPaths = ["/login", "/api/auth"];
       if (publicPaths.some(p => nextUrl.pathname.startsWith(p))) {
         if (isLoggedIn && nextUrl.pathname.startsWith("/login")) {
-          return Response.redirect(new URL("/dashboard", nextUrl));
+          const redirectUrl = isMobile ? "/dashboard/home" : "/dashboard";
+          return Response.redirect(new URL(redirectUrl, nextUrl));
         }
         return true;
       }
@@ -54,9 +58,17 @@ export const authConfig = {
         return true;
       }
 
+      // Redirect user mobile dari /dashboard ke /dashboard/home (Beranda)
+      if (nextUrl.pathname === "/dashboard" && nextUrl.searchParams.get("forceDashboard") !== "true") {
+        if (isMobile) {
+          return Response.redirect(new URL("/dashboard/home", nextUrl));
+        }
+      }
+
       // Check RBAC
       if (!canAccess(role, nextUrl.pathname)) {
-        return Response.redirect(new URL("/dashboard", nextUrl));
+        const redirectUrl = isMobile ? "/dashboard/home" : "/dashboard";
+        return Response.redirect(new URL(redirectUrl, nextUrl));
       }
 
       return true;
