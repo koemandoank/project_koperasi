@@ -44,11 +44,12 @@ function getTabsForRole(role: string): NavTab[] {
   switch (role) {
     case "anggota":
       return [
-        { href: "/dashboard/home",   label: "Beranda",  icon: Home },
-        { href: "/simpanan",          label: "Simpanan", icon: Wallet },
-        { href: "/pinjaman",          label: "Pinjaman", icon: CreditCard },
-        { href: "/toko",              label: "Toko",     icon: ShoppingBag },
-        { href: "/profil",            label: "Profil",   icon: User },
+        { href: "/dashboard/home",                 label: "Beranda",   icon: Home },
+        { href: "/dashboard?forceDashboard=true",  label: "Transaksi", icon: LayoutDashboard },
+        { href: "/simpanan",                       label: "Simpanan",  icon: Wallet },
+        { href: "/pinjaman",                       label: "Pinjaman",  icon: CreditCard },
+        { href: "/toko",                           label: "Toko",      icon: ShoppingBag },
+        { href: "/profil",                         label: "Profil",    icon: User },
       ]
 
     case "kasir":
@@ -121,10 +122,11 @@ export function BottomNav({ role }: { role: string }) {
           const Icon = tab.icon
 
           // Active detection: exact match or prefix match
+          const hrefPath = tab.href.split("?")[0]
           const isActive =
-            pathname === tab.href ||
+            pathname === hrefPath ||
             (tab.matchPrefixes?.some((p) => pathname.startsWith(p))) ||
-            (tab.href !== "/dashboard" && tab.href !== "/dashboard/home" && pathname.startsWith(tab.href + "/"))
+            (hrefPath !== "/dashboard" && hrefPath !== "/dashboard/home" && pathname.startsWith(hrefPath + "/"))
 
           return (
             <Link

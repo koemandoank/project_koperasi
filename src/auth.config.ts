@@ -49,6 +49,11 @@ export const authConfig = {
 
       const role = String(auth?.user?.role || "anggota");
 
+      // Bypas RBAC untuk halaman profil & home dashboard agar dapat diakses semua user
+      if (nextUrl.pathname === "/profil" || nextUrl.pathname.startsWith("/profil/") || nextUrl.pathname === "/dashboard/home") {
+        return true;
+      }
+
       // Check RBAC
       if (!canAccess(role, nextUrl.pathname)) {
         return Response.redirect(new URL("/dashboard", nextUrl));

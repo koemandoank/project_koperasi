@@ -149,10 +149,10 @@ const MEMBER_DASHBOARD_KEY = "member_dashboard_stats"
 export async function getMemberDashboardConfig() {
   try {
     const c = await prisma.cache.findUnique({ where: { key: MEMBER_DASHBOARD_KEY } })
-    if (!c) return { show_financial_stats: false }
+    if (!c) return { show_financial_stats: true }
     return JSON.parse(c.value)
   } catch (err) {
-    return { show_financial_stats: false }
+    return { show_financial_stats: true }
   }
 }
 

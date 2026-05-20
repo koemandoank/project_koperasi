@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Wallet, CreditCard, ShoppingBag, User, ChevronLeft, ChevronRight, Home, Megaphone, Clock } from "lucide-react"
+import { getGlobalFinancialStats } from "@/lib/actions/global-financial-stats"
 
 // ─── Tipe ────────────────────────────────────────────────────────────────────
 type StatsPeriod = "weekly" | "monthly" | "yearly"
@@ -30,12 +31,24 @@ const formatRupiah = (n: number) =>
 
 // ─── Sub-komponen Statistik ───────────────────────────────────────────────────
 function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: StatsPeriod) => void }) {
-  const data = {
-    weekly:  { tx: "142",   shu: "Rp 4,2M",  keluar: "Rp 1,1M", saldo: "Rp 1,45 T" },
-    monthly: { tx: "684",   shu: "Rp 18,5M", keluar: "Rp 4,8M", saldo: "Rp 1,45 T" },
-    yearly:  { tx: "8.245", shu: "Rp 225M",  keluar: "Rp 56M",  saldo: "Rp 1,45 T" },
-  }
-  const d = data[period]
+  const [financialData, setFinancialData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    getGlobalFinancialStats(period).then(res => {
+      if (active) {
+        setFinancialData(res)
+        setLoading(false)
+      }
+    }).catch(err => {
+      console.error(err)
+      if (active) setLoading(false)
+    })
+    return () => { active = false }
+  }, [period])
+
   const tabBtn = (label: string, key: StatsPeriod) => (
     <button
       key={key}
@@ -49,6 +62,23 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
       {label}
     </button>
   )
+
+  const formatVal = (label: string, value: number, isCurrency: boolean = true) => {
+    if (loading) return "Memuat..."
+    if (!financialData) return "—"
+    if (isCurrency) {
+      return formatRupiah(value)
+    }
+    return value.toLocaleString("id-ID")
+  }
+
+  const items = [
+    { label: "Total Transaksi",    value: formatVal("Total Transaksi", financialData?.totalTransaksi || 0, false), color: "text-slate-700 dark:text-slate-200" },
+    { label: "Keuntungan (SHU)",   value: formatVal("Keuntungan (SHU)", financialData?.keuntunganSHU || 0),        color: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Pengeluaran",        value: formatVal("Pengeluaran", financialData?.pengeluaranOperasional || 0),    color: "text-rose-600 dark:text-rose-400" },
+    { label: "Saldo Kas Koperasi", value: formatVal("Saldo Kas Koperasi", financialData?.saldoKas || 0),           color: "text-blue-600 dark:text-blue-400" },
+  ]
+
   return (
     <Card className="border-indigo-100 dark:border-indigo-900/50 shadow-sm overflow-hidden">
       <CardHeader className="bg-indigo-50/50 dark:bg-indigo-950/20 pb-4 border-b border-indigo-100 dark:border-indigo-900/50">
@@ -66,12 +96,7 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Total Transaksi",    value: d.tx,     color: "text-slate-700 dark:text-slate-200" },
-            { label: "Keuntungan (SHU)",   value: d.shu,    color: "text-emerald-600 dark:text-emerald-400" },
-            { label: "Pengeluaran",        value: d.keluar, color: "text-rose-600 dark:text-rose-400" },
-            { label: "Saldo Kas Koperasi", value: d.saldo,  color: "text-blue-600 dark:text-blue-400" },
-          ].map(({ label, value, color }) => (
+          {items.map(({ label, value, color }) => (
             <div key={label} className="space-y-0.5">
               <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
               <p className={`text-xl font-bold ${color}`}>{value}</p>

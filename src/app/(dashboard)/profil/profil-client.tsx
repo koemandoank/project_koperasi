@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Upload, User, Lock, Save } from "lucide-react"
 import { getMyProfile, updatePhoto, changePassword } from "@/lib/actions/profile"
+import { logout } from "@/lib/actions/auth"
 
 export function ProfilClient() {
   const [profile, setProfile] = useState<any>(null)
@@ -94,7 +95,7 @@ export function ProfilClient() {
             <CardTitle>{profile.member?.full_name || profile.username}</CardTitle>
             <p className="text-sm text-blue-600 font-medium uppercase mt-1">{profile.role}</p>
           </CardHeader>
-          <CardContent className="text-center">
+          <CardContent className="text-center space-y-4">
             {profile.member && (
               <>
                 <label className="cursor-pointer inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-full text-sm font-medium transition-colors w-full">
@@ -102,9 +103,21 @@ export function ProfilClient() {
                   {uploading ? "Mengupload..." : "Ganti Foto"}
                   <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
                 </label>
-                <p className="text-xs text-muted-foreground mt-3">Format: JPG, PNG (Max. 2MB)</p>
+                <p className="text-xs text-muted-foreground mt-1">Format: JPG, PNG (Max. 2MB)</p>
               </>
             )}
+
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (confirm("Apakah Anda yakin ingin keluar?")) {
+                  await logout()
+                }
+              }}
+              className="w-full rounded-full"
+            >
+              Keluar Sesi (Logout)
+            </Button>
           </CardContent>
         </Card>
 
