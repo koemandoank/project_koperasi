@@ -29,6 +29,7 @@ export async function getMembers() {
       status: m.status,
       unit_id: Number(m.unit_id),
       unit_name: m.units?.name || "-",
+      unit_code: m.units?.code || "-",
       role: m.users?.role || "anggota",
       user_id: m.users ? Number(m.users.id) : null,
     }));

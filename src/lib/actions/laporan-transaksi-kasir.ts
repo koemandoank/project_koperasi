@@ -16,6 +16,8 @@ export type TransaksiKasirRow = {
   harga_pokok:  number
   tot_harga_pokok: number
   laba:         number
+  category_slug?: string
+  unit_code?:     string
 }
 
 const PAYMENT_ABBREV: Record<string, string> = {
@@ -73,10 +75,25 @@ export async function getTransaksiKasirDetail(params: {
       include: {
         order_items: {
           include: {
-            products: { select: { purchase_price: true } },
+            products: {
+              select: {
+                purchase_price: true,
+                product_categories: {
+                  select: { slug: true }
+                }
+              }
+            },
           },
         },
-        members: { select: { nik: true, full_name: true } },
+        members: {
+          select: {
+            nik: true,
+            full_name: true,
+            units: {
+              select: { code: true }
+            }
+          }
+        },
       },
       orderBy: { ordered_at: 'asc' },
     })
@@ -91,6 +108,7 @@ export async function getTransaksiKasirDetail(params: {
       const bayar      = PAYMENT_ABBREV[order.payment_method] ?? order.payment_method.toUpperCase().slice(0, 3)
       const nik        = order.members?.nik ?? 'ALL'
       const namaAnggota = order.members?.full_name ?? 'COSTUMER'
+      const unitCode   = order.members?.units?.code ?? 'U-001'
 
       for (const item of order.order_items) {
         const hargaJual    = Number(item.unit_price ?? 0)
@@ -98,6 +116,7 @@ export async function getTransaksiKasirDetail(params: {
         const hpp          = Number((item.products as any)?.purchase_price ?? 0)
         const totHpp       = hpp * item.qty
         const laba         = totHargaJual - totHpp
+        const categorySlug = (item.products as any)?.product_categories?.slug ?? 'umum'
 
         rows.push({
           no,
@@ -113,6 +132,8 @@ export async function getTransaksiKasirDetail(params: {
           harga_pokok:     hpp,
           tot_harga_pokok: totHpp,
           laba,
+          category_slug:   categorySlug,
+          unit_code:       unitCode,
         })
         no++
       }
