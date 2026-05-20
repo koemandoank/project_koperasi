@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'public', // Placeholder, we are using remote server mode
   server: {
     // Ganti URL di bawah ini dengan domain production koperasi setelah di-hosting
-    url: 'https://api.koperasisulfindo.id',
+    url: 'https://projectkoperasi.vercel.app',
     cleartext: false
   }
 };

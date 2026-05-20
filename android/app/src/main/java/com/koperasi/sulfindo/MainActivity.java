@@ -23,7 +23,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     /** Server URL as configured in capacitor.config.json. */
-    private static final String SERVER_URL = "http://192.168.20.17:3000";
+    private static final String SERVER_URL = "https://projectkoperasi.vercel.app";
 
     /** Offline page path loaded from APK assets. */
     private static final String OFFLINE_PAGE_URL = "file:///android_asset/public/offline.html";

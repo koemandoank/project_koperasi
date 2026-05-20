@@ -302,7 +302,7 @@ src/
 8. **Upload Gambar**: Disimpan di `/public/uploads/products/`. Saat deploy ke server luar → migrasi ke cloud storage.
 9. **QRIS**: Simulasi konfirmasi manual. Belum terintegrasi payment gateway.
 10. **Savings include**: Query savings selalu butuh `include: { saving_types: true }`, akses via `s.saving_types.name`.
-11. **APK Capacitor**: Mode remote server (`url: 'http://192.168.20.17:3000'`). Saat server berubah IP, update `capacitor.config.ts` + `MainActivity.java` (`SERVER_URL` constant) + rebuild APK.
+11. **APK Capacitor**: Mode remote server (`url: 'https://projectkoperasi.vercel.app'`). Saat server berubah IP, update `capacitor.config.ts` + `MainActivity.java` (`SERVER_URL` constant) + rebuild APK.
 
 ### 🟢 RESOLVED (historical log)
 12. `Textarea` component dibuat manual di `src/components/ui/textarea.tsx`.
@@ -347,7 +347,7 @@ src/
 ```
 Capacitor Config (capacitor.config.ts):
   appId: com.koperasi.sulfindo
-  server.url: http://192.168.20.17:3000
+  server.url: https://projectkoperasi.vercel.app
 
 Offline Interceptor (MainActivity.java):
   BridgeActivity → override WebViewClient

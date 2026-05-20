@@ -410,28 +410,44 @@ export function LaporanAnalitikClient() {
       const bulanNm = startD.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase()
       const tahun   = startD.getFullYear()
 
-      wsDetail.getCell('B3').value = 'BULAN';   wsDetail.getCell('B3').font = { bold: true }
-      wsDetail.getCell('D3').value = bulanNm;   wsDetail.getCell('D3').font = { bold: true }
-      wsDetail.getCell('F3').value = tahun;     wsDetail.getCell('F3').font = { bold: true }
-
       const totalQty   = rows.reduce((s, r) => s + r.qty, 0)
-      const totalJual  = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
+      const totalJual  = rows.reduce((s, r) => s + r.harga_jual, 0)
       const totalHJual = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
       const totalHPP   = rows.reduce((s, r) => s + r.harga_pokok, 0)
       const totalTHPP  = rows.reduce((s, r) => s + r.tot_harga_pokok, 0)
       const totalLaba  = rows.reduce((s, r) => s + r.laba, 0)
 
       const BLUE = 'FF1F4E78'; const WHITE = 'FFFFFFFF'
-      ;[{ col: 'G', v: 'TOTAL' }, { col: 'H', v: totalQty }, { col: 'I', v: totalJual },
-        { col: 'J', v: totalHJual }, { col: 'K', v: totalHPP }, { col: 'L', v: totalTHPP }, { col: 'M', v: totalLaba }
-      ].forEach(({ col, v }) => {
-        const c = wsDetail.getCell(`${col}3`)
-        c.value = v; c.font = { bold: true, color: { argb: WHITE } }
-        c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
-        c.alignment = { horizontal: 'center' }
+
+      // Merged A3:G3 for Bulan info matching the UI bar
+      wsDetail.mergeCells('A3:G3')
+      const leftCell = wsDetail.getCell('A3')
+      leftCell.value = `BULAN: ${bulanNm} ${tahun}`
+      leftCell.font = { bold: true, color: { argb: WHITE }, size: 10 }
+      leftCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      leftCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      leftCell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 2; colNum <= 7; colNum++) {
+        const c = wsDetail.getCell(3, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
-        if (typeof v === 'number' && col !== 'H') c.numFmt = '#,##0'
-      })
+      }
+
+      // Merged H3:M3 for Totals matching the UI bar
+      wsDetail.mergeCells('H3:M3')
+      const rightCell = wsDetail.getCell('H3')
+      rightCell.value = `TOTAL QTY: ${totalQty}   TOTAL JUAL: Rp ${totalHJual.toLocaleString('id-ID')}   TOTAL HPP: Rp ${totalTHPP.toLocaleString('id-ID')}   TOTAL LABA: Rp ${totalLaba.toLocaleString('id-ID')}`
+      rightCell.font = { bold: true, color: { argb: WHITE }, size: 10 }
+      rightCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      rightCell.alignment = { horizontal: 'right', vertical: 'middle' }
+      rightCell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 9; colNum <= 13; colNum++) {
+        const c = wsDetail.getCell(3, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
 
       const headers = ['NO','TANGGAL','MINGGU','BAYAR','NIK','NAMA ANGGOTA','NAMA BARANG',
         'QTY','HARGA JUAL','TOT HARGA JUAL','HARGA POKOK','TOT HARGA POKOK','LABA']
@@ -461,13 +477,20 @@ export function LaporanAnalitikClient() {
         else labaCell.font = { color: { argb: 'FF16A34A' }, bold: true }
       })
 
-      const totRow = wsDetail.addRow(['', 'TOTAL', '', '', '', '', '',
+      const totRow = wsDetail.addRow(['TOTAL', '', '', '', '', '', '',
         totalQty, totalJual, totalHJual, totalHPP, totalTHPP, totalLaba])
+      const rowNum = totRow.number
+      wsDetail.mergeCells(`A${rowNum}:G${rowNum}`)
       totRow.eachCell((c, cn) => {
         c.font   = { bold: true, color: { argb: WHITE } }
         c.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top:{style:'medium'}, left:{style:'thin'}, bottom:{style:'medium'}, right:{style:'thin'} }
-        if (cn >= 8) c.numFmt = '#,##0'
+        if (cn >= 8) {
+          c.alignment = { horizontal: cn === 8 ? 'center' : 'right' }
+          c.numFmt = '#,##0'
+        } else {
+          c.alignment = { horizontal: 'center' }
+        }
       })
       wsDetail.views = [{ state: 'frozen', xSplit: 0, ySplit: 4 }]
 
@@ -678,7 +701,50 @@ export function LaporanAnalitikClient() {
         'P-SBK CRD\nLABA'
       ]
 
-      wsSembako.addRow([])
+      let totalCrdJual = 0
+      let totalCasJual = 0
+      let totalCrdPokok = 0
+      let totalCasPokok = 0
+      let totalCrdLaba = 0
+
+      sembakoList.forEach(item => {
+        totalCrdJual += item.crdJual
+        totalCasJual += item.casJual
+        totalCrdPokok += item.crdPokok
+        totalCasPokok += item.casPokok
+        totalCrdLaba += item.crdLaba
+      })
+
+      // Merged A4:E4 for Periode info matching the UI bar
+      wsSembako.mergeCells('A4:E4')
+      const leftCellSbk = wsSembako.getCell('A4')
+      leftCellSbk.value = `PERIODE: ${startDate} S/D ${endDate}`
+      leftCellSbk.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      leftCellSbk.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      leftCellSbk.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      leftCellSbk.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 2; colNum <= 5; colNum++) {
+        const c = wsSembako.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
+      // Merged F4:J4 for Totals matching the UI bar
+      wsSembako.mergeCells('F4:J4')
+      const rightCellSbk = wsSembako.getCell('F4')
+      rightCellSbk.value = `TOTAL CRD JUAL: Rp ${totalCrdJual.toLocaleString('id-ID')}   TOTAL CAS JUAL: Rp ${totalCasJual.toLocaleString('id-ID')}   TOTAL LABA: Rp ${totalCrdLaba.toLocaleString('id-ID')}`
+      rightCellSbk.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      rightCellSbk.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      rightCellSbk.alignment = { horizontal: 'right', vertical: 'middle' }
+      rightCellSbk.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 7; colNum <= 10; colNum++) {
+        const c = wsSembako.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
       const shRow = wsSembako.addRow(sembakoHeaders)
       wsSembako.getRow(5).height = 36
 
@@ -688,12 +754,6 @@ export function LaporanAnalitikClient() {
         c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       })
-
-      let totalCrdJual = 0
-      let totalCasJual = 0
-      let totalCrdPokok = 0
-      let totalCasPokok = 0
-      let totalCrdLaba = 0
 
       sembakoList.forEach((item, index) => {
         const rowData = [
@@ -708,12 +768,6 @@ export function LaporanAnalitikClient() {
           item.casPokok,
           item.crdLaba
         ]
-
-        totalCrdJual += item.crdJual
-        totalCasJual += item.casJual
-        totalCrdPokok += item.crdPokok
-        totalCasPokok += item.casPokok
-        totalCrdLaba += item.crdLaba
 
         const r = wsSembako.addRow(rowData)
         const isAlternate = index % 2 === 0
@@ -735,20 +789,21 @@ export function LaporanAnalitikClient() {
       })
 
       const sembakoTotRow = wsSembako.addRow([
-        '', 'TOTAL', '', '', '',
+        'TOTAL', '', '', '', '',
         totalCrdJual, totalCasJual, totalCrdPokok, totalCasPokok, totalCrdLaba
       ])
-      
+      const rowNumSbk = sembakoTotRow.number
+      wsSembako.mergeCells(`A${rowNumSbk}:E${rowNumSbk}`)
       sembakoTotRow.eachCell((c, colNum) => {
         c.font = { bold: true, color: { argb: WHITE } }
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } }
         
-        if (colNum === 2) {
-          c.alignment = { horizontal: 'left', vertical: 'middle' }
-        } else if (colNum >= 6) {
+        if (colNum >= 6) {
           c.alignment = { horizontal: 'right', vertical: 'middle' }
           c.numFmt = '#,##0'
+        } else {
+          c.alignment = { horizontal: 'center', vertical: 'middle' }
         }
       })
 
@@ -777,7 +832,62 @@ export function LaporanAnalitikClient() {
         'P-BARANG', 'ADM. P-BRG', 'KREDIT SBK', 'TOTAL'
       ]
 
-      wsPotongan.addRow([])
+      let tSimpPokok = 0, tSimpWajib = 0, tSimpSukarela = 0
+      let tPUang = 0, tAdmPU = 0, tBTrsf = 0
+      let tPKhusus = 0, tAdmPKhs = 0
+      let tPBarang = 0, tAdmPBrg = 0
+      let tKreditSbk = 0, tTotal = 0
+
+      deductions.forEach(item => {
+        const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
+        const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+        const simpSukarela = item.total_simpanan_salary_cut
+        const pUang = item.total_pinjaman_uang
+        const pKhusus = item.total_pinjaman_kilat
+        const pBarang = item.total_pinjaman_barang
+        const kreditSbk = item.total_paylater
+        const total = simpPokok + simpWajib + simpSukarela + pUang + pKhusus + pBarang + kreditSbk
+
+        tSimpPokok += simpPokok
+        tSimpWajib += simpWajib
+        tSimpSukarela += simpSukarela
+        tPUang += pUang
+        tPKhusus += pKhusus
+        tPBarang += pBarang
+        tKreditSbk += kreditSbk
+        tTotal += total
+      })
+
+      // Merged A4:E4 for Periode info matching the UI bar
+      wsPotongan.mergeCells('A4:E4')
+      const leftCellPot = wsPotongan.getCell('A4')
+      leftCellPot.value = `PERIODE: ${startDate} S/D ${endDate}`
+      leftCellPot.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      leftCellPot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      leftCellPot.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      leftCellPot.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 2; colNum <= 5; colNum++) {
+        const c = wsPotongan.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
+      // Merged F4:Q4 for Totals matching the UI bar
+      wsPotongan.mergeCells('F4:Q4')
+      const rightCellPot = wsPotongan.getCell('F4')
+      rightCellPot.value = `TOTAL POTONGAN: Rp ${tTotal.toLocaleString('id-ID')}   SIMP POKOK: Rp ${tSimpPokok.toLocaleString('id-ID')}   SIMP WAJIB: Rp ${tSimpWajib.toLocaleString('id-ID')}   SIMP SUKARELA: Rp ${tSimpSukarela.toLocaleString('id-ID')}`
+      rightCellPot.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      rightCellPot.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      rightCellPot.alignment = { horizontal: 'right', vertical: 'middle' }
+      rightCellPot.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 7; colNum <= 17; colNum++) {
+        const c = wsPotongan.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
       const phRow = wsPotongan.addRow(potonganHeaders)
       wsPotongan.getRow(5).height = 36
 
@@ -787,12 +897,6 @@ export function LaporanAnalitikClient() {
         c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       })
-
-      let tSimpPokok = 0, tSimpWajib = 0, tSimpSukarela = 0
-      let tPUang = 0, tAdmPU = 0, tBTrsf = 0
-      let tPKhusus = 0, tAdmPKhs = 0
-      let tPBarang = 0, tAdmPBrg = 0
-      let tKreditSbk = 0, tTotal = 0
 
       deductions.forEach((item, index) => {
         const com2Val = (item.department || 'SAU').replace(/^U-/, '')
@@ -808,15 +912,6 @@ export function LaporanAnalitikClient() {
         const admPBrg = 0
         const kreditSbk = item.total_paylater
         const total = simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
-
-        tSimpPokok += simpPokok
-        tSimpWajib += simpWajib
-        tSimpSukarela += simpSukarela
-        tPUang += pUang
-        tPKhusus += pKhusus
-        tPBarang += pBarang
-        tKreditSbk += kreditSbk
-        tTotal += total
 
         const rowData = [
           index + 1,
@@ -860,22 +955,23 @@ export function LaporanAnalitikClient() {
       })
 
       const potonganTotRow = wsPotongan.addRow([
-        '', 'TOTAL', '', '', '',
+        'TOTAL', '', '', '', '',
         tSimpPokok, tSimpWajib, tSimpSukarela,
         tPUang, tAdmPU, tBTrsf, tPKhusus, tAdmPKhs,
         tPBarang, tAdmPBrg, tKreditSbk, tTotal
       ])
-      
+      const rowNumPot = potonganTotRow.number
+      wsPotongan.mergeCells(`A${rowNumPot}:E${rowNumPot}`)
       potonganTotRow.eachCell((c, colNum) => {
         c.font = { bold: true, color: { argb: WHITE } }
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } }
         
-        if (colNum === 2) {
-          c.alignment = { horizontal: 'left', vertical: 'middle' }
-        } else if (colNum >= 6) {
+        if (colNum >= 6) {
           c.alignment = { horizontal: 'right', vertical: 'middle' }
           c.numFmt = '#,##0'
+        } else {
+          c.alignment = { horizontal: 'center', vertical: 'middle' }
         }
       })
 
@@ -903,23 +999,12 @@ export function LaporanAnalitikClient() {
         'TOT PENJUALAN', 'STOCK AKHIR', 'STOCK OPNAME', 'QTY RETUR'
       ]
 
-      wsStock.addRow([])
-      const shRowStock = wsStock.addRow(stockHeaders)
-      wsStock.getRow(5).height = 36
-
-      shRowStock.eachCell((c) => {
-        c.font = { bold: true, color: { argb: WHITE }, size: 9 }
-        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
-        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-        c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
-      })
-
       let tStockAwal = 0, tPembelian = 0
       let tM1 = 0, tM2 = 0, tM3 = 0, tM4 = 0, tM5 = 0
       let tTotPenjualan = 0, tStockAkhir = 0
       let tStockOpname = 0, tQtyRetur = 0
 
-      stocks.forEach((item, index) => {
+      stocks.forEach(item => {
         tStockAwal += item.stockAwal
         tPembelian += item.pembelian
         tM1 += item.m1
@@ -931,7 +1016,49 @@ export function LaporanAnalitikClient() {
         tStockAkhir += item.stockAkhir
         tStockOpname += item.stockOpname || 0
         tQtyRetur += item.qtyRetur
+      })
 
+      // Merged A4:C4 for Periode info matching the UI bar
+      wsStock.mergeCells('A4:C4')
+      const leftCellStock = wsStock.getCell('A4')
+      leftCellStock.value = `PERIODE: ${startDate} S/D ${endDate}`
+      leftCellStock.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      leftCellStock.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      leftCellStock.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      leftCellStock.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 2; colNum <= 3; colNum++) {
+        const c = wsStock.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
+      // Merged D4:N4 for Totals matching the UI bar
+      wsStock.mergeCells('D4:N4')
+      const rightCellStock = wsStock.getCell('D4')
+      rightCellStock.value = `TOTAL STOCK AWAL: ${tStockAwal.toLocaleString('id-ID')}   TOTAL PEMBELIAN: ${tPembelian.toLocaleString('id-ID')}   TOTAL PENJUALAN: ${tTotPenjualan.toLocaleString('id-ID')}   TOTAL RETUR: ${tQtyRetur.toLocaleString('id-ID')}`
+      rightCellStock.font = { bold: true, color: { argb: WHITE }, size: 9 }
+      rightCellStock.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      rightCellStock.alignment = { horizontal: 'right', vertical: 'middle' }
+      rightCellStock.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 5; colNum <= 14; colNum++) {
+        const c = wsStock.getCell(4, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
+
+      const shRowStock = wsStock.addRow(stockHeaders)
+      wsStock.getRow(5).height = 36
+
+      shRowStock.eachCell((c) => {
+        c.font = { bold: true, color: { argb: WHITE }, size: 9 }
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+        c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
+      })
+
+      stocks.forEach((item, index) => {
         const rowData = [
           index + 1,
           item.sku,
@@ -971,23 +1098,24 @@ export function LaporanAnalitikClient() {
       })
 
       const stockTotRow = wsStock.addRow([
-        '', 'TOTAL', '',
+        'TOTAL', '', '',
         tStockAwal, tPembelian,
         tM1, tM2, tM3, tM4, tM5,
         tTotPenjualan, tStockAkhir,
         tStockOpname || '-', tQtyRetur
       ])
-      
+      const rowNumStock = stockTotRow.number
+      wsStock.mergeCells(`A${rowNumStock}:C${rowNumStock}`)
       stockTotRow.eachCell((c, colNum) => {
         c.font = { bold: true, color: { argb: WHITE } }
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top: { style: 'medium' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } }
         
-        if (colNum === 2) {
-          c.alignment = { horizontal: 'left', vertical: 'middle' }
-        } else if (colNum >= 4) {
+        if (colNum >= 4) {
           c.alignment = { horizontal: 'right', vertical: 'middle' }
           if (c.value !== '-') c.numFmt = '#,##0'
+        } else {
+          c.alignment = { horizontal: 'center', vertical: 'middle' }
         }
       })
 
@@ -1035,29 +1163,45 @@ export function LaporanAnalitikClient() {
       const bulanNm = startD.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase()
       const tahun   = startD.getFullYear()
 
-      ws.getCell('B3').value = 'BULAN';   ws.getCell('B3').font = { bold: true }
-      ws.getCell('D3').value = bulanNm;   ws.getCell('D3').font = { bold: true }
-      ws.getCell('F3').value = tahun;     ws.getCell('F3').font = { bold: true }
-
       // TOTAL values (right side of row 3)
       const totalQty   = rows.reduce((s, r) => s + r.qty, 0)
-      const totalJual  = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
+      const totalJual  = rows.reduce((s, r) => s + r.harga_jual, 0)
       const totalHJual = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
       const totalHPP   = rows.reduce((s, r) => s + r.harga_pokok, 0)
       const totalTHPP  = rows.reduce((s, r) => s + r.tot_harga_pokok, 0)
       const totalLaba  = rows.reduce((s, r) => s + r.laba, 0)
 
-      const BLUE = 'FF1F4E78'; const WHITE = 'FFFFFFFF'; const YELLOW = 'FFFFFF00'
-      ;[{ col: 'G', v: 'TOTAL' }, { col: 'H', v: totalQty }, { col: 'I', v: totalJual },
-        { col: 'J', v: totalHJual }, { col: 'K', v: totalHPP }, { col: 'L', v: totalTHPP }, { col: 'M', v: totalLaba }
-      ].forEach(({ col, v }) => {
-        const c = ws.getCell(`${col}3`)
-        c.value = v; c.font = { bold: true, color: { argb: WHITE } }
-        c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
-        c.alignment = { horizontal: 'center' }
+      const BLUE = 'FF1F4E78'; const WHITE = 'FFFFFFFF'
+
+      // Merged A3:G3 for Bulan info matching the UI bar
+      ws.mergeCells('A3:G3')
+      const leftCell = ws.getCell('A3')
+      leftCell.value = `BULAN: ${bulanNm} ${tahun}`
+      leftCell.font = { bold: true, color: { argb: WHITE }, size: 10 }
+      leftCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      leftCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
+      leftCell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 2; colNum <= 7; colNum++) {
+        const c = ws.getCell(3, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
-        if (typeof v === 'number' && col !== 'H') c.numFmt = '#,##0'
-      })
+      }
+
+      // Merged H3:M3 for Totals matching the UI bar
+      ws.mergeCells('H3:M3')
+      const rightCell = ws.getCell('H3')
+      rightCell.value = `TOTAL QTY: ${totalQty}   TOTAL JUAL: Rp ${totalHJual.toLocaleString('id-ID')}   TOTAL HPP: Rp ${totalTHPP.toLocaleString('id-ID')}   TOTAL LABA: Rp ${totalLaba.toLocaleString('id-ID')}`
+      rightCell.font = { bold: true, color: { argb: WHITE }, size: 10 }
+      rightCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+      rightCell.alignment = { horizontal: 'right', vertical: 'middle' }
+      rightCell.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+
+      for (let colNum = 9; colNum <= 13; colNum++) {
+        const c = ws.getCell(3, colNum)
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
+        c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
+      }
 
       // ── ROW 4: Column headers ─────────────────────────────────
       const headers = ['NO','TANGGAL','MINGGU','BAYAR','NIK','NAMA ANGGOTA','NAMA BARANG',
@@ -1091,13 +1235,20 @@ export function LaporanAnalitikClient() {
       })
 
       // ── TOTAL ROW at bottom ───────────────────────────────────
-      const totRow = ws.addRow(['', 'TOTAL', '', '', '', '', '',
+      const totRow = ws.addRow(['TOTAL', '', '', '', '', '', '',
         totalQty, totalJual, totalHJual, totalHPP, totalTHPP, totalLaba])
+      const rowNum = totRow.number
+      ws.mergeCells(`A${rowNum}:G${rowNum}`)
       totRow.eachCell((c, cn) => {
         c.font   = { bold: true, color: { argb: WHITE } }
         c.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top:{style:'medium'}, left:{style:'thin'}, bottom:{style:'medium'}, right:{style:'thin'} }
-        if (cn >= 9) c.numFmt = '#,##0'
+        if (cn >= 8) {
+          c.alignment = { horizontal: cn === 8 ? 'center' : 'right' }
+          c.numFmt = '#,##0'
+        } else {
+          c.alignment = { horizontal: 'center' }
+        }
       })
 
       // Freeze header rows
@@ -1274,65 +1425,7 @@ export function LaporanAnalitikClient() {
 
   return (
     <div className="space-y-4">
-      {/* ── FILTER PANEL ─────────────────────────────── */}
-      <Card>
-        <CardHeader><CardTitle>Filter Laporan</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {/* Preset buttons */}
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map(p => (
-              <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                className="h-8 text-xs">{p.label}</Button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Tgl Mulai</Label>
-              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tgl Akhir</Label>
-              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Metode Pembayaran</Label>
-              <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
-                    <SelectItem key={m} value={m}>{PAYMENT_LABELS[m]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleSearch} disabled={isPending} className="w-full gap-2">
-                <Search className="h-4 w-4" />
-                {isPending ? 'Memuat...' : 'Tampilkan'}
-              </Button>
-            </div>
-          </div>
-          {hasSearched && data && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button onClick={exportExcel} variant="outline" size="sm" className="gap-2 text-green-700 border-green-200 hover:bg-green-50">
-                <FileSpreadsheet className="h-4 w-4" /> Export Excel (Ringkasan)
-              </Button>
-              <Button onClick={exportPDF} variant="outline" size="sm" className="gap-2 text-red-700 border-red-200 hover:bg-red-50">
-                <FileText className="h-4 w-4" /> Export PDF
-              </Button>
-              <Button onClick={exportKasirExcel} variant="outline" size="sm" className="gap-2 text-blue-700 border-blue-200 hover:bg-blue-50">
-                <FileSpreadsheet className="h-4 w-4" /> Export Transaksi Kasir (Detail)
-              </Button>
-              <Button onClick={() => exportMingguanExcel('mingguan')} variant="outline" size="sm" className="gap-2 text-purple-700 border-purple-200 hover:bg-purple-50">
-                <FileSpreadsheet className="h-4 w-4" /> Export Laporan Mingguan
-              </Button>
-              <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 font-semibold shadow-sm">
-                <FileSpreadsheet className="h-4 w-4" /> Export Terpadu (Multi-Tab)
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Filter Laporan dipindahkan ke masing-masing tab UI */}
 
 
       {hasSearched && data && (
@@ -1395,104 +1488,164 @@ export function LaporanAnalitikClient() {
               </CardContent>
             </Card>
           )}
+        </>
+      )}
 
-          {/* ── TABBED SECTION: Data Transaksi + Laporan Mingguan ── */}
-          {(detailRows.length > 0 || true) && (
-            <Card>
-              {/* Tab header */}
-              <div className="flex border-b">
-                <button
-                  onClick={() => setActiveTab('kasir')}
-                  className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === 'kasir'
-                      ? 'border-blue-600 text-blue-700 bg-white'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
-                  }`}
-                >
-                  📋 Data Transaksi Kasir
-                  {detailRows.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
-                      {detailRows.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('mingguan')}
-                  className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === 'mingguan'
-                      ? 'border-purple-600 text-purple-700 bg-white'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
-                  }`}
-                >
-                  📅 Laporan Mingguan
-                  {mingguData && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold">
-                      ✓
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('sembako')}
-                  className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === 'sembako'
-                      ? 'border-emerald-600 text-emerald-700 bg-white'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
-                  }`}
-                >
-                  🌾 Rekap Sembako Anggota
-                  {sembakoRows.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 font-bold">
-                      {sembakoRows.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('potongan')}
-                  className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === 'potongan'
-                      ? 'border-red-600 text-red-700 bg-white'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
-                  }`}
-                >
-                  ✂️ Potongan Gaji
-                  {filteredDeductions.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">
-                      {filteredDeductions.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('stok')}
-                  className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === 'stok'
-                      ? 'border-indigo-600 text-indigo-700 bg-white'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
-                  }`}
-                >
-                  📦 Monitoring Stocks
-                  {filteredStocks.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">
-                      {filteredStocks.length}
-                    </span>
-                  )}
-                </button>
+      {/* ── TABBED SECTION: Data Transaksi + Laporan Mingguan ── */}
+      <Card>
+        {/* Tab header */}
+        <div className="flex border-b overflow-x-auto whitespace-nowrap scrollbar-none">
+          <button
+            onClick={() => setActiveTab('kasir')}
+            className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === 'kasir'
+                ? 'border-blue-600 text-blue-700 bg-white'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
+            }`}
+          >
+            📋 Data Transaksi Kasir
+            {hasSearched && detailRows.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
+                {detailRows.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('mingguan')}
+            className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === 'mingguan'
+                ? 'border-purple-600 text-purple-700 bg-white'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
+            }`}
+          >
+            📅 Laporan Mingguan
+            {mingguData && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold">
+                ✓
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('sembako')}
+            className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === 'sembako'
+                ? 'border-emerald-600 text-emerald-700 bg-white'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
+            }`}
+          >
+            🌾 Rekap Sembako Anggota
+            {hasSearched && sembakoRows.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 font-bold">
+                {sembakoRows.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('potongan')}
+            className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === 'potongan'
+                ? 'border-red-600 text-red-700 bg-white'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
+            }`}
+          >
+            ✂️ Potongan Gaji
+            {hasSearched && filteredDeductions.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">
+                {filteredDeductions.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('stok')}
+            className={`px-5 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+              activeTab === 'stok'
+                ? 'border-indigo-600 text-indigo-700 bg-white'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-slate-50'
+            }`}
+          >
+            📦 Monitoring Stocks
+            {hasSearched && filteredStocks.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">
+                {filteredStocks.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ── TAB: Data Transaksi Kasir ─────────────────── */}
+        {activeTab === 'kasir' && (
+          <div className="p-4 space-y-4">
+            {/* Local Filter Card */}
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                {PRESETS.map(p => (
+                  <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
+                    className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                  <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                        <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-blue-700 hover:bg-blue-800 text-white font-medium shadow-xs">
+                    <Search className="h-3.5 w-3.5" />
+                    {isPending ? 'Memuat...' : 'Tampilkan'}
+                  </Button>
+                </div>
               </div>
 
-              {/* ── TAB: Data Transaksi Kasir ─────────────────── */}
-              {activeTab === 'kasir' && (
-                <div>
-                  {detailRows.length > 0 ? (
-                    <>
-                      <div className="flex items-center gap-6 px-4 py-2 bg-[#1F4E78] text-white text-xs font-bold">
-                        <span>BULAN: {new Date(startDate).toLocaleDateString('id-ID',{month:'long',year:'numeric'}).toUpperCase()}</span>
-                        <span className="ml-auto flex gap-6">
-                          <span>TOTAL QTY: {detailRows.reduce((s,r)=>s+r.qty,0)}</span>
-                          <span>TOTAL JUAL: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_jual,0))}</span>
-                          <span>TOTAL HPP: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0))}</span>
-                          <span>TOTAL LABA: {formatRp(detailRows.reduce((s,r)=>s+r.laba,0))}</span>
-                        </span>
-                      </div>
-                      <div className="overflow-x-auto">
+              {hasSearched && data && (
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
+                  <Button onClick={exportExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-green-700 border-green-200 hover:bg-green-50">
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Excel (Ringkasan)
+                  </Button>
+                  <Button onClick={exportPDF} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50">
+                    <FileText className="h-3.5 w-3.5" /> Export PDF
+                  </Button>
+                  <Button onClick={exportKasirExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50">
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Transaksi Kasir (Detail)
+                  </Button>
+                  <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 font-semibold shadow-xs">
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Terpadu (Multi-Tab)
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {!hasSearched ? (
+              <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                Silakan tentukan filter tanggal dan klik <strong className="text-blue-700">Tampilkan</strong> untuk memuat data transaksi kasir.
+              </div>
+            ) : detailRows.length > 0 ? (
+              <>
+                <div className="flex items-center gap-6 px-4 py-2 bg-[#1F4E78] text-white text-xs font-bold rounded-t">
+                  <span>BULAN: {new Date(startDate).toLocaleDateString('id-ID',{month:'long',year:'numeric'}).toUpperCase()}</span>
+                  <span className="ml-auto flex gap-6">
+                    <span>TOTAL QTY: {detailRows.reduce((s,r)=>s+r.qty,0)}</span>
+                    <span>TOTAL JUAL: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_jual,0))}</span>
+                    <span>TOTAL HPP: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0))}</span>
+                    <span>TOTAL LABA: {formatRp(detailRows.reduce((s,r)=>s+r.laba,0))}</span>
+                  </span>
+                </div>
+                <div className="overflow-x-auto border rounded-b">
                         <table className="w-full text-xs border-collapse">
                           <thead>
                             <tr className="bg-[#1F4E78] text-white">
@@ -1544,8 +1697,8 @@ export function LaporanAnalitikClient() {
                       </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm">
-                      Klik <strong>Tampilkan</strong> pada filter di atas untuk memuat data transaksi.
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                      Tidak ada data transaksi kasir untuk kriteria pencarian ini.
                     </div>
                   )}
                 </div>
@@ -1555,46 +1708,49 @@ export function LaporanAnalitikClient() {
               {activeTab === 'mingguan' && (
                 <div className="p-4 space-y-4">
                   {/* Filter Mingguan */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Tahun</Label>
-                      <Select value={String(mTahun)} onValueChange={v => setMTahun(Number(v ?? new Date().getFullYear()))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Bulan</Label>
-                      <Select value={String(mBulan)} onValueChange={v => setMBulan(Number(v ?? 1))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {BULAN_NAMES.slice(1).map((b,i) => <SelectItem key={i+1} value={String(i+1)}>{b}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Minggu Ke</Label>
-                      <Select value={String(mMinggu)} onValueChange={v => setMMinggu(Number(v ?? 1))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)}>Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-end gap-2">
-                      <Button onClick={handleSearchMingguan} disabled={mingguPending} className="flex-1 gap-2">
-                        <Search className="h-4 w-4" />
-                        {mingguPending ? 'Memuat...' : 'Tampilkan'}
-                      </Button>
-                      {mingguData && (
-                        <Button onClick={() => exportMingguanExcel('mingguan')} variant="outline" size="icon"
-                          className="text-purple-700 border-purple-200 hover:bg-purple-50 shrink-0" title="Export Excel">
-                          <FileSpreadsheet className="h-4 w-4" />
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TAHUN</Label>
+                        <Select value={String(mTahun)} onValueChange={v => setMTahun(Number(v ?? new Date().getFullYear()))}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">BULAN</Label>
+                        <Select value={String(mBulan)} onValueChange={v => setMBulan(Number(v ?? 1))}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {BULAN_NAMES.slice(1).map((b,i) => <SelectItem key={i+1} value={String(i+1)} className="text-xs">{b}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">MINGGU KE</Label>
+                        <Select value={String(mMinggu)} onValueChange={v => setMMinggu(Number(v ?? 1))}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)} className="text-xs">Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSearchMingguan} disabled={mingguPending} className="flex-1 h-9 text-xs gap-2 bg-purple-700 hover:bg-purple-800 text-white font-medium shadow-xs">
+                          <Search className="h-3.5 w-3.5" />
+                          {mingguPending ? 'Memuat...' : 'Tampilkan'}
                         </Button>
-                      )}
+                      </div>
                     </div>
+                    {mingguData && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
+                        <Button onClick={() => exportMingguanExcel('mingguan')} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-purple-700 border-purple-200 hover:bg-purple-50 shadow-xs">
+                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Laporan Mingguan
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {mingguData ? (() => {
@@ -1672,15 +1828,61 @@ export function LaporanAnalitikClient() {
               {/* ── TAB: Rekap Sembako Anggota ─────────────────── */}
               {activeTab === 'sembako' && (
                 <div className="p-4 space-y-4">
-                  {/* Controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3 rounded-lg border">
+                  {/* Local Filter Card */}
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                      {PRESETS.map(p => (
+                        <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
+                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                        <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-medium shadow-xs">
+                          <Search className="h-3.5 w-3.5" />
+                          {isPending ? 'Memuat...' : 'Tampilkan'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {hasSearched && data && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 font-semibold shadow-xs">
+                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Rekap Sembako (Excel Terpadu)
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sembako Local Search and Options */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0">Cari Anggota:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Anggota:</Label>
                       <Input
                         placeholder="Nama atau NIK..."
                         value={sembakoSearch}
                         onChange={e => setSembakoSearch(e.target.value)}
-                        className="h-8 text-xs"
+                        className="h-8 text-xs bg-white"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1691,14 +1893,17 @@ export function LaporanAnalitikClient() {
                         onChange={e => setOnlyActiveSembako(e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
-                      <Label htmlFor="onlyActiveSembako" className="text-xs cursor-pointer select-none">
+                      <Label htmlFor="onlyActiveSembako" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
                         Hanya tampilkan anggota dengan transaksi sembako
                       </Label>
                     </div>
                   </div>
 
-                  {/* Table */}
-                  {sembakoRows.length > 0 ? (
+                  {!hasSearched ? (
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-emerald-700">Tampilkan</strong> untuk memuat rekap sembako anggota.
+                    </div>
+                  ) : sembakoRows.length > 0 ? (
                     <>
                       <div className="flex items-center gap-6 px-4 py-2 bg-emerald-800 text-white text-xs font-bold rounded-t">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
@@ -1748,8 +1953,8 @@ export function LaporanAnalitikClient() {
                       </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg">
-                      Tidak ada data transaksi sembako anggota untuk kriteria pencarian ini.
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                      Tidak ada data rekap sembako anggota untuk kriteria pencarian ini.
                     </div>
                   )}
                 </div>
@@ -1758,15 +1963,61 @@ export function LaporanAnalitikClient() {
               {/* ── TAB: Potongan Gaji ─────────────────── */}
               {activeTab === 'potongan' && (
                 <div className="p-4 space-y-4">
-                  {/* Controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3 rounded-lg border">
+                  {/* Local Filter Card */}
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                      {PRESETS.map(p => (
+                        <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
+                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                        <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-red-700 hover:bg-red-800 text-white font-medium shadow-xs">
+                          <Search className="h-3.5 w-3.5" />
+                          {isPending ? 'Memuat...' : 'Tampilkan'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {hasSearched && data && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50 font-semibold shadow-xs">
+                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Potongan Gaji (Excel Terpadu)
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Potongan Local Search and Options */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0">Cari Karyawan:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Karyawan:</Label>
                       <Input
                         placeholder="Nama, NIK, Departemen..."
                         value={potonganSearch}
                         onChange={e => setPotonganSearch(e.target.value)}
-                        className="h-8 text-xs"
+                        className="h-8 text-xs bg-white"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1777,14 +2028,17 @@ export function LaporanAnalitikClient() {
                         onChange={e => setOnlyActivePotongan(e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
                       />
-                      <Label htmlFor="onlyActivePotongan" className="text-xs cursor-pointer select-none">
+                      <Label htmlFor="onlyActivePotongan" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
                         Hanya tampilkan karyawan dengan potongan gaji
                       </Label>
                     </div>
                   </div>
 
-                  {/* Table */}
-                  {filteredDeductions.length > 0 ? (
+                  {!hasSearched ? (
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-red-700">Tampilkan</strong> untuk memuat data potongan gaji karyawan.
+                    </div>
+                  ) : filteredDeductions.length > 0 ? (
                     <>
                       <div className="flex items-center gap-6 px-4 py-2 bg-red-800 text-white text-xs font-bold rounded-t">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
@@ -1903,7 +2157,7 @@ export function LaporanAnalitikClient() {
                       </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg">
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
                       Tidak ada data potongan gaji karyawan untuk kriteria pencarian ini.
                     </div>
                   )}
@@ -1913,15 +2167,61 @@ export function LaporanAnalitikClient() {
               {/* ── TAB: Monitoring Stocks ─────────────────── */}
               {activeTab === 'stok' && (
                 <div className="p-4 space-y-4">
-                  {/* Controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-3 rounded-lg border">
+                  {/* Local Filter Card */}
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                      {PRESETS.map(p => (
+                        <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
+                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                        <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-medium shadow-xs">
+                          <Search className="h-3.5 w-3.5" />
+                          {isPending ? 'Memuat...' : 'Tampilkan'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {hasSearched && data && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50 font-semibold shadow-xs">
+                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Monitoring Stok (Excel Terpadu)
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stok Local Search and Options */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0">Cari Produk:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Produk:</Label>
                       <Input
                         placeholder="Nama atau SKU..."
                         value={stockSearch}
                         onChange={e => setStockSearch(e.target.value)}
-                        className="h-8 text-xs"
+                        className="h-8 text-xs bg-white"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1932,14 +2232,17 @@ export function LaporanAnalitikClient() {
                         onChange={e => setOnlyActiveStock(e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <Label htmlFor="onlyActiveStock" className="text-xs cursor-pointer select-none">
+                      <Label htmlFor="onlyActiveStock" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
                         Hanya tampilkan produk dengan pergerakan / stok aktif
                       </Label>
                     </div>
                   </div>
 
-                  {/* Table */}
-                  {filteredStocks.length > 0 ? (
+                  {!hasSearched ? (
+                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-indigo-700">Tampilkan</strong> untuk memuat data monitoring stok produk.
+                    </div>
+                  ) : filteredStocks.length > 0 ? (
                     <>
                       <div className="flex items-center gap-6 px-4 py-2 bg-indigo-800 text-white text-xs font-bold rounded-t">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
@@ -2013,9 +2316,10 @@ export function LaporanAnalitikClient() {
                 </div>
               )}
             </Card>
-          )}
 
-          {/* ── SLOW MOVING ─────────────────────────────── */}
+            {hasSearched && data && (
+              <>
+                {/* ── SLOW MOVING ─────────────────────────────── */}
 
           {data.slowMoving.length > 0 && (
             <Card className="border-orange-200">
