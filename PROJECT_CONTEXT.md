@@ -483,6 +483,7 @@ header-client.tsx (Client Component)
 26. **[FIX] Fallback Saldo Kas Koperasi** — Mengimplementasikan kalkulasi fallback dinamis untuk `saldoKas` di `getGlobalFinancialStats` berdasarkan akumulasi saldo tabungan, angsuran pinjaman, penjualan online/POS dikurangi pengeluaran sehingga saldo kas tidak Rp 0 saat tabel chart of accounts kosong.
 27. **[FIX] Default Show Financial Stats** — Mengubah default pengaturan dashboard anggota agar `show_financial_stats` bernilai `true` saat konfigurasi cache kosong, sehingga statistik koperasi langsung tampil.
 28. **[NEW] Pembaruan Branding & Slogan Login** — Mengganti nama default "Koperasi Digital" menjadi "Koperasi Sulfindo" pada halaman login, home dashboard, error page, dan metadata halaman, serta memperbarui slogan login menjadi "Wujudkan budaya keterbukaan dan transparansi melalui transformasi digital."
+29. **[FIX] Default Redirect Halaman Mobile** — Menambahkan deteksi browser mobile berbasis User-Agent di middleware server-side (`auth.config.ts`), secara otomatis mengarahkan akses mobile dari `/dashboard` langsung ke `/dashboard/home` (Beranda) agar halaman Beranda langsung terbuka sejak awal masuk sistem.
 
 ---
 
