@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
@@ -205,8 +205,8 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
             </Card>
           </div>
 
-          {/* Mobile: Fixed bottom-sheet cart */}
-          <Card className="flex flex-col fixed bottom-0 left-0 right-0 lg:hidden rounded-t-2xl border-t shadow-2xl bg-white dark:bg-slate-950 z-40">
+          {/* Mobile: Fixed bottom-sheet cart - elevated to sit above BottomNav */}
+          <Card className="flex flex-col fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 lg:hidden rounded-t-2xl border-t shadow-2xl bg-white dark:bg-slate-950 z-40">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white rounded-t-2xl">
               <h3 className="font-bold flex items-center gap-2 text-sm">
                 <ShoppingCart className="h-4 w-4" /> Keranjang
@@ -224,15 +224,15 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                       <p className="text-[10px] text-blue-600">{formatRp(item.price)}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => updateQty(item.id, -1)} className="h-5 w-5 rounded-full border flex items-center justify-center">
-                        <Minus className="h-2.5 w-2.5" />
+                      <button onClick={() => updateQty(item.id, -1)} className="h-8 w-8 rounded-full border flex items-center justify-center active:bg-slate-100">
+                        <Minus className="h-3 w-3" />
                       </button>
                       <span className="w-4 text-center text-xs font-bold">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, 1)} className="h-5 w-5 rounded-full border flex items-center justify-center">
-                        <Plus className="h-2.5 w-2.5" />
+                      <button onClick={() => updateQty(item.id, 1)} className="h-8 w-8 rounded-full border flex items-center justify-center active:bg-slate-100">
+                        <Plus className="h-3 w-3" />
                       </button>
-                      <button onClick={() => setCart(c => c.filter(i => i.id !== item.id))} className="ml-1 text-red-400">
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <button onClick={() => setCart(c => c.filter(i => i.id !== item.id))} className="ml-1 p-2 text-red-400 active:text-red-600">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -245,7 +245,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                   <span>Total</span>
                   <span className="text-blue-600">{formatRp(grandTotal)}</span>
                 </div>
-                <Button size="sm" className="w-full bg-green-600 hover:bg-green-700" onClick={() => setCheckoutOpen(true)}>
+                <Button size="sm" className="w-full h-12 bg-green-600 hover:bg-green-700" onClick={() => setCheckoutOpen(true)}>
                   Pesan Sekarang
                 </Button>
               </div>
@@ -279,22 +279,22 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
         </div>
       )}
 
-      {/* Checkout Dialog */}
-      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Pesanan Online</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Checkout Drawer */}
+      <Drawer open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Konfirmasi Pesanan Online</DrawerTitle>
+          </DrawerHeader>
+          <DrawerBody className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs uppercase font-semibold text-muted-foreground">Metode Pengambilan</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Button type="button" variant={deliveryType === "pickup" ? "default" : "outline"}
-                  onClick={() => setDeliveryType("pickup")} className="gap-2">
+                  onClick={() => setDeliveryType("pickup")} className="h-12 gap-2">
                   <Package className="h-4 w-4" /> Ambil / Nitip
                 </Button>
                 <Button type="button" variant={deliveryType === "delivery" ? "default" : "outline"}
-                  onClick={() => setDeliveryType("delivery")} className="gap-2">
+                  onClick={() => setDeliveryType("delivery")} className="h-12 gap-2">
                   <Truck className="h-4 w-4" /> Dikirim
                 </Button>
               </div>
@@ -302,7 +302,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
             {deliveryType === "delivery" && (
               <div className="space-y-2">
                 <Label>Alamat Pengiriman</Label>
-                <Textarea rows={2} placeholder="Tuliskan alamat lengkap..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} />
+                <Textarea rows={2} placeholder="Tuliskan alamat lengkap..." value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className="text-base" />
               </div>
             )}
             <div className="space-y-2">
@@ -310,32 +310,32 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
               <div className="grid grid-cols-3 gap-2">
                 {(["cash", "paylater", "qris"] as const).map(m => (
                   <Button key={m} type="button" variant={paymentMethod === m ? "default" : "outline"}
-                    className="flex-col h-auto py-2 gap-1" onClick={() => setPaymentMethod(m)}>
-                    {m === "cash" && <Banknote className="h-4 w-4" />}
-                    {m === "paylater" && <CreditCard className="h-4 w-4" />}
-                    {m === "qris" && <QrCode className="h-4 w-4" />}
-                    <span className="text-[10px] uppercase">{PM_LABEL[m]}</span>
+                    className="flex-col h-auto py-3 gap-1 active:bg-slate-100" onClick={() => setPaymentMethod(m)}>
+                    {m === "cash" && <Banknote className="h-5 w-5" />}
+                    {m === "paylater" && <CreditCard className="h-5 w-5" />}
+                    {m === "qris" && <QrCode className="h-5 w-5" />}
+                    <span className="text-[10px] uppercase font-semibold">{PM_LABEL[m]}</span>
                   </Button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
               <Label>Catatan untuk Kasir (opsional)</Label>
-              <Textarea rows={2} placeholder="Pesan tambahan, waktu pengambilan, dll..." value={note} onChange={e => setNote(e.target.value)} />
+              <Textarea rows={2} placeholder="Pesan tambahan, waktu pengambilan, dll..." value={note} onChange={e => setNote(e.target.value)} className="text-base" />
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-3">
               <span>Total</span>
               <span className="text-blue-600">{formatRp(grandTotal)}</span>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>Batal</Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={handleCheckout} disabled={loading}>
+          </DrawerBody>
+          <DrawerFooter>
+            <Button className="w-full h-12 bg-green-600 hover:bg-green-700 active:bg-green-800 text-base font-semibold" onClick={handleCheckout} disabled={loading}>
               {loading ? "Mengirim..." : "Kirim Pesanan"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setCheckoutOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

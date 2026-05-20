@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreditCard, DollarSign, Wallet, TrendingUp, ShoppingBag, Package, Users, UserMinus, UserCheck, Activity, CheckCircle, AlertCircle, Send } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerBody,
+} from "@/components/ui/drawer"
 import Link from "next/link"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -499,33 +499,32 @@ export function MemberDashboard({ data }: { data: any }) {
                   </div>
                 ))}
               </div>
-            )}
+)}
           </CardContent>
         </Card>
       </div>
 
-      {/* Modal Riwayat Pinjaman */}
-      <Dialog open={showLoanHistory} onOpenChange={setShowLoanHistory}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Riwayat & Detail Pinjaman Anda</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Notifikasi Approval & Dana Transfer */}
+      {/* ── Drawer Riwayat Pinjaman (Bottom Sheet) ── */}
+      <Drawer open={showLoanHistory} onOpenChange={setShowLoanHistory}>
+        <DrawerContent showClose className="max-h-[95vh]">
+          <DrawerHeader>
+            <DrawerTitle>Riwayat & Detail Pinjaman</DrawerTitle>
+          </DrawerHeader>
+
+          <DrawerBody>
+            {/* Notifikasi Approval */}
             {recentApprovals.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold text-sm">Pemberitahuan Pinjaman</h3>
+              <div className="space-y-3 mb-4">
                 {recentApprovals.map((app: any) => (
-                  <div key={app.id} className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
+                  <div key={app.id} className="bg-green-50 border border-green-200 rounded-xl p-4 flex gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-sm text-green-900">Pinjaman Disetujui ✓</p>
                       <p className="text-sm text-green-800 mt-1">
-                        Pengajuan pinjaman {app.product_name} sebesar {formatRp(app.amount_requested)} telah <strong>DISETUJUI</strong> oleh pengurus/admin.
+                        Pengajuan {app.product_name} sebesar {formatRp(app.amount_requested)} telah <strong>DISETUJUI</strong>.
                       </p>
                       <p className="text-xs text-green-700 mt-2">
-                        💰 <strong>Dana telah ditransfer ke rekening Anda.</strong> Silakan cek saldo simpanan atau konfirmasi dengan kasir.
+                        💰 <strong>Dana telah ditransfer ke rekening Anda.</strong>
                       </p>
                     </div>
                   </div>
@@ -533,84 +532,87 @@ export function MemberDashboard({ data }: { data: any }) {
               </div>
             )}
 
-            {/* Daftar Semua Pinjaman */}
+            {/* Daftar Pinjaman — Card per loan */}
             {allLoans.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Anda belum pernah mengajukan pinjaman.</p>
+              <div className="text-center py-8 text-slate-400">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                <p className="text-sm">Anda belum pernah mengajukan pinjaman.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-sm">Daftar Pinjaman</h3>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {allLoans.map((loan: any) => (
-                    <div 
-                      key={loan.id}
+              <div className="space-y-3">
+                {allLoans.map((loan: any) => (
+                  <div key={loan.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                    {/* Loan Card Header */}
+                    <div
+                      className="flex items-center justify-between p-4 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800"
                       onClick={() => setSelectedLoanId(selectedLoanId === loan.id ? null : loan.id)}
-                      className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-mono font-semibold text-sm">{loan.loan_no}</p>
-                          <p className="text-xs text-muted-foreground">Pokok: {formatRp(loan.principal)} | Metode: {loan.repayment_method === "salary_cut" ? "Potong Gaji" : "Tunai"}</p>
-                          <Link 
-                            href={`/pinjaman/transaksi/${loan.id}`}
-                            className="text-xs text-blue-600 hover:text-blue-800 underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Lihat Jadwal Transaksi Lengkap →
-                          </Link>
-                        </div>
-                        <Badge className={
-                          loan.status === "active" ? "bg-green-100 text-green-700" :
-                          loan.status === "paid_off" ? "bg-slate-100 text-slate-700" :
-                          loan.status === "overdue" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                        }>
-                          {loan.status === "active" ? "Aktif" : loan.status === "paid_off" ? "Lunas" : loan.status === "overdue" ? "Terlambat" : loan.status}
-                        </Badge>
+                      <div className="min-w-0">
+                        <p className="font-mono font-semibold text-sm text-slate-900 dark:text-slate-50">{loan.loan_no}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Pokok: {formatRp(loan.principal)} · {loan.repayment_method === "salary_cut" ? "Potong Gaji" : "Tunai"}
+                        </p>
+                        <Link
+                          href={`/pinjaman/transaksi/${loan.id}`}
+                          className="text-xs text-blue-600 underline mt-1 block"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          Lihat Jadwal Transaksi →
+                        </Link>
                       </div>
-                      
-                      {/* Jadwal Cicilan (Expand) */}
-                      {selectedLoanId === loan.id && (
-                        <div className="mt-4 pt-4 border-t">
-                          <p className="text-xs font-semibold mb-3">Jadwal Cicilan:</p>
-                          <div className="max-h-48 overflow-y-auto border rounded">
-                            <Table className="text-xs">
-                              <TableHeader>
-                                <TableRow className="bg-slate-50">
-                                  <TableHead className="h-8">Tgl Jatuh Tempo</TableHead>
-                                  <TableHead className="h-8">Pokok</TableHead>
-                                  <TableHead className="h-8">Bunga</TableHead>
-                                  <TableHead className="h-8">Total</TableHead>
-                                  <TableHead className="h-8">Status</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {loan.loan_schedules?.map((schedule: any) => (
-                                  <TableRow key={schedule.id} className="border-t">
-                                    <TableCell className="py-2">{new Date(schedule.due_date).toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' })}</TableCell>
-                                    <TableCell className="py-2">{formatRp(Number(schedule.principal_payment))}</TableCell>
-                                    <TableCell className="py-2">{formatRp(Number(schedule.interest_payment))}</TableCell>
-                                    <TableCell className="py-2">{formatRp(Number(schedule.total_payment))}</TableCell>
-                                    <TableCell className="py-2">
-                                      <Badge variant="outline" className="text-[10px]">
-                                        {schedule.status === 'paid' ? 'Lunas' : schedule.status === 'pending' ? 'Menunggu' : schedule.status === 'overdue' ? 'Terlambat' : schedule.status}
-                                      </Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                )) || <TableRow><TableCell colSpan={5} className="text-center py-2 text-muted-foreground">Belum ada jadwal cicilan</TableCell></TableRow>}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      )}
+                      <Badge className={[
+                        "shrink-0 ml-3",
+                        loan.status === "active"   ? "bg-green-100 text-green-700" :
+                        loan.status === "paid_off" ? "bg-slate-100 text-slate-700" :
+                        loan.status === "overdue"  ? "bg-red-100 text-red-700" :
+                                                     "bg-amber-100 text-amber-700"
+                      ].join(" ")}>
+                        {loan.status === "active" ? "Aktif" :
+                         loan.status === "paid_off" ? "Lunas" :
+                         loan.status === "overdue"  ? "Terlambat" : loan.status}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Jadwal Cicilan — Expanded */}
+                    {selectedLoanId === loan.id && (
+                      <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-2">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Jadwal Cicilan</p>
+                        {(loan.loan_schedules || []).length === 0 ? (
+                          <p className="text-sm text-slate-400 text-center py-2">Belum ada jadwal cicilan.</p>
+                        ) : (
+                          loan.loan_schedules.map((schedule: any) => (
+                            <div key={schedule.id} className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800 last:border-0">
+                              <div>
+                                <p className="text-sm font-medium">Cicilan #{schedule.installment_no}</p>
+                                <p className="text-xs text-slate-400">
+                                  {new Date(schedule.due_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: '2-digit' })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold">{formatRp(Number(schedule.total_payment ?? schedule.total_due ?? 0))}</p>
+                                <Badge variant="outline" className={[
+                                  "text-xs mt-0.5",
+                                  schedule.status === 'paid'    ? "text-green-600 border-green-200" :
+                                  schedule.status === 'overdue' ? "text-red-600 border-red-200" :
+                                  "text-slate-500"
+                                ].join(" ")}>
+                                  {schedule.status === 'paid' ? 'Lunas' :
+                                   schedule.status === 'pending' ? 'Menunggu' :
+                                   schedule.status === 'overdue' ? 'Terlambat' : schedule.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
       </div>
       
       {/* Modul Promosi Mengambang Khusus PC */}

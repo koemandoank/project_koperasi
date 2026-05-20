@@ -89,10 +89,10 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="space-y-2">
-          <Label>Location</Label>
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Lokasi</Label>
           <select
-            className="w-full border rounded-md p-2 bg-background"
+            className="w-full h-12 border rounded-xl px-3 bg-background text-base"
             value={locationId}
             onChange={(e) => setLocationId(e.target.value)}
           >
@@ -104,23 +104,24 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Opname Date</Label>
-          <Input type="date" value={opnameDate} onChange={(e) => setOpnameDate(e.target.value)} />
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Tanggal Opname</Label>
+          <Input type="date" value={opnameDate} onChange={(e) => setOpnameDate(e.target.value)} className="h-12 text-base" />
         </div>
 
-        <div className="space-y-2">
-          <Label>Notes (optional)</Label>
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan" />
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Catatan (opsional)</Label>
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tulis catatan di sini..." className="h-12 text-base" />
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label>Items</Label>
+          <Label className="font-bold text-base">Daftar Item Barang</Label>
           <Button
             variant="outline"
             type="button"
+            className="h-11 px-4 text-sm font-semibold border-blue-200 text-blue-600 hover:bg-blue-50"
             onClick={() =>
               setRows((prev) => [
                 ...prev,
@@ -128,25 +129,26 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
               ])
             }
           >
-            + Add
+            + Tambah Item
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {rows.map((r, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-              <div className="space-y-2">
-                <Label>Product ID</Label>
+            <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-4 md:gap-3 md:items-end">
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">ID Produk</Label>
                 <Input
                   value={r.productId}
                   onChange={(e) =>
                     setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, productId: e.target.value } : x)))
                   }
-                  placeholder="mis: 123"
+                  placeholder="cth: 123"
+                  className="h-12 text-base font-mono"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Qty System</Label>
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">Stok Sistem</Label>
                 <Input
                   type="number"
                   value={r.qtySystem}
@@ -155,10 +157,11 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
                       prev.map((x, i) => (i === idx ? { ...x, qtySystem: Number(e.target.value) } : x))
                     )
                   }
+                  className="h-12 text-base"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Qty Physical</Label>
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">Stok Fisik</Label>
                 <Input
                   type="number"
                   value={r.qtyPhysical}
@@ -167,25 +170,30 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
                       prev.map((x, i) => (i === idx ? { ...x, qtyPhysical: Number(e.target.value) } : x))
                     )
                   }
+                  className="h-12 text-base"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Input
-                  value={r.notes}
-                  onChange={(e) =>
-                    setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: e.target.value } : x)))
-                  }
-                  placeholder="opsional"
-                />
-                <Button
-                  variant="destructive"
-                  type="button"
-                  disabled={rows.length <= 1}
-                  onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
-                >
-                  Remove
-                </Button>
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">Keterangan / Selisih</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={r.notes}
+                    onChange={(e) =>
+                      setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: e.target.value } : x)))
+                    }
+                    placeholder="opsional"
+                    className="h-12 text-base flex-1"
+                  />
+                  <Button
+                    variant="destructive"
+                    type="button"
+                    className="h-12 px-4 shrink-0 font-semibold"
+                    disabled={rows.length <= 1}
+                    onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
+                  >
+                    Hapus
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -193,17 +201,17 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
       </div>
 
       <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleCreateDraftAndRecord} disabled={!canCreate}>
-          Create Draft + Record
+        <Button type="button" onClick={handleCreateDraftAndRecord} disabled={!canCreate} className="w-full h-12 text-base font-semibold">
+          Buat Draft Opname + Catat Item
         </Button>
       </div>
 
-      <div className="pt-2 border-t">
-        <h4 className="font-semibold">Approve (Manual opnameId)</h4>
-        <div className="flex items-center gap-2 mt-2">
-          <Input value={approveId} onChange={(e) => setApproveId(e.target.value)} placeholder="opnameId" />
-          <Button type="button" disabled={!approveId.trim()} onClick={() => handleApproveManual(approveId)}>
-            Approve
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+        <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Approve (Manual opnameId)</h4>
+        <div className="flex gap-2 mt-2">
+          <Input value={approveId} onChange={(e) => setApproveId(e.target.value)} placeholder="Masukkan ID Opname..." className="h-12 text-base" />
+          <Button type="button" disabled={!approveId.trim()} onClick={() => handleApproveManual(approveId)} className="h-12 px-6 font-semibold shrink-0">
+            Setujui
           </Button>
         </div>
       </div>

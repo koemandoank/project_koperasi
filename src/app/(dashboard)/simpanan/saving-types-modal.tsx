@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { Settings, Plus, Edit, Loader2, Users, Info } from "lucide-react";
 import { toast } from "sonner";
 import { createSavingType, updateSavingType, toggleSavingTypeStatus, type SavingTypeData } from "@/lib/actions/saving-types";
@@ -124,235 +124,182 @@ export function SavingTypesModal({ initialTypes }: { initialTypes: SavingTypeDat
     }
   };
 
-  const renderForm = (isEdit: boolean) => (
-    <div className="space-y-4 pt-2">
-      {/* Kode — hanya bisa di-set saat tambah baru */}
-      {!isEdit && (
-        <div className="space-y-1">
-          <Label>Kode Singkat <span className="text-red-500">*</span></Label>
-          <Input
-            value={form.code}
-            onChange={(e) => setField("code", e.target.value.toUpperCase())}
-            placeholder="Contoh: SW, SP, SD"
-            maxLength={10}
-            className="font-mono uppercase"
-          />
-          <p className="text-xs text-muted-foreground">Kode unik, maks 10 karakter, tidak bisa diubah setelah dibuat.</p>
-        </div>
-      )}
-
-      <div className="space-y-1">
-        <Label>Nama Jenis Simpanan <span className="text-red-500">*</span></Label>
-        <Input
-          value={form.name}
-          onChange={(e) => setField("name", e.target.value)}
-          placeholder="Contoh: Simpanan Wajib Bulanan"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>Min. Saldo (Rp)</Label>
-          <Input
-            type="number"
-            value={form.min_amount}
-            onChange={(e) => setField("min_amount", e.target.value)}
-            min={0}
-          />
-          <p className="text-xs text-muted-foreground">Saldo minimum rekening ini boleh dimiliki.</p>
-        </div>
-        <div className="space-y-1">
-          <Label>Jumlah Setoran Wajib Bulanan (Rp)</Label>
-          <Input
-            type="number"
-            value={form.monthly_amount}
-            onChange={(e) => setField("monthly_amount", e.target.value)}
-            min={0}
-            disabled={!form.is_mandatory}
-          />
-          {!form.is_mandatory && (
-            <p className="text-xs text-amber-600">Simpanan sukarela tidak memiliki jumlah wajib.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 p-3 bg-slate-50 rounded-lg border">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-sm font-semibold">Wajib (Mandatory)</Label>
-            <p className="text-xs text-muted-foreground">Anggota wajib memiliki dan menyetor rutin.</p>
+  const renderForm = (isEdit: boolean, formId: string) => (
+    <DrawerBody>
+      <div className="space-y-4">
+        {!isEdit && (
+          <div className="space-y-1">
+            <Label className="font-semibold text-sm">Kode Singkat <span className="text-red-500">*</span></Label>
+            <Input
+              value={form.code}
+              onChange={(e) => setField("code", e.target.value.toUpperCase())}
+              placeholder="Contoh: SW, SP, SD"
+              maxLength={10}
+              className="h-12 font-mono uppercase text-base"
+            />
+            <p className="text-xs text-slate-400">Kode unik, maks 10 karakter, tidak bisa diubah setelah dibuat.</p>
           </div>
-          <Switch
-            checked={form.is_mandatory}
-            onCheckedChange={(v) => setField("is_mandatory", v)}
+        )}
+
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Nama Jenis Simpanan <span className="text-red-500">*</span></Label>
+          <Input
+            value={form.name}
+            onChange={(e) => setField("name", e.target.value)}
+            placeholder="Contoh: Simpanan Wajib Bulanan"
+            className="h-12 text-base"
           />
         </div>
-        <div className="flex items-center justify-between border-t pt-3">
-          <div>
-            <Label className="text-sm font-semibold">Bisa Ditarik</Label>
-            <p className="text-xs text-muted-foreground">Anggota diizinkan menarik simpanan ini.</p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="font-semibold text-sm">Min. Saldo (Rp)</Label>
+            <Input type="number" value={form.min_amount} onChange={(e) => setField("min_amount", e.target.value)} min={0} className="h-12" />
           </div>
-          <Switch
-            checked={form.is_withdrawable}
-            onCheckedChange={(v) => setField("is_withdrawable", v)}
-          />
+          <div className="space-y-1">
+            <Label className="font-semibold text-sm">Setoran Bulanan (Rp)</Label>
+            <Input type="number" value={form.monthly_amount} onChange={(e) => setField("monthly_amount", e.target.value)} min={0} disabled={!form.is_mandatory} className="h-12" />
+            {!form.is_mandatory && <p className="text-xs text-amber-600">Simpanan sukarela tidak wajib.</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Wajib (Mandatory)</p>
+              <p className="text-xs text-slate-400">Anggota wajib menyetor rutin.</p>
+            </div>
+            <Switch checked={form.is_mandatory} onCheckedChange={(v) => setField("is_mandatory", v)} />
+          </div>
+          <div className="flex items-center justify-between border-t pt-3">
+            <div>
+              <p className="text-sm font-semibold">Bisa Ditarik</p>
+              <p className="text-xs text-slate-400">Anggota bisa menarik simpanan ini.</p>
+            </div>
+            <Switch checked={form.is_withdrawable} onCheckedChange={(v) => setField("is_withdrawable", v)} />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Keterangan (Opsional)</Label>
+          <Input value={form.description} onChange={(e) => setField("description", e.target.value)} placeholder="Contoh: Simpanan pokok keanggotaan" className="h-12 text-base" />
         </div>
       </div>
-
-      <div className="space-y-1">
-        <Label>Keterangan (Opsional)</Label>
-        <Input
-          value={form.description}
-          onChange={(e) => setField("description", e.target.value)}
-          placeholder="Contoh: Simpanan pokok keanggotaan koperasi"
-        />
-      </div>
-
-      <Button
-        className="w-full gap-2"
-        onClick={() => handleSave(isEdit)}
-        disabled={saving || !form.name.trim() || (!isEdit && !form.code.trim())}
-      >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Tambah Jenis Simpanan"}
-      </Button>
-    </div>
+    </DrawerBody>
   );
 
   return (
     <>
-      {/* Tombol Trigger */}
-      <Button variant="outline" className="gap-2" onClick={() => setOpen(true)}>
+      {/* Trigger Button */}
+      <Button variant="outline" className="h-12 gap-2" onClick={() => setOpen(true)}>
         <Settings className="h-4 w-4" />
         Pengaturan Simpanan
       </Button>
 
-      {/* Modal Utama — Tabel Jenis Simpanan */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Pengaturan Jenis Simpanan</DialogTitle>
-          </DialogHeader>
+      {/* ── Main Drawer — Saving Types List ── */}
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Pengaturan Jenis Simpanan</DrawerTitle>
+          </DrawerHeader>
 
-          <div className="flex justify-between items-center py-2">
-            <p className="text-sm text-muted-foreground">
-              Atur nominal, ketentuan, dan status tiap jenis simpanan anggota.
-            </p>
-            <Button size="sm" className="gap-2" onClick={openAdd}>
-              <Plus className="h-4 w-4" />
-              Tambah Jenis Baru
+          <DrawerBody>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-slate-400">Atur nominal dan ketentuan tiap jenis simpanan.</p>
+              <Button size="sm" className="h-10 gap-2" onClick={openAdd}>
+                <Plus className="h-4 w-4" /> Tambah Baru
+              </Button>
+            </div>
+
+            {/* Card list replacing table */}
+            <div className="space-y-3">
+              {types.map((t) => (
+                <div
+                  key={t.id}
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 ${
+                    !t.is_active ? "opacity-50" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded text-sm">{t.code}</span>
+                        <Badge variant={t.is_mandatory ? "default" : "secondary"} className="text-xs">{t.is_mandatory ? "Wajib" : "Sukarela"}</Badge>
+                        {t.is_withdrawable && <Badge variant="outline" className="text-xs text-blue-600">Bisa Tarik</Badge>}
+                      </div>
+                      <p className="font-semibold text-base">{t.name}</p>
+                      {t.description && <p className="text-xs text-slate-400 mt-0.5">{t.description}</p>}
+                    </div>
+                    <Switch checked={t.is_active} onCheckedChange={() => handleToggle(t.id, t.is_active)} aria-label={`Toggle ${t.name}`} />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-400">Anggota</p>
+                      <p className="font-semibold flex items-center gap-1"><Users className="h-3 w-3 text-slate-300" />{t.member_count}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Min. Saldo</p>
+                      <p className="font-semibold">{formatRp(t.min_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Setoran/Bulan</p>
+                      <p className={`font-semibold ${t.is_mandatory ? "text-emerald-700" : "text-slate-400 italic text-xs"}`}>
+                        {t.is_mandatory ? formatRp(t.monthly_amount) : "Sukarela"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button size="sm" variant="ghost" className="w-full h-10 gap-2" onClick={() => openEdit(t)}>
+                    <Edit className="h-3.5 w-3.5" /> Edit Jenis Simpanan
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl mt-4">
+              <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                Jenis simpanan <strong>Sukarela</strong> tidak memiliki setoran bulanan wajib.
+              </p>
+            </div>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* ── Edit Drawer ── */}
+      <Drawer open={editOpen} onOpenChange={setEditOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Edit — <span className="font-mono text-blue-600">{editTarget?.code}</span></DrawerTitle>
+          </DrawerHeader>
+          {renderForm(true, "edit-form")}
+          <DrawerFooter>
+            <Button className="w-full h-12" onClick={() => handleSave(true)} disabled={saving || !form.name.trim()}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {saving ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
-          </div>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setEditOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
-          <div className="border rounded-xl overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead>Kode</TableHead>
-                  <TableHead>Nama Jenis Simpanan</TableHead>
-                  <TableHead className="text-right">Min. Saldo</TableHead>
-                  <TableHead className="text-right">Setoran Bulanan</TableHead>
-                  <TableHead className="text-center">Anggota</TableHead>
-                  <TableHead className="text-center">Sifat</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {types.map((t) => (
-                  <TableRow key={t.id} className={!t.is_active ? "opacity-50" : ""}>
-                    <TableCell>
-                      <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-sm">
-                        {t.code}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{t.name}</p>
-                      {t.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right text-sm">{formatRp(t.min_amount)}</TableCell>
-                    <TableCell className="text-right">
-                      {t.is_mandatory ? (
-                        <span className="font-semibold text-emerald-700">{formatRp(t.monthly_amount)}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">Sukarela</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1 text-sm">
-                        <Users className="h-3.5 w-3.5 text-slate-400" />
-                        {t.member_count}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <Badge variant={t.is_mandatory ? "default" : "secondary"} className="text-xs">
-                          {t.is_mandatory ? "Wajib" : "Sukarela"}
-                        </Badge>
-                        {t.is_withdrawable && (
-                          <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
-                            Bisa Tarik
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={t.is_active}
-                        onCheckedChange={() => handleToggle(t.id, t.is_active)}
-                        aria-label={`Toggle status ${t.name}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1"
-                        onClick={() => openEdit(t)}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mt-2">
-            <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800">
-              Jenis simpanan <strong>Sukarela</strong> tidak memiliki setoran bulanan wajib. Perubahan jumlah setoran hanya berlaku untuk data anggota yang baru masuk setelah pengaturan disimpan.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Sub-Modal Edit */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              Edit Jenis Simpanan —{" "}
-              <span className="font-mono text-blue-700">{editTarget?.code}</span>
-            </DialogTitle>
-          </DialogHeader>
-          {renderForm(true)}
-        </DialogContent>
-      </Dialog>
-
-      {/* Sub-Modal Tambah Baru */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Tambah Jenis Simpanan Baru</DialogTitle>
-          </DialogHeader>
-          {renderForm(false)}
-        </DialogContent>
-      </Dialog>
+      {/* ── Add New Drawer ── */}
+      <Drawer open={addOpen} onOpenChange={setAddOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Tambah Jenis Simpanan Baru</DrawerTitle>
+          </DrawerHeader>
+          {renderForm(false, "add-form")}
+          <DrawerFooter>
+            <Button className="w-full h-12" onClick={() => handleSave(false)} disabled={saving || !form.name.trim() || !form.code.trim()}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {saving ? "Menyimpan..." : "Tambah Jenis Simpanan"}
+            </Button>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setAddOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }

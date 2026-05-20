@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield } from "lucide-react";
 import { toast } from "sonner";
@@ -124,7 +124,8 @@ export function UsersClient({
         </Button>
       </div>
 
-      <div className="border rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden md:block border rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 dark:bg-slate-800/50">
@@ -139,7 +140,7 @@ export function UsersClient({
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center h-24 text-slate-400">
                   Tidak ada data user.
                 </TableCell>
               </TableRow>
@@ -152,7 +153,7 @@ export function UsersClient({
                 return (
                   <TableRow key={u.id} className={!u.is_active ? "opacity-50" : ""}>
                     <TableCell className="font-semibold">{u.username}</TableCell>
-                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell className="text-slate-400">{u.email}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -167,7 +168,7 @@ export function UsersClient({
                         {u.is_active ? "Aktif" : "Nonaktif"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-slate-400">
                       {u.last_login_at
                         ? new Date(u.last_login_at).toLocaleString("id-ID")
                         : "Belum pernah login"}
@@ -190,41 +191,97 @@ export function UsersClient({
         </Table>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle>{editId ? "Edit Akun User" : "Tambah Akun User"}</DialogTitle>
-          </DialogHeader>
+      {/* Mobile Card Feed View */}
+      <div className="block md:hidden space-y-3">
+        {users.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 border border-dashed rounded-2xl bg-white dark:bg-slate-900">
+            Tidak ada data user.
+          </div>
+        ) : (
+          users.map((u) => {
+            const canEdit =
+              currentRole === "superadmin" ||
+              (currentRole === "admin" && u.role !== "superadmin");
 
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label>Username</Label>
+            return (
+              <div
+                key={u.id}
+                className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 ${
+                  !u.is_active ? "opacity-50" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-base text-slate-900 dark:text-slate-50">{u.username}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">{u.email}</p>
+                  </div>
+                  <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs shrink-0">
+                    {u.is_active ? "Aktif" : "Nonaktif"}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50 pt-2.5">
+                  <Badge
+                    variant="outline"
+                    className={`gap-1.5 text-xs ${roleColors[u.role] || "bg-slate-100"}`}
+                  >
+                    {roleIcons[u.role]}
+                    {roleLabels[u.role] || u.role}
+                  </Badge>
+                  <p className="text-[10px] text-slate-400">
+                    Log: {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString("id-ID") : "Never"}
+                  </p>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full h-11 gap-2 font-medium"
+                  disabled={!canEdit}
+                  onClick={() => handleOpenEdit(u)}
+                >
+                  <Edit className="h-4 w-4" /> Edit Hak Akses / Password
+                </Button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>{editId ? "Edit Akun User" : "Tambah Akun User"}</DrawerTitle>
+          </DrawerHeader>
+
+          <DrawerBody className="space-y-4">
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Username</Label>
               <Input
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 placeholder="contoh: admin_toko"
-                className="lowercase"
+                className="lowercase h-12 text-base"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Email</Label>
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Email</Label>
               <Input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="admin@koperasi.id"
-                className="lowercase"
+                className="lowercase h-12 text-base"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Role / Hak Akses</Label>
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Role / Hak Akses</Label>
               <Select
                 value={form.role}
                 onValueChange={(v) => setForm({ ...form, role: v ?? "pengurus" })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue placeholder="Pilih Role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -238,34 +295,37 @@ export function UsersClient({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Password {editId && <span className="text-muted-foreground font-normal">(Kosongkan jika tidak ingin diubah)</span>}</Label>
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Password {editId && <span className="text-slate-400 font-normal">(Kosongkan jika tidak ingin diubah)</span>}</Label>
               <Input
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 placeholder="Minimal 6 karakter"
+                className="h-12 text-base"
               />
             </div>
 
-            <div className="flex items-center justify-between border-t pt-4 mt-2">
+            <div className="flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50 pt-4 mt-2">
               <div className="space-y-0.5">
-                <Label>Status Akun</Label>
-                <p className="text-xs text-muted-foreground">Aktifkan untuk mengizinkan login.</p>
+                <p className="text-sm font-semibold">Status Akun</p>
+                <p className="text-xs text-slate-400">Aktifkan untuk mengizinkan login.</p>
               </div>
               <Switch
                 checked={form.is_active}
                 onCheckedChange={(v) => setForm({ ...form, is_active: v })}
               />
             </div>
-
-            <Button className="w-full mt-4" onClick={handleSave} disabled={saving}>
+          </DrawerBody>
+          <DrawerFooter>
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {saving ? "Menyimpan..." : "Simpan Akun"}
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <Button type="button" variant="ghost" className="w-full h-12" onClick={() => setOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
