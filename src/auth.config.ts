@@ -1,0 +1,83 @@
+import type { NextAuthConfig } from "next-auth";
+
+// Route access map per role
+const ROLE_ROUTES: Record<string, string[]> = {
+  superadmin: ["*"], // all
+  admin: ["*"],
+  pengurus: [
+    "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
+    "/akuntansi", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/inventaris", "/toko/konsinyasi",
+    "/pembelian", "/pengaturan", "/log",
+  ],
+  ketua: [
+    "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
+    "/akuntansi", "/pengaturan/shu", "/log",
+  ],
+  kasir: ["/dashboard", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/konsinyasi", "/laporan/harian", "/laporan/stok"],
+  anggota: ["/dashboard", "/simpanan", "/pinjaman", "/toko"],
+};
+
+function canAccess(role: string, pathname: string): boolean {
+  const allowed = ROLE_ROUTES[role];
+  if (!allowed) return false;
+  if (allowed[0] === "*") return true;
+  return allowed.some(r => pathname === r || pathname.startsWith(r + "/"));
+}
+
+export const authConfig = {
+  // FIX: [Capacitor Android Network Security (MITM Prevention)] - Enforce secure cookies in production
+  useSecureCookies: process.env.NODE_ENV === "production",
+  pages: {
+    signIn: "/login",
+  },
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+
+      const publicPaths = ["/login", "/api/auth"];
+      if (publicPaths.some(p => nextUrl.pathname.startsWith(p))) {
+        if (isLoggedIn && nextUrl.pathname.startsWith("/login")) {
+          return Response.redirect(new URL("/dashboard", nextUrl));
+        }
+        return true;
+      }
+
+      // All other paths require login
+      if (!isLoggedIn) {
+        return Response.redirect(new URL("/login", nextUrl));
+      }
+
+      const role = String(auth?.user?.role || "anggota");
+
+      // Check RBAC
+      if (!canAccess(role, nextUrl.pathname)) {
+        return Response.redirect(new URL("/dashboard", nextUrl));
+      }
+
+      return true;
+    },
+    jwt({ token, user }) {
+      if (user) {
+        const u = user as { role?: unknown; id?: unknown };
+        if (u.role !== undefined) token.role = String(u.role);
+        if (u.id !== undefined) {
+          token.id = String(u.id);
+          token.sub = String(u.id);
+        }
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = String(token.id);
+      } else if (session.user && token.sub) {
+        session.user.id = String(token.sub);
+      }
+      if (session.user && token.role) {
+        session.user.role = String(token.role);
+      }
+      return session;
+    },
+  },
+  providers: [],
+} satisfies NextAuthConfig;
