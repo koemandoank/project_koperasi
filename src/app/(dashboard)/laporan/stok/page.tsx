@@ -4,7 +4,7 @@ import { LaporanStokClient } from './laporan-stok-client'
 import { prisma } from '@/lib/db/prisma'
 
 export const metadata: Metadata = {
-  title: 'Riwayat Stok | Koperasi Digital',
+  title: 'Riwayat Stok | Koperasi Sulfindo',
   description: 'Laporan riwayat pergerakan keluar masuk barang (Stock Movements)',
 }
 

@@ -57,7 +57,7 @@ export default function Error({
               className="object-contain p-3 w-full h-full"
             />
           </div>
-          <h2 className="text-xl font-semibold text-slate-800">Koperasi Digital</h2>
+          <h2 className="text-xl font-semibold text-slate-800">Koperasi Sulfindo</h2>
         </div>
 
         <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-slate-800 bg-slate-100 mx-auto">

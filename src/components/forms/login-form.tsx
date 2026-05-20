@@ -28,10 +28,12 @@ export function LoginForm({ settings }: { settings?: any }) {
               priority
             />
           </div>
-          <div className="space-y-1 -mt-4">
-            <CardTitle className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">{settings?.company_name || "Koperasi Digital"}</CardTitle>
-            <CardDescription>
-              Masukkan email dan password Anda untuk masuk ke sistem
+          <div className="space-y-1.5 -mt-4">
+            <CardTitle className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 text-center">
+              {!settings?.company_name || settings.company_name === "Koperasi Digital" ? "Koperasi Sulfindo" : settings.company_name}
+            </CardTitle>
+            <CardDescription className="text-center text-xs sm:text-sm">
+              Wujudkan budaya keterbukaan dan transparansi melalui transformasi digital.
             </CardDescription>
           </div>
         </div>

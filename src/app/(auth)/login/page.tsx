@@ -2,8 +2,8 @@ import { LoginForm } from "@/components/forms/login-form";
 import { getAppSettings } from "@/lib/actions/settings";
 
 export const metadata = {
-  title: "Login - Koperasi Digital",
-  description: "Masuk ke sistem Koperasi Digital",
+  title: "Login - Koperasi Sulfindo",
+  description: "Masuk ke sistem Koperasi Sulfindo",
 };
 
 export default async function LoginPage() {

@@ -1,7 +1,7 @@
 import { LaporanAnalitikClient } from './laporan-analitik-client'
 
 export const metadata = {
-  title: 'Analitik & P&L Toko | Koperasi Digital',
+  title: 'Analitik & P&L Toko | Koperasi Sulfindo',
   description: 'Laporan keuntungan, margin, dan analisis produk toko',
 }
 

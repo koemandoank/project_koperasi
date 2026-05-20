@@ -27,7 +27,7 @@ export async function getAppSettings(): Promise<AppSettings | null> {
       // If table exists but empty, create a default row.
       const created = await (prisma as any).app_settings.create({
         data: {
-          company_name: "Koperasi Digital",
+          company_name: "Koperasi Sulfindo",
           logo_url: "/koperasi.png",
         },
       });

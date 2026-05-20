@@ -257,7 +257,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
             />
           </div>
           <h1 className="mt-4 text-xl font-bold text-slate-900 dark:text-slate-100">
-            {settings?.company_name || "Koperasi Digital"}
+            {settings?.company_name || "Koperasi Sulfindo"}
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
             Halaman Home setelah login. Akses cepat fitur utama dan ringkasan hari ini.
