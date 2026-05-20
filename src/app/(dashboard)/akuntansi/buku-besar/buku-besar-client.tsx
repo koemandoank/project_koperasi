@@ -56,14 +56,16 @@ export function BukuBesarClient({ data }: { data: any }) {
   return (
     <div className="space-y-4">
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Cari no jurnal, deskripsi..." value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-wrap md:flex-nowrap gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border shadow-sm items-center">
+        <div className="relative flex-1 min-w-[200px] w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <Input className="pl-11 h-12 text-base rounded-xl" placeholder="Cari no jurnal, deskripsi..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Input type="date" className="w-40" value={startDate} onChange={e => setStartDate(e.target.value)} />
-        <Input type="date" className="w-40" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        <Button onClick={handleFilter} className="gap-2"><Filter className="h-4 w-4" /> Filter</Button>
+        <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex md:gap-3">
+          <Input type="date" className="h-12 text-base rounded-xl w-full md:w-40" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          <Input type="date" className="h-12 text-base rounded-xl w-full md:w-40" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        </div>
+        <Button onClick={handleFilter} className="w-full md:w-auto h-12 rounded-xl font-semibold gap-2 shrink-0"><Filter className="h-4 w-4" /> Filter</Button>
       </div>
 
       {/* Summary */}
@@ -72,8 +74,8 @@ export function BukuBesarClient({ data }: { data: any }) {
         (Halaman {data.page} dari {data.totalPages || 1})
       </div>
 
-      {/* Table */}
-      <div className="border rounded-xl bg-card overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden md:block border rounded-xl bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 dark:bg-slate-900/50">
@@ -89,7 +91,7 @@ export function BukuBesarClient({ data }: { data: any }) {
           <TableBody>
             {data.entries.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-10 text-slate-400">
                   Tidak ada data jurnal.
                 </TableCell>
               </TableRow>
@@ -103,13 +105,13 @@ export function BukuBesarClient({ data }: { data: any }) {
                   <TableCell className="w-8 pl-4">
                     {expandedIds.has(entry.id)
                       ? <ChevronDown className="h-4 w-4 text-blue-500" />
-                      : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      : <ChevronRight className="h-4 w-4 text-slate-400" />
                     }
                   </TableCell>
                   <TableCell className="font-mono text-xs font-semibold">{entry.entry_no}</TableCell>
                   <TableCell className="text-sm">{entry.entry_date}</TableCell>
                   <TableCell className="max-w-[220px] truncate">{entry.description}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{entry.reference}</TableCell>
+                  <TableCell className="text-xs text-slate-400">{entry.reference}</TableCell>
                   <TableCell>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_BADGE[entry.source] || "bg-slate-100"}`}>
                       {entry.source}
@@ -142,8 +144,8 @@ export function BukuBesarClient({ data }: { data: any }) {
                               <tr key={line.id} className="border-b border-slate-100 last:border-0">
                                 <td className="py-1 font-mono text-xs">{line.account_code}</td>
                                 <td className="py-1">{line.account_name}</td>
-                                <td className="py-1 text-xs text-muted-foreground">{line.description}</td>
-                                <td className="py-1 text-right font-medium text-green-700">{formatRp(line.debit)}</td>
+                                <td className="py-1 text-xs text-slate-400">{line.description}</td>
+                                <td className="py-1 text-right font-medium text-green-750">{formatRp(line.debit)}</td>
                                 <td className="py-1 text-right font-medium text-red-600">{formatRp(line.credit)}</td>
                               </tr>
                             ))}
@@ -159,11 +161,91 @@ export function BukuBesarClient({ data }: { data: any }) {
         </Table>
       </div>
 
+      {/* Mobile Card Feed View */}
+      <div className="block md:hidden space-y-3">
+        {data.entries.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 bg-white dark:bg-slate-900 border rounded-2xl">
+            Tidak ada data jurnal.
+          </div>
+        ) : (
+          data.entries.map((entry: any) => {
+            const isExpanded = expandedIds.has(entry.id);
+            return (
+              <div key={entry.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all">
+                {/* Entry Summary Card Header */}
+                <div 
+                  className="p-4 space-y-3 cursor-pointer hover:bg-slate-50/50"
+                  onClick={() => toggleExpand(entry.id)}
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-mono text-xs font-extrabold text-blue-600 dark:text-blue-450">{entry.entry_no}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={entry.is_posted ? "default" : "secondary"} className={`text-[10px] font-semibold ${entry.is_posted ? "bg-green-100 text-green-700" : ""}`}>
+                        {entry.is_posted ? "Posted" : "Draft"}
+                      </Badge>
+                      {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-50 text-sm line-clamp-2">{entry.description || "Tanpa Keterangan"}</h4>
+                    {entry.reference && <p className="text-[11px] text-slate-400 mt-0.5">Ref: {entry.reference}</p>}
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5 mt-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_BADGE[entry.source] || "bg-slate-100"}`}>
+                        {entry.source}
+                      </span>
+                      <span className="text-[11px] text-slate-450">{entry.entry_date}</span>
+                    </div>
+                    
+                    <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                      {entry.lines?.length ?? 0} Transaksi
+                    </span>
+                  </div>
+                </div>
+
+                {/* Expanded Details: Jurnal Lines */}
+                {isExpanded && (
+                  <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-3 space-y-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Rincian Transaksi</p>
+                    <div className="space-y-2">
+                      {entry.lines.map((line: any) => {
+                        const isDebit = Number(line.debit) > 0;
+                        return (
+                          <div key={line.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{line.account_name}</p>
+                                <p className="font-mono text-[10px] text-slate-400">{line.account_code}</p>
+                              </div>
+                              <span className={`text-xs font-extrabold ${isDebit ? "text-green-700" : "text-red-650"}`}>
+                                {isDebit ? `D: ${formatRp(line.debit)}` : `K: ${formatRp(line.credit)}`}
+                              </span>
+                            </div>
+                            {line.description && (
+                              <p className="text-xs text-slate-450 italic border-t border-slate-50 dark:border-slate-800/30 pt-1.5">
+                                "{line.description}"
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Pagination */}
       {data.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 pt-4">
           {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(p => (
-            <Button key={p} variant={data.page === p ? "default" : "outline"} size="sm" onClick={() => handlePage(p)}>
+            <Button key={p} variant={data.page === p ? "default" : "outline"} className="h-11 w-11 rounded-xl font-bold" onClick={() => handlePage(p)}>
               {p}
             </Button>
           ))}

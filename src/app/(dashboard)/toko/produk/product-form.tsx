@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useId } from "react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerBody,
+  DrawerFooter,
+} from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -126,106 +127,113 @@ export function ProductForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <>
       {trigger && React.isValidElement(trigger)
-        ? React.cloneElement(trigger, {
-            onClick: () => setOpen(true),
-          } as any)
+        ? React.cloneElement(trigger, { onClick: () => setOpen(true) } as any)
         : (
-            <DialogTrigger render={<Button />}>
-              <Plus className="mr-2 h-4 w-4" /> Tambah Barang
-            </DialogTrigger>
-          )}
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{productToEdit ? "Edit Barang" : "Tambah Barang POS"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label>Foto Barang</Label>
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 shrink-0">
-                {imagePreview ? (
-                  <img src={imagePreview} alt="preview" className="object-cover rounded-lg w-full h-full" />
-                ) : (
-                  <ImageIcon className="h-8 w-8 text-slate-300" />
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  disabled={uploadingImage}
-                  onClick={() => document.getElementById(uniqueUploadId)?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  {uploadingImage ? "Mengupload..." : "Pilih Gambar"}
-                </Button>
-                <input
-                  id={uniqueUploadId}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Max 5MB. JPG, PNG, WEBP.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>SKU / Kode Barang</Label>
-              <Input placeholder="Auto generate jika kosong" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Nama Barang</Label>
-              <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Kategori</Label>
-              <Select value={formData.category_id} onValueChange={v => setFormData({...formData, category_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Kategori" /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Stok Awal</Label>
-              <div className="flex gap-2">
-                <Input type="number" required value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
-                <Input className="w-20" placeholder="pcs" value={formData.unit_measure} onChange={e => setFormData({...formData, unit_measure: e.target.value})} />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Harga Beli (Modal)</Label>
-            <Input type="number" required value={formData.purchase_price} onChange={e => setFormData({...formData, purchase_price: e.target.value})} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Harga Jual (Umum)</Label>
-              <Input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Harga Spesial Anggota</Label>
-              <Input type="number" placeholder="Kosongkan jika sama" value={formData.member_price} onChange={e => setFormData({...formData, member_price: e.target.value})} />
-            </div>
-          </div>
-          
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Menyimpan..." : "Simpan Barang"}
+          <Button onClick={() => setOpen(true)} className="h-12">
+            <Plus className="mr-2 h-5 w-5" /> Tambah Barang
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        )}
+
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>{productToEdit ? "Edit Barang" : "Tambah Barang POS"}</DrawerTitle>
+          </DrawerHeader>
+
+          <DrawerBody>
+            <form onSubmit={handleSubmit} id="product-form" className="space-y-4">
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label className="font-semibold">Foto Barang</Label>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 shrink-0">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="preview" className="object-cover rounded-xl w-full h-full" />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-slate-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 gap-2"
+                      disabled={uploadingImage}
+                      onClick={() => document.getElementById(uniqueUploadId)?.click()}
+                    >
+                      <Upload className="h-4 w-4" />
+                      {uploadingImage ? "Mengupload..." : "Pilih Gambar"}
+                    </Button>
+                    <input
+                      id={uniqueUploadId}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                    <p className="text-xs text-slate-400">Max 5MB. JPG, PNG, WEBP.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">SKU / Kode</Label>
+                  <Input placeholder="Auto generate" className="h-12" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">Nama Barang</Label>
+                  <Input required className="h-12" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">Kategori</Label>
+                  <Select value={formData.category_id} onValueChange={v => setFormData({...formData, category_id: v})}>
+                    <SelectTrigger className="h-12"><SelectValue placeholder="Kategori" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">Stok Awal</Label>
+                  <div className="flex gap-2">
+                    <Input type="number" required className="h-12 flex-1" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+                    <Input className="h-12 w-16" placeholder="pcs" value={formData.unit_measure} onChange={e => setFormData({...formData, unit_measure: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-semibold text-sm">Harga Beli (Modal)</Label>
+                <Input type="number" required className="h-12" value={formData.purchase_price} onChange={e => setFormData({...formData, purchase_price: e.target.value})} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">Harga Jual (Umum)</Label>
+                  <Input type="number" required className="h-12" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-sm">Harga Anggota</Label>
+                  <Input type="number" placeholder="Opsional" className="h-12" value={formData.member_price} onChange={e => setFormData({...formData, member_price: e.target.value})} />
+                </div>
+              </div>
+            </form>
+          </DrawerBody>
+
+          <DrawerFooter>
+            <Button type="submit" form="product-form" className="w-full h-12 text-base font-semibold" disabled={loading}>
+              {loading ? "Menyimpan..." : "Simpan Barang"}
+            </Button>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   )
 }

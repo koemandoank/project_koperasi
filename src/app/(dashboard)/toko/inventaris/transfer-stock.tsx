@@ -93,10 +93,10 @@ export function TransferStockPanel({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label>From Location</Label>
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Dari Lokasi</Label>
           <select
-            className="w-full border rounded-md p-2 bg-background"
+            className="w-full h-12 border rounded-xl px-3 bg-background text-base"
             value={fromLocationId}
             onChange={(e) => setFromLocationId(e.target.value)}
           >
@@ -108,10 +108,10 @@ export function TransferStockPanel({
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label>To Location</Label>
+        <div className="space-y-1">
+          <Label className="font-semibold text-sm">Ke Lokasi</Label>
           <select
-            className="w-full border rounded-md p-2 bg-background"
+            className="w-full h-12 border rounded-xl px-3 bg-background text-base"
             value={toLocationId}
             onChange={(e) => setToLocationId(e.target.value)}
           >
@@ -124,54 +124,58 @@ export function TransferStockPanel({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Notes (optional)</Label>
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan transfer" />
+      <div className="space-y-1">
+        <Label className="font-semibold text-sm">Catatan (opsional)</Label>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan transfer" className="h-12 text-base" />
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Items</Label>
+          <Label className="font-bold text-base">Item Transfer</Label>
           <Button
             variant="outline"
             type="button"
+            className="h-11 px-4 text-sm font-semibold border-blue-200 text-blue-600 hover:bg-blue-50"
             onClick={() => setRows((prev) => [...prev, { productId: "", qtyRequested: 1 }])}
           >
-            + Add
+            + Tambah Item
           </Button>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {rows.map((r, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
-              <div className="space-y-2">
-                <Label>Product ID</Label>
+            <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-3 md:gap-3 md:items-end">
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">ID Produk</Label>
                 <Input
                   value={r.productId}
                   onChange={(e) =>
                     setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, productId: e.target.value } : x)))
                   }
-                  placeholder="mis: 123"
+                  placeholder="cth: 123"
+                  className="h-12 text-base font-mono"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Qty</Label>
+              <div className="space-y-1">
+                <Label className="font-semibold text-xs md:text-sm">Jumlah (Qty)</Label>
                 <Input
                   type="number"
                   value={r.qtyRequested}
                   onChange={(e) =>
                     setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, qtyRequested: Number(e.target.value) } : x)))
                   }
+                  className="h-12 text-base"
                 />
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
                   type="button"
+                  className="w-full h-12 font-semibold"
                   disabled={rows.length <= 1}
                   onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
                 >
-                  Remove
+                  Hapus Item
                 </Button>
               </div>
             </div>
@@ -179,9 +183,9 @@ export function TransferStockPanel({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleCreate} disabled={!canSubmit}>
-          Create Transfer
+      <div className="flex items-center gap-2 pt-2">
+        <Button type="button" onClick={handleCreate} disabled={!canSubmit} className="w-full h-12 text-base font-semibold">
+          Kirim Transfer Order
         </Button>
       </div>
     </Card>

@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerDescription } from "@/components/ui/drawer"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -158,180 +158,323 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-          <TabsList>
-            <TabsTrigger value="stok">Stok Titipan</TabsTrigger>
-            <TabsTrigger value="tagihan">Tagihan & Settlement</TabsTrigger>
+      <div className="flex gap-2 flex-wrap items-center justify-between">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-[400px]">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="stok" className="h-10 text-sm">Stok Titipan</TabsTrigger>
+            <TabsTrigger value="tagihan" className="h-10 text-sm">Tagihan & Settlement</TabsTrigger>
           </TabsList>
         </Tabs>
         
         {activeTab === "stok" && (
-          <Button onClick={() => setIsAddOpen(true)}>+ Penerimaan Konsinyasi</Button>
+          <Button onClick={() => setIsAddOpen(true)} className="w-full md:w-auto h-12 text-sm font-semibold mt-2 md:mt-0">
+            + Penerimaan Konsinyasi
+          </Button>
         )}
       </div>
 
       <Tabs value={activeTab} className="w-full">
         <TabsContent value="stok">
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Barang Konsinyasi</CardTitle>
-              <CardDescription>Manajemen stok barang titipan yang aktif dan siap dijual.</CardDescription>
+          <Card className="border-0 md:border">
+            <CardHeader className="px-4 md:px-6">
+              <CardTitle className="text-lg md:text-xl font-bold">Daftar Barang Konsinyasi</CardTitle>
+              <CardDescription className="text-xs md:text-sm">Manajemen stok barang titipan yang aktif dan siap dijual.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tgl Masuk</TableHead>
-                    <TableHead>Produk</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Diterima</TableHead>
-                    <TableHead>Terjual</TableHead>
-                    <TableHead>Sisa</TableHead>
-                    <TableHead>HPP</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.received_at}</TableCell>
-                      <TableCell className="font-medium">{item.product_name}</TableCell>
-                      <TableCell>{item.supplier_name}</TableCell>
-                      <TableCell>{item.qty_received}</TableCell>
-                      <TableCell>{item.qty_sold}</TableCell>
-                      <TableCell className="font-bold">{item.qty_remaining}</TableCell>
-                      <TableCell>{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
-                            {item.status === 'returned' ? '✓ Diretur' : item.status}
-                          </Badge>
-                          {item.qty_returned > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              {item.qty_returned} unit diretur
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {item.qty_returned > 0 && item.return_reason && (
-                            <div className="text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-800 max-w-[160px]">
-                              <span className="font-semibold block">Alasan retur:</span>
-                              {item.return_reason}
-                              {item.return_date && (
-                                <span className="block text-amber-600 mt-0.5">
-                                  {new Date(item.return_date).toLocaleDateString('id-ID')}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            disabled={item.qty_remaining === 0}
-                            onClick={() => { 
-                              setSelectedItem(item)
-                              setReturnQty("")
-                              setReturnReasonKey("")
-                              setReturnReasonCustom("")
-                              setIsReturnOpen(true)
-                            }}
-                          >
-                            Retur
-                          </Button>
-                          {item.qty_unbilled > 0 && (
-                            <Button 
-                              variant="default"
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700"
-                              onClick={() => handleCreatePayable(item)}
-                              disabled={isLoading}
-                              title="Barang sudah laku terjual, silakan buat tagihan pembayaran untuk supplier"
-                            >
-                              Buat Tagihan ({item.qty_unbilled})
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+            <CardContent className="px-4 md:px-6">
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tgl Masuk</TableHead>
+                      <TableHead>Produk</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Diterima</TableHead>
+                      <TableHead>Terjual</TableHead>
+                      <TableHead>Sisa</TableHead>
+                      <TableHead>HPP</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Aksi</TableHead>
                     </TableRow>
-                  ))}
-                  {items.length === 0 && (
-                    <TableRow><TableCell colSpan={9} className="text-center">Tidak ada barang konsinyasi aktif</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.received_at}</TableCell>
+                        <TableCell className="font-medium">{item.product_name}</TableCell>
+                        <TableCell>{item.supplier_name}</TableCell>
+                        <TableCell>{item.qty_received}</TableCell>
+                        <TableCell>{item.qty_sold}</TableCell>
+                        <TableCell className="font-bold">{item.qty_remaining}</TableCell>
+                        <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
+                              {item.status === 'returned' ? '✓ Diretur' : item.status}
+                            </Badge>
+                            {item.qty_returned > 0 && (
+                              <span className="text-xs text-slate-400">
+                                {item.qty_returned} unit diretur
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {item.qty_returned > 0 && item.return_reason && (
+                              <div className="text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-800 max-w-[160px]">
+                                <span className="font-semibold block">Alasan retur:</span>
+                                {item.return_reason}
+                                {item.return_date && (
+                                  <span className="block text-amber-600 mt-0.5">
+                                    {new Date(item.return_date).toLocaleDateString('id-ID')}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              disabled={item.qty_remaining === 0}
+                              onClick={() => { 
+                                setSelectedItem(item)
+                                setReturnQty("")
+                                setReturnReasonKey("")
+                                setReturnReasonCustom("")
+                                setIsReturnOpen(true)
+                              }}
+                            >
+                              Retur
+                            </Button>
+                            {item.qty_unbilled > 0 && (
+                              <Button 
+                                variant="default"
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => handleCreatePayable(item)}
+                                disabled={isLoading}
+                                title="Barang sudah laku terjual, silakan buat tagihan pembayaran untuk supplier"
+                              >
+                                Buat Tagihan ({item.qty_unbilled})
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {items.length === 0 && (
+                      <TableRow><TableCell colSpan={9} className="text-center">Tidak ada barang konsinyasi aktif</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card Feed */}
+              <div className="block md:hidden space-y-3">
+                {items.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 border border-dashed rounded-2xl bg-white dark:bg-slate-900">
+                    Tidak ada barang konsinyasi aktif
+                  </div>
+                ) : (
+                  items.map(item => (
+                    <div
+                      key={item.id}
+                      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="font-bold text-base text-slate-900 dark:text-slate-50">{item.product_name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Supplier: {item.supplier_name}</p>
+                        </div>
+                        <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className="text-xs shrink-0">
+                          {item.status === 'returned' ? '✓ Diretur' : item.status}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-xs border-t border-slate-50 dark:border-slate-800/50 pt-2.5">
+                        <div>
+                          <p className="text-slate-400">Diterima</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-200">{item.qty_received} unit</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Terjual</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-200">{item.qty_sold} unit</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Sisa Stok</p>
+                          <p className="font-bold text-blue-600">{item.qty_remaining} unit</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl">
+                        <span className="text-slate-400">Harga Beli (HPP)</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(item.unit_price)}</span>
+                      </div>
+
+                      {item.qty_returned > 0 && item.return_reason && (
+                        <div className="text-xs bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl p-2.5 text-amber-800 dark:text-amber-300">
+                          <span className="font-semibold block">Keterangan Retur ({item.qty_returned} unit):</span>
+                          {item.return_reason}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 border-t border-slate-50 dark:border-slate-800/50 pt-3">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 h-11 text-red-600 border-red-200 hover:bg-red-50 text-xs font-semibold"
+                          disabled={item.qty_remaining === 0}
+                          onClick={() => { 
+                            setSelectedItem(item)
+                            setReturnQty("")
+                            setReturnReasonKey("")
+                            setReturnReasonCustom("")
+                            setIsReturnOpen(true)
+                          }}
+                        >
+                          Retur Barang
+                        </Button>
+                        {item.qty_unbilled > 0 && (
+                          <Button 
+                            variant="default"
+                            className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-xs font-semibold"
+                            onClick={() => handleCreatePayable(item)}
+                            disabled={isLoading}
+                          >
+                            Tagih ({item.qty_unbilled})
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="tagihan">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tagihan Pembayaran</CardTitle>
-              <CardDescription>Pembayaran ke supplier untuk barang konsinyasi yang laku.</CardDescription>
+          <Card className="border-0 md:border">
+            <CardHeader className="px-4 md:px-6">
+              <CardTitle className="text-lg md:text-xl font-bold">Tagihan Pembayaran</CardTitle>
+              <CardDescription className="text-xs md:text-sm">Pembayaran ke supplier untuk barang konsinyasi yang laku.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Periode</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Total Terjual</TableHead>
-                    <TableHead>Total Tagihan</TableHead>
-                    <TableHead>Telah Dibayar</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payables.map(p => {
+            <CardContent className="px-4 md:px-6">
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Periode</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Total Terjual</TableHead>
+                      <TableHead>Total Tagihan</TableHead>
+                      <TableHead>Telah Dibayar</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payables.map(p => {
+                      const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell>{p.period_start} s/d {p.period_end}</TableCell>
+                          <TableCell>{p.supplier_name}</TableCell>
+                          <TableCell>{p.total_qty_sold}</TableCell>
+                          <TableCell className="font-bold text-blue-600">{formatCurrency(p.payable_amount)}</TableCell>
+                          <TableCell className="text-green-600">{formatCurrency(totalPaid)}</TableCell>
+                          <TableCell>
+                            <Badge variant={p.status === 'paid' ? 'default' : p.status === 'pending' ? 'destructive' : 'secondary'}>{p.status}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled={p.status === 'paid'}
+                              onClick={() => { setSelectedPayable(p); setSettleAmount((p.payable_amount - totalPaid).toString()); setIsSettleOpen(true); }}
+                            >
+                              Bayar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    {payables.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center">Tidak ada tagihan konsinyasi</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card Feed View */}
+              <div className="block md:hidden space-y-3">
+                {payables.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 border border-dashed rounded-2xl bg-white dark:bg-slate-900">
+                    Tidak ada tagihan konsinyasi
+                  </div>
+                ) : (
+                  payables.map(p => {
                     const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
                     return (
-                      <TableRow key={p.id}>
-                        <TableCell>{p.period_start} s/d {p.period_end}</TableCell>
-                        <TableCell>{p.supplier_name}</TableCell>
-                        <TableCell>{p.total_qty_sold}</TableCell>
-                        <TableCell className="font-bold text-blue-600">{formatCurrency(p.payable_amount)}</TableCell>
-                        <TableCell className="text-green-600">{formatCurrency(totalPaid)}</TableCell>
-                        <TableCell>
-                          <Badge variant={p.status === 'paid' ? 'default' : p.status === 'pending' ? 'destructive' : 'secondary'}>{p.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={p.status === 'paid'}
-                            onClick={() => { setSelectedPayable(p); setSettleAmount((p.payable_amount - totalPaid).toString()); setIsSettleOpen(true); }}
-                          >
-                            Bayar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                      <div
+                        key={p.id}
+                        className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <p className="font-bold text-base text-slate-900 dark:text-slate-50">{p.supplier_name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Periode: {p.period_start} s/d {p.period_end}</p>
+                          </div>
+                          <Badge variant={p.status === 'paid' ? 'default' : p.status === 'pending' ? 'destructive' : 'secondary'} className="text-xs shrink-0">
+                            {p.status}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-50 dark:border-slate-800/50 pt-2.5">
+                          <div>
+                            <p className="text-slate-400">Total Tagihan</p>
+                            <p className="font-bold text-blue-600 text-sm">{formatCurrency(p.payable_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400">Telah Dibayar</p>
+                            <p className="font-bold text-green-600 text-sm">{formatCurrency(totalPaid)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl">
+                          <span className="text-slate-400">Total Terjual</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{p.total_qty_sold} unit</span>
+                        </div>
+
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-11 text-xs font-semibold border-slate-200 hover:bg-slate-50"
+                          disabled={p.status === 'paid'}
+                          onClick={() => { setSelectedPayable(p); setSettleAmount((p.payable_amount - totalPaid).toString()); setIsSettleOpen(true); }}
+                        >
+                          Bayar Tagihan
+                        </Button>
+                      </div>
                     )
-                  })}
-                  {payables.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center">Tidak ada tagihan konsinyasi</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  })
+                )}
+              </div>
+              </CardContent>
+            </Card>
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Penerimaan Barang Konsinyasi</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Produk</Label>
+      {/* Penerimaan Consignment Item Drawer */}
+      <Drawer open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Penerimaan Barang Konsinyasi</DrawerTitle>
+          </DrawerHeader>
+          <DrawerBody className="space-y-4">
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Produk</Label>
               <Select value={addForm.product_id} onValueChange={(val) => setAddForm({...addForm, product_id: val ?? ''})}>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue placeholder="Pilih Produk" />
                 </SelectTrigger>
                 <SelectContent>
@@ -339,10 +482,10 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Supplier</Label>
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Supplier</Label>
               <Select value={addForm.supplier_id} onValueChange={(val) => setAddForm({...addForm, supplier_id: val ?? ''})}>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue placeholder="Pilih Supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,69 +493,69 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Qty</Label>
-              <Input type="number" className="col-span-3" value={addForm.qty} onChange={e => setAddForm({...addForm, qty: e.target.value})} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Qty Diterima</Label>
+                <Input type="number" className="h-12 text-base" value={addForm.qty} onChange={e => setAddForm({...addForm, qty: e.target.value})} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Harga Beli HPP (Unit)</Label>
+                <Input type="number" className="h-12 text-base" value={addForm.price} onChange={e => setAddForm({...addForm, price: e.target.value})} placeholder="0" />
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">HPP (Unit)</Label>
-              <Input type="number" className="col-span-3" value={addForm.price} onChange={e => setAddForm({...addForm, price: e.target.value})} />
+            <div className="space-y-1">
+              <Label className="font-semibold text-sm">Tgl Penerimaan</Label>
+              <Input type="date" className="h-12 text-base" value={addForm.date} onChange={e => setAddForm({...addForm, date: e.target.value})} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Tgl Masuk</Label>
-              <Input type="date" className="col-span-3" value={addForm.date} onChange={e => setAddForm({...addForm, date: e.target.value})} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
-            <Button onClick={handleAdd} disabled={isLoading}>Simpan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerBody>
+          <DrawerFooter>
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleAdd} disabled={isLoading}>Simpan Penerimaan</Button>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setIsAddOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
-      <Dialog open={isReturnOpen} onOpenChange={setIsReturnOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Retur Barang Konsinyasi</DialogTitle>
-            <DialogDescription>Kembalikan stok ke supplier. Catat alasan dengan jelas untuk laporan.</DialogDescription>
-          </DialogHeader>
+      {/* Retur Drawer */}
+      <Drawer open={isReturnOpen} onOpenChange={setIsReturnOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Retur Barang Konsinyasi</DrawerTitle>
+            <DrawerDescription>Kembalikan sisa stok titipan ke supplier dengan alasan yang valid.</DrawerDescription>
+          </DrawerHeader>
           {selectedItem && (
-            <div className="grid gap-4 py-2">
-              {/* Info barang */}
-              <div className="rounded-lg bg-muted/50 border p-3 text-sm space-y-1">
+            <DrawerBody className="space-y-4">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border p-4 text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Produk</span>
-                  <span className="font-semibold">{selectedItem.product_name}</span>
+                  <span className="text-slate-400">Nama Produk</span>
+                  <span className="font-bold text-slate-850 dark:text-slate-100">{selectedItem.product_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Supplier</span>
-                  <span>{selectedItem.supplier_name}</span>
+                  <span className="text-slate-400">Supplier</span>
+                  <span className="font-medium">{selectedItem.supplier_name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Sisa Stok Dapat Diretur</span>
-                  <span className="font-bold text-blue-600">{selectedItem.qty_remaining}</span>
+                <div className="flex justify-between border-t border-dashed border-slate-200 dark:border-slate-800 pt-2">
+                  <span className="text-slate-400">Maks. Stok Diretur</span>
+                  <span className="font-extrabold text-blue-600 text-base">{selectedItem.qty_remaining} unit</span>
                 </div>
               </div>
 
-              {/* Qty retur */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Qty Retur</Label>
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Jumlah Unit Retur</Label>
                 <Input 
                   type="number" 
-                  className="col-span-3" 
+                  className="h-12 text-base" 
                   min={1}
                   max={selectedItem.qty_remaining}
                   value={returnQty} 
                   onChange={e => setReturnQty(e.target.value)} 
-                  placeholder={`Maks. ${selectedItem.qty_remaining}`}
+                  placeholder={`Maksimal ${selectedItem.qty_remaining} unit`}
                 />
               </div>
 
-              {/* Alasan retur - dropdown */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Alasan</Label>
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Alasan Retur</Label>
                 <Select value={returnReasonKey} onValueChange={v => setReturnReasonKey(v ?? 'Barang mendekati kadaluarsa')}>
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder="Pilih alasan retur..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -427,65 +570,72 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                 </Select>
               </div>
 
-              {/* Custom reason jika pilih Lainnya */}
               {returnReasonKey === 'lainnya' && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Keterangan</Label>
+                <div className="space-y-1 animate-in fade-in-50 duration-200">
+                  <Label className="font-semibold text-sm">Tuliskan Keterangan Lainnya</Label>
                   <Input
-                    className="col-span-3"
+                    className="h-12 text-base"
                     placeholder="Tulis alasan retur..."
                     value={returnReasonCustom}
                     onChange={e => setReturnReasonCustom(e.target.value)}
                   />
                 </div>
               )}
-            </div>
+            </DrawerBody>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReturnOpen(false)}>Batal</Button>
-            <Button variant="destructive" onClick={handleReturn} disabled={isLoading}>
-              {isLoading ? "Memproses..." : "Proses Retur"}
+          <DrawerFooter>
+            <Button variant="destructive" className="w-full h-12 text-base font-semibold" onClick={handleReturn} disabled={isLoading}>
+              {isLoading ? "Memproses Retur..." : "Proses Retur Sekarang"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setIsReturnOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
-      <Dialog open={isSettleOpen} onOpenChange={setIsSettleOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Settlement Tagihan</DialogTitle>
-          </DialogHeader>
+      {/* Settlement/Pembayaran Drawer */}
+      <Drawer open={isSettleOpen} onOpenChange={setIsSettleOpen}>
+        <DrawerContent showClose>
+          <DrawerHeader>
+            <DrawerTitle>Settlement Pembayaran Konsinyasi</DrawerTitle>
+          </DrawerHeader>
           {selectedPayable && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Nominal Bayar</Label>
-                <Input type="number" className="col-span-3" value={settleAmount} onChange={e => setSettleAmount(e.target.value)} />
+            <DrawerBody className="space-y-4">
+              <div className="rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 p-4 text-sm space-y-1">
+                <p className="text-slate-400">Supplier Penerima</p>
+                <p className="font-extrabold text-base text-slate-800 dark:text-slate-200">{selectedPayable.supplier_name}</p>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Metode</Label>
+
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Nominal Pembayaran (Rp)</Label>
+                <Input type="number" className="h-12 text-base font-bold text-blue-600" value={settleAmount} onChange={e => setSettleAmount(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">Metode Pembayaran</Label>
                 <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v ?? 'transfer')}>
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder="Pilih Metode" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="transfer">Transfer Bank</SelectItem>
-                    <SelectItem value="cash">Tunai</SelectItem>
-                    <SelectItem value="check">Cek/Giro</SelectItem>
+                    <SelectItem value="transfer">🏦 Transfer Bank</SelectItem>
+                    <SelectItem value="cash">💵 Tunai / Cash</SelectItem>
+                    <SelectItem value="check">📜 Cek / Giro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">No. Referensi</Label>
-                <Input className="col-span-3" value={refNo} onChange={e => setRefNo(e.target.value)} placeholder="Opsional (No. Rekening/Struk)" />
+              <div className="space-y-1">
+                <Label className="font-semibold text-sm">No. Referensi (opsional)</Label>
+                <Input className="h-12 text-base" value={refNo} onChange={e => setRefNo(e.target.value)} placeholder="cth: No. Struk atau Rekening" />
               </div>
-            </div>
+            </DrawerBody>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSettleOpen(false)}>Batal</Button>
-            <Button onClick={handleSettle} disabled={isLoading}>Proses Pembayaran</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <DrawerFooter>
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleSettle} disabled={isLoading}>
+              {isLoading ? "Memproses..." : "Konfirmasi Pembayaran"}
+            </Button>
+            <Button variant="ghost" className="w-full h-12" onClick={() => setIsSettleOpen(false)}>Batal</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

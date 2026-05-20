@@ -1574,180 +1574,230 @@ export function LaporanAnalitikClient() {
 
         {/* ── TAB: Data Transaksi Kasir ─────────────────── */}
         {activeTab === 'kasir' && (
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4 font-sans">
             {/* Local Filter Card */}
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
-                {PRESETS.map(p => (
-                  <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                    className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
-                ))}
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESETS.map(p => (
+                    <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
+                      className="h-8 text-[11px] px-3 py-1 rounded-lg font-semibold">{p.label}</Button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
-                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">TANGGAL MULAI</Label>
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
-                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">TANGGAL AKHIR</Label>
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">METODE PEMBAYARAN</Label>
                   <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
-                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
-                        <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                        <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-blue-700 hover:bg-blue-800 text-white font-medium shadow-xs">
-                    <Search className="h-3.5 w-3.5" />
+                  <Button onClick={handleSearch} disabled={isPending} className="w-full h-12 text-base rounded-xl gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-sm">
+                    <Search className="h-4 w-4" />
                     {isPending ? 'Memuat...' : 'Tampilkan'}
                   </Button>
                 </div>
               </div>
 
               {hasSearched && data && (
-                <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
-                  <Button onClick={exportExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-green-700 border-green-200 hover:bg-green-50">
-                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Excel (Ringkasan)
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <Button onClick={exportExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-green-700 border-green-200 hover:bg-green-50">
+                    <FileSpreadsheet className="h-4 w-4" /> Export Excel (Ringkasan)
                   </Button>
-                  <Button onClick={exportPDF} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50">
-                    <FileText className="h-3.5 w-3.5" /> Export PDF
+                  <Button onClick={exportPDF} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-red-700 border-red-200 hover:bg-red-50">
+                    <FileText className="h-4 w-4" /> Export PDF
                   </Button>
-                  <Button onClick={exportKasirExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50">
-                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Transaksi Kasir (Detail)
+                  <Button onClick={exportKasirExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50">
+                    <FileSpreadsheet className="h-4 w-4" /> Export Transaksi Kasir (Detail)
                   </Button>
-                  <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 font-semibold shadow-xs">
-                    <FileSpreadsheet className="h-3.5 w-3.5" /> Export Terpadu (Multi-Tab)
+                  <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 shadow-sm">
+                    <FileSpreadsheet className="h-4 w-4" /> Export Terpadu (Multi-Tab)
                   </Button>
                 </div>
               )}
             </div>
 
             {!hasSearched ? (
-              <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
-                Silakan tentukan filter tanggal dan klik <strong className="text-blue-700">Tampilkan</strong> untuk memuat data transaksi kasir.
+              <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                Silakan tentukan filter tanggal dan klik <strong className="text-blue-700 dark:text-blue-400">Tampilkan</strong> untuk memuat data transaksi kasir.
               </div>
             ) : detailRows.length > 0 ? (
               <>
-                <div className="flex items-center gap-6 px-4 py-2 bg-[#1F4E78] text-white text-xs font-bold rounded-t">
-                  <span>BULAN: {new Date(startDate).toLocaleDateString('id-ID',{month:'long',year:'numeric'}).toUpperCase()}</span>
-                  <span className="ml-auto flex gap-6">
-                    <span>TOTAL QTY: {detailRows.reduce((s,r)=>s+r.qty,0)}</span>
-                    <span>TOTAL JUAL: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_jual,0))}</span>
-                    <span>TOTAL HPP: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0))}</span>
-                    <span>TOTAL LABA: {formatRp(detailRows.reduce((s,r)=>s+r.laba,0))}</span>
-                  </span>
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                  <div className="flex items-center gap-6 px-4 py-2.5 bg-[#1F4E78] text-white text-xs font-bold rounded-t-xl">
+                    <span>BULAN: {new Date(startDate).toLocaleDateString('id-ID',{month:'long',year:'numeric'}).toUpperCase()}</span>
+                    <span className="ml-auto flex gap-6">
+                      <span>TOTAL QTY: {detailRows.reduce((s,r)=>s+r.qty,0)}</span>
+                      <span>TOTAL JUAL: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_jual,0))}</span>
+                      <span>TOTAL HPP: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0))}</span>
+                      <span>TOTAL LABA: {formatRp(detailRows.reduce((s,r)=>s+r.laba,0))}</span>
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-b-xl">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#1F4E78] text-white">
+                          {['NO','TANGGAL','MINGGU','BAYAR','NIK','NAMA ANGGOTA','NAMA BARANG',
+                            'QTY','HARGA JUAL','TOT HARGA JUAL','HARGA POKOK','TOT HARGA POKOK','LABA'
+                          ].map(h => (
+                            <th key={h} className="px-2 py-2.5 text-center font-bold border border-[#163d5e] whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailRows.map((r, idx) => (
+                          <tr key={r.no} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                            <td className="px-2 py-1.5 text-center border border-gray-200">{r.no}</td>
+                            <td className="px-2 py-1.5 text-center border border-gray-200 whitespace-nowrap">{r.tanggal}</td>
+                            <td className="px-2 py-1.5 text-center border border-gray-200">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{r.minggu}</span>
+                            </td>
+                            <td className="px-2 py-1.5 text-center border border-gray-200">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                r.bayar==='CAS' ? 'bg-green-100 text-green-700' :
+                                r.bayar==='PAY' ? 'bg-orange-100 text-orange-700' :
+                                r.bayar==='QRS' ? 'bg-purple-100 text-purple-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>{r.bayar}</span>
+                            </td>
+                            <td className="px-2 py-1.5 border border-gray-200 font-mono">{r.nik}</td>
+                            <td className="px-2 py-1.5 border border-gray-200 max-w-[140px] truncate" title={r.nama_anggota}>{r.nama_anggota}</td>
+                            <td className="px-2 py-1.5 border border-gray-200 max-w-[180px] truncate" title={r.nama_barang}>{r.nama_barang}</td>
+                            <td className="px-2 py-1.5 text-center border border-gray-200 font-bold">{r.qty}</td>
+                            <td className="px-2 py-1.5 text-right border border-gray-200">{r.harga_jual.toLocaleString('id-ID')}</td>
+                            <td className="px-2 py-1.5 text-right border border-gray-200 text-blue-700 font-medium">{r.tot_harga_jual.toLocaleString('id-ID')}</td>
+                            <td className="px-2 py-1.5 text-right border border-gray-200 text-orange-700">{r.harga_pokok.toLocaleString('id-ID')}</td>
+                            <td className="px-2 py-1.5 text-right border border-gray-200 text-orange-700">{r.tot_harga_pokok.toLocaleString('id-ID')}</td>
+                            <td className={`px-2 py-1.5 text-right border border-gray-200 font-bold ${r.laba >= 0 ? 'text-green-700' : 'text-red-650'}`}>{r.laba.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[#1F4E78] text-white font-bold">
+                          <td colSpan={7} className="px-3 py-2.5 text-center border border-[#163d5e]">TOTAL</td>
+                          <td className="px-2 py-2.5 text-center border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.qty,0)}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_jual,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_jual,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_pokok,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.laba,0).toLocaleString('id-ID')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="overflow-x-auto border rounded-b">
-                        <table className="w-full text-xs border-collapse">
-                          <thead>
-                            <tr className="bg-[#1F4E78] text-white">
-                              {['NO','TANGGAL','MINGGU','BAYAR','NIK','NAMA ANGGOTA','NAMA BARANG',
-                                'QTY','HARGA JUAL','TOT HARGA JUAL','HARGA POKOK','TOT HARGA POKOK','LABA'
-                              ].map(h => (
-                                <th key={h} className="px-2 py-2 text-center font-bold border border-[#163d5e] whitespace-nowrap">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {detailRows.map((r, idx) => (
-                              <tr key={r.no} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                                <td className="px-2 py-1 text-center border border-gray-200">{r.no}</td>
-                                <td className="px-2 py-1 text-center border border-gray-200 whitespace-nowrap">{r.tanggal}</td>
-                                <td className="px-2 py-1 text-center border border-gray-200">
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{r.minggu}</span>
-                                </td>
-                                <td className="px-2 py-1 text-center border border-gray-200">
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                    r.bayar==='CAS' ? 'bg-green-100 text-green-700' :
-                                    r.bayar==='PAY' ? 'bg-orange-100 text-orange-700' :
-                                    r.bayar==='QRS' ? 'bg-purple-100 text-purple-700' :
-                                    'bg-gray-100 text-gray-600'
-                                  }`}>{r.bayar}</span>
-                                </td>
-                                <td className="px-2 py-1 border border-gray-200 font-mono">{r.nik}</td>
-                                <td className="px-2 py-1 border border-gray-200 max-w-[140px] truncate" title={r.nama_anggota}>{r.nama_anggota}</td>
-                                <td className="px-2 py-1 border border-gray-200 max-w-[180px] truncate" title={r.nama_barang}>{r.nama_barang}</td>
-                                <td className="px-2 py-1 text-center border border-gray-200 font-bold">{r.qty}</td>
-                                <td className="px-2 py-1 text-right border border-gray-200">{r.harga_jual.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1 text-right border border-gray-200 text-blue-700 font-medium">{r.tot_harga_jual.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1 text-right border border-gray-200 text-orange-700">{r.harga_pokok.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1 text-right border border-gray-200 text-orange-700">{r.tot_harga_pokok.toLocaleString('id-ID')}</td>
-                                <td className={`px-2 py-1 text-right border border-gray-200 font-bold ${r.laba >= 0 ? 'text-green-700' : 'text-red-600'}`}>{r.laba.toLocaleString('id-ID')}</td>
-                              </tr>
-                            ))}
-                            <tr className="bg-[#1F4E78] text-white font-bold">
-                              <td colSpan={7} className="px-3 py-2 text-center border border-[#163d5e]">TOTAL</td>
-                              <td className="px-2 py-2 text-center border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.qty,0)}</td>
-                              <td className="px-2 py-2 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_jual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_jual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_pokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.laba,0).toLocaleString('id-ID')}</td>
-                            </tr>
-                          </tbody>
-                        </table>
+
+                {/* Mobile View */}
+                <div className="block md:hidden space-y-3">
+                  {detailRows.map((r) => (
+                    <div key={r.no} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.nama_barang}</p>
+                          <p className="text-xs text-slate-400 mt-0.5 truncate">Pembeli: {r.nama_anggota} ({r.nik})</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          r.bayar==='CAS' ? 'bg-green-100 text-green-700' :
+                          r.bayar==='PAY' ? 'bg-orange-100 text-orange-700' :
+                          r.bayar==='QRS' ? 'bg-purple-100 text-purple-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>{r.bayar}</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
-                      Tidak ada data transaksi kasir untuk kriteria pencarian ini.
+
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
+                          <p className="text-slate-400 text-[10px]">Qty</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{r.qty} pcs</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
+                          <p className="text-slate-400 text-[10px]">Harga Jual</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{r.harga_jual.toLocaleString('id-ID')}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
+                          <p className="text-slate-400 text-[10px]">HPP/Unit</p>
+                          <p className="font-bold text-slate-500">{r.harga_pokok.toLocaleString('id-ID')}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5 mt-1">
+                        <div className="text-[11px] text-slate-400">
+                          No: {r.no} • Minggu: {r.minggu} • {r.tanggal}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-slate-400">Laba Transaksi</p>
+                          <p className={`font-extrabold text-sm ${r.laba >= 0 ? 'text-green-600' : 'text-red-650'}`}>{formatRp(r.laba)}</p>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
+              </>
+            ) : (
+              <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                Tidak ada data transaksi kasir untuk kriteria pencarian ini.
+              </div>
+            )}
+          </div>
+        )}
 
               {/* ── TAB: Laporan Mingguan ──────────────────── */}
               {activeTab === 'mingguan' && (
                 <div className="p-4 space-y-4">
                   {/* Filter Mingguan */}
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TAHUN</Label>
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TAHUN</Label>
                         <Select value={String(mTahun)} onValueChange={v => setMTahun(Number(v ?? new Date().getFullYear()))}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>)}
+                            {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)} className="text-sm">{y}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">BULAN</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">BULAN</Label>
                         <Select value={String(mBulan)} onValueChange={v => setMBulan(Number(v ?? 1))}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {BULAN_NAMES.slice(1).map((b,i) => <SelectItem key={i+1} value={String(i+1)} className="text-xs">{b}</SelectItem>)}
+                            {BULAN_NAMES.slice(1).map((b,i) => <SelectItem key={i+1} value={String(i+1)} className="text-sm">{b}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">MINGGU KE</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">MINGGU KE</Label>
                         <Select value={String(mMinggu)} onValueChange={v => setMMinggu(Number(v ?? 1))}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)} className="text-xs">Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
+                            {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)} className="text-sm">Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={handleSearchMingguan} disabled={mingguPending} className="flex-1 h-9 text-xs gap-2 bg-purple-700 hover:bg-purple-800 text-white font-medium shadow-xs">
-                          <Search className="h-3.5 w-3.5" />
+                        <Button onClick={handleSearchMingguan} disabled={mingguPending} className="w-full h-12 text-base rounded-xl gap-2 bg-purple-700 hover:bg-purple-800 text-white font-semibold shadow-sm">
+                          <Search className="h-4 w-4" />
                           {mingguPending ? 'Memuat...' : 'Tampilkan'}
                         </Button>
                       </div>
                     </div>
                     {mingguData && (
-                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
-                        <Button onClick={() => exportMingguanExcel('mingguan')} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-purple-700 border-purple-200 hover:bg-purple-50 shadow-xs">
-                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Laporan Mingguan
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <Button onClick={() => exportMingguanExcel('mingguan')} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-purple-700 border-purple-200 hover:bg-purple-50">
+                          <FileSpreadsheet className="h-4 w-4" /> Export Laporan Mingguan
                         </Button>
                       </div>
                     )}
@@ -1759,67 +1809,132 @@ export function LaporanAnalitikClient() {
                     const SectionTbl = ({ label, isCash, totHPP, totJual, totLaba }: {
                       label: string; isCash: boolean; totHPP: number; totJual: number; totLaba: number
                     }) => (
-                      <div>
-                        <p className={`text-xs font-bold mb-1 ${isCash ? 'text-blue-800' : 'text-red-700'}`}>{label}</p>
-                        <table className="w-full text-xs border-collapse">
-                          <thead>
-                            <tr className="bg-slate-100">
-                              {['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].map(h => (
-                                <th key={h} className="px-2 py-1.5 text-center border border-gray-300 font-bold whitespace-nowrap">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {mg.rows.map((r, i) => {
-                              const hpp  = isCash ? r.hppCash  : r.hppKredit
-                              const jual = isCash ? r.jualCash : r.jualKredit
-                              const laba = isCash ? r.labaCash : r.labaKredit
-                              return (
-                                <tr key={r.tanggal} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                  <td className="px-2 py-1 text-center border border-gray-200">{i+1}</td>
-                                  <td className="px-2 py-1 text-center border border-gray-200">{r.dayName}</td>
-                                  <td className="px-2 py-1 text-center border border-gray-200">{r.tanggal}</td>
-                                  <td className="px-2 py-1 text-right border border-gray-200">{fmtN(hpp)}</td>
-                                  <td className="px-2 py-1 text-right border border-gray-200 text-blue-700">{fmtN(jual)}</td>
-                                  <td className={`px-2 py-1 text-right border border-gray-200 font-bold ${laba > 0 ? 'text-green-700' : laba < 0 ? 'text-red-600' : ''}`}>{fmtN(laba)}</td>
-                                </tr>
-                              )
-                            })}
-                            <tr className="bg-slate-200 font-bold">
-                              <td colSpan={3} className="px-2 py-1.5 text-center border border-gray-300">JUMLAH</td>
-                              <td className="px-2 py-1.5 text-right border border-gray-300">{fmtN(totHPP)}</td>
-                              <td className="px-2 py-1.5 text-right border border-gray-300 text-blue-700">{fmtN(totJual)}</td>
-                              <td className={`px-2 py-1.5 text-right border border-gray-300 ${totLaba >= 0 ? 'text-green-700' : 'text-red-600'}`}>{fmtN(totLaba)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
+                      <div className="space-y-2">
+                        <p className={`text-sm font-bold ${isCash ? 'text-blue-800 dark:text-blue-400' : 'text-red-700 dark:text-red-405'}`}>{label}</p>
+                        
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                          <table className="w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-slate-150 text-slate-700 dark:bg-slate-850 dark:text-slate-300">
+                                {['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].map(h => (
+                                  <th key={h} className="px-2 py-2 text-center border border-gray-200 dark:border-gray-800 font-bold whitespace-nowrap">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {mg.rows.map((r, i) => {
+                                const hpp  = isCash ? r.hppCash  : r.hppKredit
+                                const jual = isCash ? r.jualCash : r.jualKredit
+                                const laba = isCash ? r.labaCash : r.labaKredit
+                                return (
+                                  <tr key={r.tanggal} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                    <td className="px-2 py-1.5 text-center border border-gray-200">{i+1}</td>
+                                    <td className="px-2 py-1.5 text-center border border-gray-200">{r.dayName}</td>
+                                    <td className="px-2 py-1.5 text-center border border-gray-200">{r.tanggal}</td>
+                                    <td className="px-2 py-1.5 text-right border border-gray-200">{fmtN(hpp)}</td>
+                                    <td className="px-2 py-1.5 text-right border border-gray-200 text-blue-700 font-medium">{fmtN(jual)}</td>
+                                    <td className={`px-2 py-1.5 text-right border border-gray-200 font-bold ${laba > 0 ? 'text-green-700' : laba < 0 ? 'text-red-650' : ''}`}>{fmtN(laba)}</td>
+                                  </tr>
+                                )
+                              })}
+                              <tr className="bg-slate-200 dark:bg-slate-800 font-bold">
+                                <td colSpan={3} className="px-2 py-2 text-center border border-gray-250">JUMLAH</td>
+                                <td className="px-2 py-2 text-right border border-gray-250">{fmtN(totHPP)}</td>
+                                <td className="px-2 py-2 text-right border border-gray-250 text-blue-700">{fmtN(totJual)}</td>
+                                <td className={`px-2 py-2 text-right border border-gray-250 ${totLaba >= 0 ? 'text-green-700' : 'text-red-650'}`}>{fmtN(totLaba)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile List View */}
+                        <div className="block md:hidden space-y-2.5">
+                          {mg.rows.map((r, i) => {
+                            const hpp  = isCash ? r.hppCash  : r.hppKredit
+                            const jual = isCash ? r.jualCash : r.jualKredit
+                            const laba = isCash ? r.labaCash : r.labaKredit
+                            return (
+                              <div key={r.tanggal} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-2xl shadow-xs space-y-2">
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-bold text-slate-800 dark:text-slate-200">{r.dayName}, {r.tanggal}</span>
+                                  <span className="text-[10px] text-slate-450">Baris #{i+1}</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
+                                    <p className="text-slate-405 text-[9px]">Harga Pokok</p>
+                                    <p className="font-semibold text-slate-700 dark:text-slate-300">{fmtN(hpp)}</p>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
+                                    <p className="text-slate-405 text-[9px]">Harga Jual</p>
+                                    <p className="font-semibold text-blue-750 dark:text-blue-300">{fmtN(jual)}</p>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
+                                    <p className="text-slate-405 text-[9px]">Laba</p>
+                                    <p className={`font-bold ${laba > 0 ? 'text-green-600' : laba < 0 ? 'text-red-650' : 'text-slate-400'}`}>{fmtN(laba)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                          
+                          {/* Mini Summary Card for Mobile Section */}
+                          <div className="bg-slate-100 dark:bg-slate-850 p-3.5 rounded-2xl text-xs space-y-1.5 font-bold">
+                            <p className="text-[10px] text-slate-500 uppercase">SUBTOTAL {label}</p>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600 dark:text-slate-400">Total HPP:</span>
+                              <span>{fmtN(totHPP)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-650 dark:text-slate-400">Total Jual:</span>
+                              <span className="text-blue-700">{fmtN(totJual)}</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-1">
+                              <span className="text-slate-650 dark:text-slate-400">Total Laba:</span>
+                              <span className={totLaba >= 0 ? 'text-green-600' : 'text-red-655'}>{fmtN(totLaba)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )
                     return (
-                      <div className="space-y-4">
-                        <p className="text-xs text-muted-foreground font-medium">
-                          Minggu {WEEK_ROMAN[mMinggu]} — {BULAN_NAMES[mBulan]} {mTahun}
+                      <div className="space-y-6">
+                        <p className="text-xs text-slate-500 font-semibold px-1">
+                          Periode: Minggu {WEEK_ROMAN[mMinggu]} — {BULAN_NAMES[mBulan]} {mTahun}
                         </p>
                         <SectionTbl label="PENJUALAN CASH (Tunai / QRIS / Transfer)"
                           isCash={true} totHPP={mg.totCashHpp} totJual={mg.totCashJual} totLaba={mg.totCashLaba} />
                         <SectionTbl label="PENJUALAN KREDIT (Paylater / Potong Simpanan)"
                           isCash={false} totHPP={mg.totKrdHpp} totJual={mg.totKrdJual} totLaba={mg.totKrdLaba} />
-                        <div className="border rounded-lg overflow-hidden">
-                          <table className="w-full text-sm">
+                        
+                        <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                          <table className="w-full text-xs">
                             <tbody>
-                              <tr className="border-b"><td className="px-4 py-2 font-medium">Total Harga Pokok</td><td className="px-4 py-2 text-right font-bold">{mg.grandHpp.toLocaleString('id-ID')}</td><td className="px-3 py-2 text-muted-foreground text-xs">IDR</td></tr>
-                              <tr className="border-b"><td className="px-4 py-2 font-medium">Total Harga Jual</td><td className="px-4 py-2 text-right font-bold text-blue-700">{mg.grandJual.toLocaleString('id-ID')}</td><td className="px-3 py-2 text-muted-foreground text-xs">IDR</td></tr>
-                              <tr className="bg-yellow-50"><td className="px-4 py-2 font-bold">Keuntungan</td>
-                                <td className={`px-4 py-2 text-right font-bold text-lg border border-yellow-400 rounded ${mg.grandLaba >= 0 ? 'text-green-700' : 'text-red-600'}`}>{mg.grandLaba.toLocaleString('id-ID')}</td>
-                                <td className="px-3 py-2 text-muted-foreground text-xs">IDR</td></tr>
+                              <tr className="border-b border-slate-100 dark:border-slate-800">
+                                <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Total Harga Pokok (Grand HPP)</td>
+                                <td className="px-4 py-3 text-right font-black text-slate-900 dark:text-white">{mg.grandHpp.toLocaleString('id-ID')}</td>
+                                <td className="px-3 py-3 text-slate-400 text-[10px] w-12 text-center">IDR</td>
+                              </tr>
+                              <tr className="border-b border-slate-100 dark:border-slate-800">
+                                <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Total Harga Jual (Grand Jual)</td>
+                                <td className="px-4 py-3 text-right font-black text-blue-700 dark:text-blue-400">{mg.grandJual.toLocaleString('id-ID')}</td>
+                                <td className="px-3 py-3 text-slate-400 text-[10px] w-12 text-center">IDR</td>
+                              </tr>
+                              <tr className="bg-yellow-50/60 dark:bg-yellow-950/20">
+                                <td className="px-4 py-4 font-extrabold text-slate-900 dark:text-slate-100 text-sm">Keuntungan Bersih (Laba)</td>
+                                <td className={`px-4 py-4 text-right font-black text-xl ${mg.grandLaba >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-650 dark:text-red-400'}`}>
+                                  {mg.grandLaba.toLocaleString('id-ID')}
+                                </td>
+                                <td className="px-3 py-4 text-slate-500 font-bold text-xs w-12 text-center">IDR</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
                       </div>
                     )
                   })() : (
-                    <div className="py-16 text-center text-muted-foreground text-sm">
-                      Pilih Tahun, Bulan, dan Minggu lalu klik <strong>Tampilkan</strong>.
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                      Pilih Tahun, Bulan, dan Minggu lalu klik <strong className="text-purple-750 dark:text-purple-400">Tampilkan</strong>.
                     </div>
                   )}
                 </div>
@@ -1837,52 +1952,52 @@ export function LaporanAnalitikClient() {
                           className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
                       ))}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">METODE PEMBAYARAN</Label>
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
-                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                              <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-medium shadow-xs">
-                          <Search className="h-3.5 w-3.5" />
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-12 text-base rounded-xl gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-sm">
+                          <Search className="h-4 w-4" />
                           {isPending ? 'Memuat...' : 'Tampilkan'}
                         </Button>
                       </div>
                     </div>
 
                     {hasSearched && data && (
-                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
-                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 font-semibold shadow-xs">
-                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Rekap Sembako (Excel Terpadu)
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
+                          <FileSpreadsheet className="h-4 w-4" /> Export Rekap Sembako (Excel Terpadu)
                         </Button>
                       </div>
                     )}
                   </div>
 
                   {/* Sembako Local Search and Options */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Anggota:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-650 dark:text-slate-400">Cari Anggota:</Label>
                       <Input
                         placeholder="Nama atau NIK..."
                         value={sembakoSearch}
                         onChange={e => setSembakoSearch(e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        className="h-11 text-base bg-white dark:bg-slate-900 rounded-xl"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1891,133 +2006,210 @@ export function LaporanAnalitikClient() {
                         id="onlyActiveSembako"
                         checked={onlyActiveSembako}
                         onChange={e => setOnlyActiveSembako(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        className="h-5 w-5 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                       />
-                      <Label htmlFor="onlyActiveSembako" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
+                      <Label htmlFor="onlyActiveSembako" className="text-xs cursor-pointer select-none font-semibold text-slate-650 dark:text-slate-450">
                         Hanya tampilkan anggota dengan transaksi sembako
                       </Label>
                     </div>
                   </div>
 
                   {!hasSearched ? (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
-                      Silakan tentukan filter tanggal dan klik <strong className="text-emerald-700">Tampilkan</strong> untuk memuat rekap sembako anggota.
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-emerald-700 dark:text-emerald-400">Tampilkan</strong> untuk memuat rekap sembako anggota.
                     </div>
                   ) : sembakoRows.length > 0 ? (
                     <>
-                      <div className="flex items-center gap-6 px-4 py-2 bg-emerald-800 text-white text-xs font-bold rounded-t">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-emerald-800 text-white text-xs font-bold rounded-t-2xl">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
-                        <span className="ml-auto">TOTAL ANGGOTA TAMPIL: {sembakoRows.length}</span>
+                        <span className="sm:ml-auto">TOTAL ANGGOTA TAMPIL: {sembakoRows.length}</span>
                       </div>
-                      <div className="overflow-x-auto border rounded-b">
+                      
+                      {/* Desktop View Table */}
+                      <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-emerald-800 text-white font-bold">
-                              <th className="px-2 py-2 text-center border border-emerald-900 whitespace-nowrap">NO</th>
-                              <th className="px-2 py-2 text-left border border-emerald-900 whitespace-nowrap">NIK</th>
-                              <th className="px-2 py-2 text-left border border-emerald-900 whitespace-nowrap">NAMA</th>
-                              <th className="px-2 py-2 text-center border border-emerald-900 whitespace-nowrap">COM 1</th>
-                              <th className="px-2 py-2 text-center border border-emerald-900 whitespace-nowrap">COM 2</th>
-                              <th className="px-2 py-2 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD JUAL</th>
-                              <th className="px-2 py-2 text-right border border-emerald-900 whitespace-nowrap">P-SBK CAS JUAL</th>
-                              <th className="px-2 py-2 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD POKOK</th>
-                              <th className="px-2 py-2 text-right border border-emerald-900 whitespace-nowrap">P-SBK CAS POKOK</th>
-                              <th className="px-2 py-2 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD LABA</th>
+                            <tr className="bg-emerald-850 text-white font-bold">
+                              <th className="px-2 py-2.5 text-center border border-emerald-900 whitespace-nowrap">NO</th>
+                              <th className="px-2 py-2.5 text-left border border-emerald-900 whitespace-nowrap">NIK</th>
+                              <th className="px-2 py-2.5 text-left border border-emerald-900 whitespace-nowrap">NAMA</th>
+                              <th className="px-2 py-2.5 text-center border border-emerald-900 whitespace-nowrap">COM 1</th>
+                              <th className="px-2 py-2.5 text-center border border-emerald-900 whitespace-nowrap">COM 2</th>
+                              <th className="px-2 py-2.5 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD JUAL</th>
+                              <th className="px-2 py-2.5 text-right border border-emerald-900 whitespace-nowrap">P-SBK CAS JUAL</th>
+                              <th className="px-2 py-2.5 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD POKOK</th>
+                              <th className="px-2 py-2.5 text-right border border-emerald-900 whitespace-nowrap">P-SBK CAS POKOK</th>
+                              <th className="px-2 py-2.5 text-right border border-emerald-900 whitespace-nowrap">P-SBK CRD LABA</th>
                             </tr>
                           </thead>
                           <tbody>
                             {sembakoRows.map((r, idx) => (
-                              <tr key={r.nik} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white hover:bg-slate-100'}>
-                                <td className="px-2 py-1.5 text-center border border-gray-200">{idx + 1}</td>
-                                <td className="px-2 py-1.5 border border-gray-200 font-mono">{r.nik}</td>
-                                <td className="px-2 py-1.5 border border-gray-200 font-medium whitespace-nowrap">{r.nama}</td>
-                                <td className="px-2 py-1.5 text-center border border-gray-200">{r.com1}</td>
-                                <td className="px-2 py-1.5 text-center border border-gray-200 font-bold text-gray-600">{r.com2}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-medium text-emerald-700">{r.crdJual > 0 ? r.crdJual.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-700">{r.casJual > 0 ? r.casJual.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 text-orange-700">{r.crdPokok > 0 ? r.crdPokok.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-600">{r.casPokok > 0 ? r.casPokok.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-bold text-teal-700">{r.crdLaba > 0 ? r.crdLaba.toLocaleString('id-ID') : '-'}</td>
+                              <tr key={r.nik} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900 hover:bg-slate-100'}>
+                                <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
+                                <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono">{r.nik}</td>
+                                <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-medium whitespace-nowrap">{r.nama}</td>
+                                <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{r.com1}</td>
+                                <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800 font-bold text-gray-600 dark:text-gray-400">{r.com2}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-emerald-700 dark:text-emerald-400">{r.crdJual > 0 ? r.crdJual.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">{r.casJual > 0 ? r.casJual.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-orange-700 dark:text-orange-400">{r.crdPokok > 0 ? r.crdPokok.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400">{r.casPokok > 0 ? r.casPokok.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-teal-700 dark:text-teal-400">{r.crdLaba > 0 ? r.crdLaba.toLocaleString('id-ID') : '-'}</td>
                               </tr>
                             ))}
                             <tr className="bg-emerald-800 text-white font-bold">
-                              <td colSpan={5} className="px-3 py-2 text-center border border-emerald-900">TOTAL</td>
-                              <td className="px-2 py-2 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdJual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casJual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdPokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casPokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdLaba,0).toLocaleString('id-ID')}</td>
+                              <td colSpan={5} className="px-3 py-2.5 text-center border border-emerald-900">TOTAL</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdJual,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casJual,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdPokok,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casPokok,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdLaba,0).toLocaleString('id-ID')}</td>
                             </tr>
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card Feed View */}
+                      <div className="block md:hidden space-y-3 mt-2">
+                        {/* Summary Sticky Card */}
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl shadow-md">
+                          <p className="text-xs font-bold text-slate-400 uppercase mb-3">AKUMULASI REKAP SEMBAKO</p>
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="text-slate-400">Total Kredit Jual</p>
+                              <p className="text-base font-black text-emerald-450">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdJual,0))}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-400">Total Cash Jual</p>
+                              <p className="text-base font-black text-blue-450">{formatRp(sembakoRows.reduce((s,r)=>s+r.casJual,0))}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-400">Total HPP Kredit</p>
+                              <p className="text-base font-black text-amber-500">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdPokok,0))}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-400">Total Laba Kredit</p>
+                              <p className="text-base font-black text-teal-400">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdLaba,0))}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {sembakoRows.map((r, idx) => (
+                          <div key={r.nik} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.nama}</p>
+                                <p className="text-xs text-slate-400 mt-0.5 truncate">NIK: {r.nik} • {r.com1} • {r.com2}</p>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
+                                <p className="text-[10px] text-slate-450 font-bold mb-1">TRANSAKSI KREDIT</p>
+                                <div className="space-y-0.5">
+                                  <div className="flex justify-between">
+                                    <span className="text-[10px] text-slate-400">Jual:</span>
+                                    <span className="font-bold text-emerald-600">{r.crdJual > 0 ? formatRp(r.crdJual) : '-'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-[10px] text-slate-400">Pokok:</span>
+                                    <span className="font-semibold text-slate-600">{r.crdPokok > 0 ? formatRp(r.crdPokok) : '-'}</span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-slate-100 dark:border-slate-800/50 pt-1 mt-1 font-extrabold">
+                                    <span className="text-[10px] text-slate-400">Laba:</span>
+                                    <span className="text-teal-650">{r.crdLaba > 0 ? formatRp(r.crdLaba) : '-'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
+                                <p className="text-[10px] text-slate-455 font-bold mb-1">TRANSAKSI CASH</p>
+                                <div className="space-y-0.5">
+                                  <div className="flex justify-between">
+                                    <span className="text-[10px] text-slate-455">Jual:</span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">{r.casJual > 0 ? formatRp(r.casJual) : '-'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-[10px] text-slate-455">Pokok:</span>
+                                    <span className="font-semibold text-slate-500">{r.casPokok > 0 ? formatRp(r.casPokok) : '-'}</span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-slate-100 dark:border-slate-800/50 pt-1 mt-1">
+                                    <span className="text-[10px] text-slate-455">Laba:</span>
+                                    <span className="font-bold text-slate-500">{r.casJual - r.casPokok > 0 ? formatRp(r.casJual - r.casPokok) : '-'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
                       Tidak ada data rekap sembako anggota untuk kriteria pencarian ini.
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ── TAB: Potongan Gaji ─────────────────── */}
               {activeTab === 'potongan' && (
                 <div className="p-4 space-y-4">
                   {/* Local Filter Card */}
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
                     <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                      <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
                       {PRESETS.map(p => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                          className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">METODE PEMBAYARAN</Label>
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
-                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                              <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-red-700 hover:bg-red-800 text-white font-medium shadow-xs">
-                          <Search className="h-3.5 w-3.5" />
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-12 text-base rounded-xl gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold shadow-sm">
+                          <Search className="h-4 w-4" />
                           {isPending ? 'Memuat...' : 'Tampilkan'}
                         </Button>
                       </div>
                     </div>
 
                     {hasSearched && data && (
-                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
-                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50 font-semibold shadow-xs">
-                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Potongan Gaji (Excel Terpadu)
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-red-700 border-red-200 hover:bg-red-50">
+                          <FileSpreadsheet className="h-4 w-4" /> Export Potongan Gaji (Excel Terpadu)
                         </Button>
                       </div>
                     )}
                   </div>
 
                   {/* Potongan Local Search and Options */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Karyawan:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-655 dark:text-slate-400">Cari Karyawan:</Label>
                       <Input
                         placeholder="Nama, NIK, Departemen..."
                         value={potonganSearch}
                         onChange={e => setPotonganSearch(e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        className="h-11 text-base bg-white dark:bg-slate-900 rounded-xl"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -2026,38 +2218,40 @@ export function LaporanAnalitikClient() {
                         id="onlyActivePotongan"
                         checked={onlyActivePotongan}
                         onChange={e => setOnlyActivePotongan(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        className="h-5 w-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
                       />
-                      <Label htmlFor="onlyActivePotongan" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
+                      <Label htmlFor="onlyActivePotongan" className="text-xs cursor-pointer select-none font-semibold text-slate-650 dark:text-slate-450">
                         Hanya tampilkan karyawan dengan potongan gaji
                       </Label>
                     </div>
                   </div>
 
                   {!hasSearched ? (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
-                      Silakan tentukan filter tanggal dan klik <strong className="text-red-700">Tampilkan</strong> untuk memuat data potongan gaji karyawan.
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-red-700 dark:text-red-400">Tampilkan</strong> untuk memuat data potongan gaji karyawan.
                     </div>
                   ) : filteredDeductions.length > 0 ? (
                     <>
-                      <div className="flex items-center gap-6 px-4 py-2 bg-red-800 text-white text-xs font-bold rounded-t">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-red-800 text-white text-xs font-bold rounded-t-2xl">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
-                        <span className="ml-auto">TOTAL KARYAWAN TAMPIL: {filteredDeductions.length}</span>
+                        <span className="sm:ml-auto">TOTAL KARYAWAN TAMPIL: {filteredDeductions.length}</span>
                       </div>
-                      <div className="overflow-x-auto border rounded-b">
+                      
+                      {/* Desktop Table View */}
+                      <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-red-800 text-white font-bold text-center">
-                              <th className="px-2 py-2 border border-red-950 whitespace-nowrap" rowSpan={2}>NO</th>
-                              <th className="px-2 py-2 border border-red-950 whitespace-nowrap" rowSpan={2}>NIK</th>
-                              <th className="px-2 py-2 border border-red-950 whitespace-nowrap text-left" rowSpan={2}>NAMA</th>
+                            <tr className="bg-red-850 text-white font-bold text-center">
+                              <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>NO</th>
+                              <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>NIK</th>
+                              <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap text-left" rowSpan={2}>NAMA</th>
                               <th className="px-2 py-1 border border-red-950 whitespace-nowrap" colSpan={2}>COM</th>
                               <th className="px-2 py-1 border border-red-950 whitespace-nowrap" colSpan={3}>SIMPANAN</th>
                               <th className="px-2 py-1 border border-red-950 whitespace-nowrap" colSpan={3}>PINJAMAN UANG</th>
                               <th className="px-2 py-1 border border-red-950 whitespace-nowrap" colSpan={2}>P-KHS</th>
                               <th className="px-2 py-1 border border-red-950 whitespace-nowrap" colSpan={2}>P-BRG</th>
-                              <th className="px-2 py-2 border border-red-950 whitespace-nowrap" rowSpan={2}>KREDIT SBK</th>
-                              <th className="px-2 py-2 border border-red-950 whitespace-nowrap" rowSpan={2}>TOTAL</th>
+                              <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>KREDIT SBK</th>
+                              <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>TOTAL</th>
                             </tr>
                             <tr className="bg-red-900 text-white text-[10px] font-bold">
                               <th className="px-1 py-1 border border-red-950">1</th>
@@ -2091,55 +2285,55 @@ export function LaporanAnalitikClient() {
                               const total = simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
 
                               return (
-                                <tr key={item.nik} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white hover:bg-slate-100'}>
-                                  <td className="px-2 py-1.5 text-center border border-gray-200">{idx + 1}</td>
-                                  <td className="px-2 py-1.5 border border-gray-200 font-mono">{item.nik}</td>
-                                  <td className="px-2 py-1.5 border border-gray-200 font-medium whitespace-nowrap">{item.name}</td>
-                                  <td className="px-2 py-1.5 text-center border border-gray-200">1</td>
-                                  <td className="px-2 py-1.5 text-center border border-gray-200 font-bold text-gray-600">{com2Val}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200">{simpPokok > 0 ? simpPokok.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-700">{simpWajib > 0 ? simpWajib.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-600">{simpSukarela > 0 ? simpSukarela.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-blue-700">{pUang > 0 ? pUang.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-400">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-400">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-indigo-700">{pKhusus > 0 ? pKhusus.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-400">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-amber-700">{pBarang > 0 ? pBarang.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 text-gray-400">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 font-medium text-emerald-700">{kreditSbk > 0 ? kreditSbk.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 font-bold text-red-700">{total > 0 ? total.toLocaleString('id-ID') : '-'}</td>
+                                <tr key={item.nik} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900 hover:bg-slate-100'}>
+                                  <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
+                                  <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono">{item.nik}</td>
+                                  <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-medium whitespace-nowrap">{item.name}</td>
+                                  <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">1</td>
+                                  <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800 font-bold text-gray-600 dark:text-gray-400">{com2Val}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{simpPokok > 0 ? simpPokok.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">{simpWajib > 0 ? simpWajib.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-405">{simpSukarela > 0 ? simpSukarela.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-blue-700 dark:text-blue-400">{pUang > 0 ? pUang.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-indigo-700 dark:text-indigo-400">{pKhusus > 0 ? pKhusus.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-amber-700 dark:text-amber-400">{pBarang > 0 ? pBarang.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-emerald-700 dark:text-emerald-400">{kreditSbk > 0 ? kreditSbk.toLocaleString('id-ID') : '-'}</td>
+                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-red-700 dark:text-red-400">{total > 0 ? total.toLocaleString('id-ID') : '-'}</td>
                                 </tr>
                               )
                             })}
                             <tr className="bg-red-800 text-white font-bold">
-                              <td colSpan={5} className="px-3 py-2 text-center border border-red-950">TOTAL</td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td colSpan={5} className="px-3 py-2.5 text-center border border-red-950">TOTAL</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_simpanan_salary_cut, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_uang, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">-</td>
-                              <td className="px-2 py-2 text-right border border-red-950">-</td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_kilat, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">-</td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_barang, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">-</td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_paylater, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2 text-right border border-red-950">
+                              <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => {
                                   const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
                                   const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
@@ -2155,9 +2349,123 @@ export function LaporanAnalitikClient() {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card Feed View */}
+                      <div className="block md:hidden space-y-3 mt-2">
+                        {/* Summary Sticky Card */}
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl space-y-3.5 shadow-md">
+                          <p className="text-xs font-bold text-slate-405 uppercase">AKUMULASI SELURUH POTONGAN</p>
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="text-slate-400">Total Simpanan</p>
+                              <p className="text-sm font-bold text-slate-200">
+                                {formatRp(filteredDeductions.reduce((s, item) => {
+                                  const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
+                                  const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                                  return s + simpPokok + simpWajib + item.total_simpanan_salary_cut
+                                }, 0))}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-slate-400">Total Pinjaman & Paylater</p>
+                              <p className="text-sm font-bold text-slate-200">
+                                {formatRp(filteredDeductions.reduce((s, item) => s + item.total_pinjaman_uang + item.total_pinjaman_kilat + item.total_pinjaman_barang + item.total_paylater, 0))}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="border-t border-slate-800 pt-2 flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-400">GRAND TOTAL POTONGAN</span>
+                            <span className="text-lg font-black text-red-400">
+                              {formatRp(filteredDeductions.reduce((s, item) => {
+                                const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
+                                const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                                const simpSukarela = item.total_simpanan_salary_cut
+                                const pUang = item.total_pinjaman_uang
+                                const pKhusus = item.total_pinjaman_kilat
+                                const pBarang = item.total_pinjaman_barang
+                                const kreditSbk = item.total_paylater
+                                return s + simpPokok + simpWajib + simpSukarela + pUang + pKhusus + pBarang + kreditSbk
+                              }, 0))}
+                            </span>
+                          </div>
+                        </div>
+
+                        {filteredDeductions.map((item, idx) => {
+                          const com2Val = (item.department || 'SAU').replace(/^U-/, '')
+                          const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
+                          const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                          const simpSukarela = item.total_simpanan_salary_cut
+                          const pUang = item.total_pinjaman_uang
+                          const pKhusus = item.total_pinjaman_kilat
+                          const pBarang = item.total_pinjaman_barang
+                          const kreditSbk = item.total_paylater
+                          const total = simpPokok + simpWajib + simpSukarela + pUang + pKhusus + pBarang + kreditSbk
+
+                          return (
+                            <div key={item.nik} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3.5">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5 truncate">NIK: {item.nik} • COM: 1 / {com2Val}</p>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                              </div>
+
+                              <div className="space-y-2 text-xs">
+                                {/* Simpanan Card Section */}
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
+                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">A. SIMPANAN KARYAWAN</p>
+                                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block">Pokok:</span>
+                                      <span className="font-bold text-slate-700 dark:text-slate-350">{simpPokok > 0 ? formatRp(simpPokok) : '-'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block">Wajib:</span>
+                                      <span className="font-bold text-slate-700 dark:text-slate-350">{simpWajib > 0 ? formatRp(simpWajib) : '-'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block">Sukarela:</span>
+                                      <span className="font-bold text-slate-700 dark:text-slate-350">{simpSukarela > 0 ? formatRp(simpSukarela) : '-'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Pinjaman Card Section */}
+                                <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
+                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">B. PINJAMAN & PAYLATER</p>
+                                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                                    <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                      <span className="text-slate-400">Pinjam Uang:</span>
+                                      <span className="font-bold text-blue-600">{pUang > 0 ? formatRp(pUang) : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-200/50 pb-1">
+                                      <span className="text-slate-400">Pinjam Kilat:</span>
+                                      <span className="font-bold text-indigo-600">{pKhusus > 0 ? formatRp(pKhusus) : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-400">Pinjam Barang:</span>
+                                      <span className="font-bold text-amber-600">{pBarang > 0 ? formatRp(pBarang) : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-400">Kredit Sembako:</span>
+                                      <span className="font-bold text-emerald-600">{kreditSbk > 0 ? formatRp(kreditSbk) : '-'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5 mt-1">
+                                <span className="text-[10px] text-slate-400 font-semibold uppercase">TOTAL POTONGAN GAJI</span>
+                                <span className="font-extrabold text-sm text-red-600 dark:text-red-400">{total > 0 ? formatRp(total) : '-'}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
                       Tidak ada data potongan gaji karyawan untuk kriteria pencarian ini.
                     </div>
                   )}
@@ -2168,60 +2476,60 @@ export function LaporanAnalitikClient() {
               {activeTab === 'stok' && (
                 <div className="p-4 space-y-4">
                   {/* Local Filter Card */}
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
                     <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
+                      <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
                       {PRESETS.map(p => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                          className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 text-xs" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">TANGGAL MULAI</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 text-xs" />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">TANGGAL AKHIR</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-600">METODE PEMBAYARAN</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">METODE PEMBAYARAN</Label>
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
-                              <SelectItem key={m} value={m} className="text-xs">{PAYMENT_LABELS[m]}</SelectItem>
+                              <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-9 text-xs gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-medium shadow-xs">
-                          <Search className="h-3.5 w-3.5" />
+                        <Button onClick={handleSearch} disabled={isPending} className="w-full h-12 text-base rounded-xl gap-2 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold shadow-sm">
+                          <Search className="h-4 w-4" />
                           {isPending ? 'Memuat...' : 'Tampilkan'}
                         </Button>
                       </div>
                     </div>
 
                     {hasSearched && data && (
-                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200">
-                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-8 text-xs gap-1.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50 font-semibold shadow-xs">
-                          <FileSpreadsheet className="h-3.5 w-3.5" /> Export Monitoring Stok (Excel Terpadu)
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <Button onClick={exportMultiTabExcel} variant="outline" size="sm" className="h-11 px-4 text-xs font-semibold rounded-xl gap-1.5 text-indigo-700 border-indigo-200 hover:bg-indigo-50">
+                          <FileSpreadsheet className="h-4 w-4" /> Export Monitoring Stok (Excel Terpadu)
                         </Button>
                       </div>
                     )}
                   </div>
 
                   {/* Stok Local Search and Options */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-100 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-150 dark:border-slate-800">
                     <div className="flex items-center gap-2 flex-1 max-w-sm">
-                      <Label className="text-xs shrink-0 font-semibold text-slate-700">Cari Produk:</Label>
+                      <Label className="text-xs shrink-0 font-semibold text-slate-655 dark:text-slate-400">Cari Produk:</Label>
                       <Input
                         placeholder="Nama atau SKU..."
                         value={stockSearch}
                         onChange={e => setStockSearch(e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        className="h-11 text-base bg-white dark:bg-slate-900 rounded-xl"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -2230,38 +2538,40 @@ export function LaporanAnalitikClient() {
                         id="onlyActiveStock"
                         checked={onlyActiveStock}
                         onChange={e => setOnlyActiveStock(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                       />
-                      <Label htmlFor="onlyActiveStock" className="text-xs cursor-pointer select-none font-semibold text-slate-700">
+                      <Label htmlFor="onlyActiveStock" className="text-xs cursor-pointer select-none font-semibold text-slate-650 dark:text-slate-450">
                         Hanya tampilkan produk dengan pergerakan / stok aktif
                       </Label>
                     </div>
                   </div>
 
                   {!hasSearched ? (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg bg-white">
-                      Silakan tentukan filter tanggal dan klik <strong className="text-indigo-700">Tampilkan</strong> untuk memuat data monitoring stok produk.
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
+                      Silakan tentukan filter tanggal dan klik <strong className="text-indigo-700 dark:text-indigo-400">Tampilkan</strong> untuk memuat data monitoring stok produk.
                     </div>
                   ) : filteredStocks.length > 0 ? (
                     <>
-                      <div className="flex items-center gap-6 px-4 py-2 bg-indigo-800 text-white text-xs font-bold rounded-t">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-indigo-800 text-white text-xs font-bold rounded-t-2xl">
                         <span>PERIODE: {startDate} S/D {endDate}</span>
-                        <span className="ml-auto">TOTAL PRODUK TAMPIL: {filteredStocks.length}</span>
+                        <span className="sm:ml-auto">TOTAL PRODUK TAMPIL: {filteredStocks.length}</span>
                       </div>
-                      <div className="overflow-x-auto border rounded-b">
+                      
+                      {/* Desktop Table View */}
+                      <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-indigo-800 text-white font-bold text-center">
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>NO</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap font-mono" rowSpan={2}>KODE BRG</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap text-left" rowSpan={2}>NAMA BARANG</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AWAL</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>PEMBELIAN</th>
+                            <tr className="bg-indigo-850 text-white font-bold text-center">
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>NO</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-mono" rowSpan={2}>KODE BRG</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap text-left" rowSpan={2}>NAMA BARANG</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AWAL</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>PEMBELIAN</th>
                               <th className="px-2 py-1 border border-indigo-950 whitespace-nowrap" colSpan={5}>PENJUALAN</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>TOT PENJUALAN</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AKHIR</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap font-bold text-amber-200" rowSpan={2}>STOCK OPNAME</th>
-                              <th className="px-2 py-2 border border-indigo-950 whitespace-nowrap" rowSpan={2}>QTY RETUR</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>TOT PENJUALAN</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AKHIR</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-bold text-amber-200" rowSpan={2}>STOCK OPNAME</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>QTY RETUR</th>
                             </tr>
                             <tr className="bg-indigo-900 text-white text-[10px] font-bold">
                               <th className="px-1 py-1 border border-indigo-950">M1</th>
@@ -2273,43 +2583,123 @@ export function LaporanAnalitikClient() {
                           </thead>
                           <tbody>
                             {filteredStocks.map((item, idx) => (
-                              <tr key={item.productId} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white hover:bg-slate-100'}>
-                                <td className="px-2 py-1.5 text-center border border-gray-200">{idx + 1}</td>
-                                <td className="px-2 py-1.5 border border-gray-200 font-mono text-gray-600">{item.sku}</td>
-                                <td className="px-2 py-1.5 border border-gray-200 font-medium whitespace-nowrap">{item.name}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-semibold">{item.stockAwal.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 text-green-700 font-medium">{item.pembelian > 0 ? item.pembelian.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200">{item.m1 > 0 ? item.m1.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200">{item.m2 > 0 ? item.m2.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200">{item.m3 > 0 ? item.m3.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200">{item.m4 > 0 ? item.m4.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200">{item.m5 > 0 ? item.m5.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-medium text-blue-700">{item.totPenjualan > 0 ? item.totPenjualan.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-semibold text-slate-800">{item.stockAkhir.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 font-bold text-amber-800 bg-amber-50">{item.stockOpname !== null ? item.stockOpname.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 text-red-600">{item.qtyRetur > 0 ? item.qtyRetur.toLocaleString('id-ID') : '-'}</td>
+                              <tr key={item.productId} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900 hover:bg-slate-100'}>
+                                <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
+                                <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono text-gray-600 dark:text-gray-400">{item.sku}</td>
+                                <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-medium whitespace-nowrap">{item.name}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold">{item.stockAwal.toLocaleString('id-ID')}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-green-700 dark:text-green-450 font-medium">{item.pembelian > 0 ? item.pembelian.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m1 > 0 ? item.m1.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m2 > 0 ? item.m2.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m3 > 0 ? item.m3.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m4 > 0 ? item.m4.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m5 > 0 ? item.m5.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-blue-700 dark:text-blue-400">{item.totPenjualan > 0 ? item.totPenjualan.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold text-slate-800 dark:text-slate-200">{item.stockAkhir.toLocaleString('id-ID')}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-amber-850 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20">{item.stockOpname !== null ? item.stockOpname.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-red-650 dark:text-red-400">{item.qtyRetur > 0 ? item.qtyRetur.toLocaleString('id-ID') : '-'}</td>
                               </tr>
                             ))}
                             <tr className="bg-indigo-800 text-white font-bold text-right">
-                              <td colSpan={3} className="px-3 py-2 text-center border border-indigo-950">TOTAL</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m1,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m2,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m3,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m4,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m5,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAkhir,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.qtyRetur,0).toLocaleString('id-ID')}</td>
+                              <td colSpan={3} className="px-3 py-2.5 text-center border border-indigo-950">TOTAL</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m1,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m2,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m3,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m4,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m5,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAkhir,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.qtyRetur,0).toLocaleString('id-ID')}</td>
                             </tr>
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card Feed View */}
+                      <div className="block md:hidden space-y-3 mt-2">
+                        {/* Summary Sticky Card */}
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl space-y-3 shadow-md">
+                          <p className="text-xs font-bold text-slate-400 uppercase">AKUMULASI ALUR STOK</p>
+                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="bg-slate-800/80 p-2 rounded-xl">
+                              <p className="text-[10px] text-slate-400">Stok Awal</p>
+                              <p className="font-bold text-slate-100">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div className="bg-slate-800/80 p-2 rounded-xl">
+                              <p className="text-[10px] text-slate-400">Pembelian</p>
+                              <p className="font-bold text-green-400">+{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div className="bg-slate-800/80 p-2 rounded-xl">
+                              <p className="text-[10px] text-slate-400">Penjualan</p>
+                              <p className="font-bold text-blue-400">-{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {filteredStocks.map((item, idx) => (
+                          <div key={item.productId} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
+                                <p className="text-xs text-slate-400 mt-0.5 truncate">SKU: {item.sku}</p>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
+                                <span className="text-[9px] text-slate-400 block">Stok Awal</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-200">{item.stockAwal}</span>
+                              </div>
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
+                                <span className="text-[9px] text-slate-450 block">Beli (+)</span>
+                                <span className="font-bold text-green-600">+{item.pembelian}</span>
+                              </div>
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
+                                <span className="text-[9px] text-slate-450 block">Jual (-)</span>
+                                <span className="font-bold text-blue-600">-{item.totPenjualan}</span>
+                              </div>
+                              <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
+                                <span className="text-[9px] text-slate-450 block">Stok Akhir</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white">{item.stockAkhir}</span>
+                              </div>
+                            </div>
+
+                            {/* Detail Penjualan Mingguan (M1 - M5) */}
+                            <div className="bg-slate-50/50 dark:bg-slate-850/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
+                              <p className="text-[9px] text-slate-405 font-bold mb-1.5 uppercase tracking-wider">Penjualan Mingguan</p>
+                              <div className="grid grid-cols-5 gap-1 text-center text-[10px]">
+                                {['M1','M2','M3','M4','M5'].map((m, i) => {
+                                  const val = i === 0 ? item.m1 : i === 1 ? item.m2 : i === 2 ? item.m3 : i === 3 ? item.m4 : item.m5
+                                  return (
+                                    <div key={m}>
+                                      <p className="text-[9px] text-slate-400">{m}</p>
+                                      <p className={`font-semibold ${val > 0 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-300 dark:text-slate-700'}`}>{val > 0 ? val : '-'}</p>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5">
+                              <div>
+                                <span className="text-[10px] text-slate-400">Stock Opname: </span>
+                                <span className="font-bold text-amber-600">{item.stockOpname !== null ? item.stockOpname : '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400">Retur: </span>
+                                <span className="font-bold text-red-600">{item.qtyRetur > 0 ? item.qtyRetur : '-'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   ) : (
-                    <div className="py-16 text-center text-muted-foreground text-sm border rounded-lg">
+                    <div className="py-16 text-center text-slate-400 text-sm border border-slate-100 rounded-2xl bg-white dark:bg-slate-900">
                       Tidak ada data monitoring stok produk untuk kriteria pencarian ini.
                     </div>
                   )}
@@ -2322,42 +2712,74 @@ export function LaporanAnalitikClient() {
                 {/* ── SLOW MOVING ─────────────────────────────── */}
 
           {data.slowMoving.length > 0 && (
-            <Card className="border-orange-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <Card className="border-orange-200 dark:border-orange-950/40 rounded-2xl overflow-hidden shadow-sm">
+              <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/10">
+                <CardTitle className="text-base flex items-center gap-2 text-orange-850 dark:text-orange-400 font-bold">
+                  <AlertTriangle className="h-4.5 w-4.5 text-orange-600 dark:text-orange-400 animate-pulse" />
                   Barang Slow Moving (belum terjual pada periode ini)
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produk</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead className="text-right">Stok</TableHead>
-                      <TableHead className="text-right">HPP/Unit</TableHead>
-                      <TableHead className="text-right">Nilai Stok Tertahan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.slowMoving.map(p => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.name}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{p.category}</TableCell>
-                        <TableCell className="text-right font-bold">{p.stock}</TableCell>
-                        <TableCell className="text-right">{formatRp(p.purchase_price)}</TableCell>
-                        <TableCell className="text-right font-semibold text-orange-700">{formatRp(p.stock_value)}</TableCell>
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                        <TableHead className="font-bold">Produk</TableHead>
+                        <TableHead className="font-bold">Kategori</TableHead>
+                        <TableHead className="text-right font-bold">Stok</TableHead>
+                        <TableHead className="text-right font-bold">HPP/Unit</TableHead>
+                        <TableHead className="text-right font-bold">Nilai Stok Tertahan</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {data.slowMoving.map(p => (
+                        <TableRow key={p.id} className="hover:bg-slate-50/85">
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{p.category}</TableCell>
+                          <TableCell className="text-right font-bold">{p.stock}</TableCell>
+                          <TableCell className="text-right">{formatRp(p.purchase_price)}</TableCell>
+                          <TableCell className="text-right font-semibold text-orange-700 dark:text-orange-400">{formatRp(p.stock_value)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800 p-4 space-y-3">
+                  {data.slowMoving.map((p, idx) => (
+                    <div key={p.id} className="pt-3 first:pt-0 space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
+                          <p className="text-[11px] text-slate-450 truncate">{p.category}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-[10px] font-bold text-orange-700 dark:text-orange-400">#{(idx + 1)}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-xl">
+                          <span className="text-[9px] text-slate-400 block">Stok</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-350">{p.stock}</span>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-xl">
+                          <span className="text-[9px] text-slate-400 block">HPP/Unit</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-350">{formatRp(p.purchase_price)}</span>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-950/20 p-2 rounded-xl border border-orange-100/50 dark:border-orange-900/30">
+                          <span className="text-[9px] text-orange-700 dark:text-orange-400 block font-semibold">Stok Tertahan</span>
+                          <span className="font-bold text-orange-700 dark:text-orange-400">{formatRp(p.stock_value)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
 
           {data.topProducts.length === 0 && (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">Tidak ada data penjualan pada periode dan filter yang dipilih.</CardContent></Card>
+            <Card className="rounded-2xl border-slate-100 dark:border-slate-800"><CardContent className="py-12 text-center text-slate-400 text-sm font-medium">Tidak ada data penjualan pada periode dan filter yang dipilih.</CardContent></Card>
           )}
         </>
       )}
