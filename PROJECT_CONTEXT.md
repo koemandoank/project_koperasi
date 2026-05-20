@@ -1,5 +1,5 @@
 # PROJECT CONTEXT — Koperasi Digital (Next.js)
-> Last updated: 2026-05-19 | Version: 3.2.0
+> Last updated: 2026-05-20 | Version: 3.3.0
 
 ---
 
@@ -443,7 +443,7 @@ header-client.tsx (Client Component)
 
 ---
 
-## 15. PROGRESS TERAKHIR (17 MEI 2026 — v3.1)
+## 15. PROGRESS TERAKHIR (20 MEI 2026 — v3.3)
 
 ### Sesi 16 Mei 2026 (v3.0 — sebelumnya)
 1. Aesthetic Login Page, Manajemen Promosi (fix hydration + upload), Floating Carousel anggota.
@@ -473,6 +473,15 @@ header-client.tsx (Client Component)
 18. **[SYNC DB] Sinkronisasi Konsinyasi** — buat `consignment_items` + `consignment_payables` untuk 2 produk (`Kacang Garuda`, `Roti Aoka`) yang sudah ada di kategori Konsinyasi tapi belum punya record.
 19. **[NEW] Pemisahan PO vs Konsinyasi (Opsi A)** — produk kategori `konsinyasi` dikecualikan dari dropdown form PO Biasa via query filter `product_categories: { slug: { not: 'konsinyasi' } }`; banner info ditambahkan di form PO.
 20. **[FIX] Hapus tombol PO Konsinyasi** — tombol placeholder dihapus dari tab Purchase Order di halaman Pembelian.
+
+### Sesi 20 Mei 2026 (v3.3 — Perbaikan Navigasi, Profil, & Sinkronisasi Mobile)
+21. **[FIX] Akses Halaman Profil** — Memasukkan bypass filter RBAC untuk `/profil` dan `/dashboard/home` di `auth.config.ts` agar semua user terotentikasi dapat mengakses halaman profil & home dashboard secara langsung.
+22. **[NEW] Tombol Logout Profil** — Menambahkan tombol logout destruktif merah di dalam kartu profil pada `profil-client.tsx` menggunakan server action NextAuth signOut.
+23. **[NEW] Menu Transaksi Mobile** — Menambahkan menu tab "Transaksi" pada bottom navigation (`bottom-nav.tsx`) untuk role `anggota` yang mengarah ke `/dashboard?forceDashboard=true` (menghindari redirect mobile) dan memperbarui pencarian active tab agar query-parameter friendly.
+24. **[NEW] Judul Mobile Header** — Menyetel title header `/dashboard` di mobile (`mobile-header.tsx`) menjadi "Transaksi".
+25. **[NEW] Sinkronisasi Statistik Beranda** — Mengubah sub-komponen `StatsCard` di `home-page-client.tsx` (Beranda) agar secara dinamis mengambil data `getGlobalFinancialStats(period)` real-time dari database, menggantikan dummy data.
+26. **[FIX] Fallback Saldo Kas Koperasi** — Mengimplementasikan kalkulasi fallback dinamis untuk `saldoKas` di `getGlobalFinancialStats` berdasarkan akumulasi saldo tabungan, angsuran pinjaman, penjualan online/POS dikurangi pengeluaran sehingga saldo kas tidak Rp 0 saat tabel chart of accounts kosong.
+27. **[FIX] Default Show Financial Stats** — Mengubah default pengaturan dashboard anggota agar `show_financial_stats` bernilai `true` saat konfigurasi cache kosong, sehingga statistik koperasi langsung tampil.
 
 ---
 
