@@ -136,8 +136,8 @@ export function MobileHeader({
                 <ChevronLeft className="h-6 w-6 text-slate-700 dark:text-slate-300" />
               </button>
             ) : (
-              <div className="h-8 w-8 rounded-lg overflow-hidden ml-2">
-                <img src="/icon.jpg" alt="Logo" className="h-full w-full object-cover" />
+              <div className="h-8 w-8 rounded-lg overflow-hidden ml-2 flex items-center justify-center bg-slate-50 p-0.5">
+                <img src="/koperasi.png" alt="Logo" className="h-full w-full object-contain" />
               </div>
             )}
           </div>
