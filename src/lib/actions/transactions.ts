@@ -130,7 +130,7 @@ export async function getTransactionFormOptions() {
 
     return {
       success: true,
-      accounts: mapped.filter(a => a.type === "asset"),
+      accounts: mapped.filter(a => a.type === "asset" && !a.code.startsWith("12")),
       categoriesExpense: mapped.filter(a => a.type === "expense"),
       categoriesIncome: mapped.filter(a => a.type === "revenue")
     }
