@@ -188,9 +188,9 @@ export async function getBudgetTransactions(code: string): Promise<BudgetTransac
         { id: "TX-BDG-004", date: "2026-04-05", description: "Pembelian Toner Printer & Kertas HVS A4", amount: 7650000, recipient: "CV Maju ATK Perkasa", reference: "REF-20260405-021", status: "completed" },
       ],
       "501.04": [
-        { id: "TX-BDG-101", date: "2026-05-20", description: "Restock Sembako (Beras, Minyak Goreng, Gula)", amount: 85200000, recipient: "PT Indofood Makmur", reference: "REF-20260520-210", status: "completed" },
-        { id: "TX-BDG-102", date: "2026-05-10", description: "Pengadaan Produk Susu Formula & Perlengkapan Bayi", amount: 48500000, recipient: "CV Susu Sehat Selaras", reference: "REF-20260510-188", status: "completed" },
-        { id: "TX-BDG-103", date: "2026-04-25", description: "Belanja ATK & Kebutuhan Rumah Tangga untuk Dijual Kembali", amount: 55500000, recipient: "PT Lion Super Indo", reference: "REF-20260425-014", status: "completed" },
+        { id: "TX-BDG-101", date: "2026-05-20", description: "Restock Sembako (Beras, Minyak Goreng, Gula)", amount: 85200000, recipient: "PT Sumber Makmur", reference: "REF-20260520-210", status: "completed" },
+        { id: "TX-BDG-102", date: "2026-05-10", description: "Pengadaan Produk Susu Formula & Perlengkapan Bayi", amount: 48500000, recipient: "PT Fresh Distribusi", reference: "REF-20260510-188", status: "completed" },
+        { id: "TX-BDG-103", date: "2026-04-25", description: "Belanja ATK & Kebutuhan Rumah Tangga untuk Dijual Kembali", amount: 55500000, recipient: "CV Mitra Sejahtera", reference: "REF-20260425-014", status: "completed" },
       ],
       "501.05": [
         { id: "TX-BDG-201", date: "2026-05-25", description: "Alokasi Gaji Pokok 5 Karyawan Tetap (Periode Mei 2026)", amount: 25000000, recipient: "Karyawan Koperasi (Payroll)", reference: "REF-PAY-20260525", status: "pending" },
