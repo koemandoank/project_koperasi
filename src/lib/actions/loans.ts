@@ -41,8 +41,7 @@ export async function checkLoanRuleViolations(
       const activeProductLoans = await prisma.loans.count({
         where: {
           member_id: memberId,
-          status: "active",
-          loan_applications: { loan_product_id: productId }
+          status: "active"
         }
       });
       if (activeProductLoans > 0) {
@@ -337,16 +336,14 @@ export async function submitLoanApplication(data: {
 
     // 2. Cek Strict Single Active Loan (Wajib Lunas)
     if (rules.strict_single_active_loan.enabled && rules.strict_single_active_loan.applied_to_products.includes(productIdNum)) {
-      // Filter berdasarkan produk melalui relasi loan_applications
       const activeProductLoans = await prisma.loans.count({
         where: {
           member_id: memberId,
-          status: "active",
-          loan_applications: { loan_product_id: BigInt(productIdNum) }
+          status: "active"
         }
       });
       if (activeProductLoans > 0) {
-        return { success: false, error: "Ditolak: Anda masih memiliki pinjaman berjalan (Aturan Wajib Lunas 100%)." };
+        return { success: false, error: "Pinjaman ditolak otomatis, karena masih ada pinjaman yang belum lunas" };
       }
     }
 
