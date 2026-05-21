@@ -319,6 +319,8 @@ export async function submitLoanApplication(data: {
     const { getLoanRules } = await import('./loan-rules');
     const rules = await getLoanRules();
 
+    let ruleViolationError: string | null = null;
+
     // 1. Cek Batas Frekuensi Pengajuan / Bulan
     if (rules.max_loans_per_month.enabled && rules.max_loans_per_month.applied_to_products.includes(productIdNum)) {
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -330,12 +332,12 @@ export async function submitLoanApplication(data: {
         }
       });
       if (applicationsThisMonth >= rules.max_loans_per_month.value) {
-        return { success: false, error: `Batas maksimal pengajuan (${rules.max_loans_per_month.value}x/bulan) telah tercapai.` };
+        ruleViolationError = `Batas maksimal pengajuan (${rules.max_loans_per_month.value}x/bulan) telah tercapai.`;
       }
     }
 
     // 2. Cek Strict Single Active Loan (Wajib Lunas)
-    if (rules.strict_single_active_loan.enabled && rules.strict_single_active_loan.applied_to_products.includes(productIdNum)) {
+    if (!ruleViolationError && rules.strict_single_active_loan.enabled && rules.strict_single_active_loan.applied_to_products.includes(productIdNum)) {
       const activeProductLoans = await prisma.loans.count({
         where: {
           member_id: memberId,
@@ -343,12 +345,12 @@ export async function submitLoanApplication(data: {
         }
       });
       if (activeProductLoans > 0) {
-        return { success: false, error: "Pinjaman ditolak otomatis, karena masih ada pinjaman yang belum lunas" };
+        ruleViolationError = "Pinjaman ditolak otomatis, karena masih ada pinjaman yang belum lunas";
       }
     }
 
     // 3. Cek Syarat Sisa Cicilan Maksimal (Top-Up)
-    if (rules.min_remaining_installments_for_topup.enabled && rules.min_remaining_installments_for_topup.applied_to_products.includes(productIdNum)) {
+    if (!ruleViolationError && rules.min_remaining_installments_for_topup.enabled && rules.min_remaining_installments_for_topup.applied_to_products.includes(productIdNum)) {
       const activeLoan = await prisma.loans.findFirst({
         where: {
           member_id: memberId,
@@ -359,22 +361,15 @@ export async function submitLoanApplication(data: {
       });
       
       if (activeLoan) {
-        // Asumsi: schedule belum lunas jika principal_paid < principal_due
         const remainingSchedules = activeLoan.loan_schedules.filter(s => Number(s.principal_paid) < Number(s.principal_due)).length;
         if (remainingSchedules > rules.min_remaining_installments_for_topup.value) {
-          return { success: false, error: `Ditolak (Top-up): Sisa cicilan Anda masih ${remainingSchedules}x. Syarat batas top-up maksimal menyisakan ${rules.min_remaining_installments_for_topup.value}x cicilan.` };
+          ruleViolationError = `Ditolak (Top-up): Sisa cicilan Anda masih ${remainingSchedules}x. Syarat batas top-up maksimal menyisakan ${rules.min_remaining_installments_for_topup.value}x cicilan.`;
         }
       }
     }
 
-    // 4. Cek Wajib Lampirkan Kwitansi (Validasi File)
-    if (rules.require_receipt_for_goods.enabled && rules.require_receipt_for_goods.applied_to_products.includes(productIdNum)) {
-      // TODO: Saat ini parameter file belum dikirim dari front-end. Jika ada parameter receiptUrl, cek di sini.
-      // if (!data.receipt_url) return { success: false, error: "Wajib melampirkan file kwitansi." };
-    }
-
-    // 5. Cek Maksimal Persentase Simpanan
-    if (rules.max_loan_percentage_of_savings.enabled && rules.max_loan_percentage_of_savings.applied_to_products.includes(productIdNum)) {
+    // 4. Cek Maksimal Persentase Simpanan
+    if (!ruleViolationError && rules.max_loan_percentage_of_savings.enabled && rules.max_loan_percentage_of_savings.applied_to_products.includes(productIdNum)) {
       const totalSavings = await prisma.savings.aggregate({
         where: { member_id: memberId },
         _sum: { balance: true }
@@ -383,12 +378,51 @@ export async function submitLoanApplication(data: {
       const maxAllowed = balance * (rules.max_loan_percentage_of_savings.value / 100);
       
       if (data.amount_requested > maxAllowed) {
-         return { success: false, error: `Limit ditolak: Pengajuan melebihi ${rules.max_loan_percentage_of_savings.value}% saldo simpanan (Maks Rp ${maxAllowed.toLocaleString('id-ID')}).` };
+        ruleViolationError = `Limit ditolak: Pengajuan melebihi ${rules.max_loan_percentage_of_savings.value}% saldo simpanan (Maks Rp ${maxAllowed.toLocaleString('id-ID')}).`;
       }
     }
 
     const count = await prisma.loan_applications.count();
     const appNo = `LN-${new Date().toISOString().slice(0,7).replace('-','')}-${String(count + 1).padStart(4,'0')}`;
+
+    if (ruleViolationError) {
+      await prisma.loan_applications.create({
+        data: {
+          member_id: memberId,
+          loan_product_id: BigInt(productIdNum),
+          application_no: appNo,
+          amount_requested: data.amount_requested,
+          tenor_months: data.tenor_months,
+          repayment_method: data.repayment_method as any,
+          purpose: data.purpose,
+          status: "rejected",
+          submitted_at: new Date(),
+          rejection_note: ruleViolationError,
+          guarantor_name: data.guarantor_name || null,
+          guarantor_phone: data.guarantor_phone || null,
+        }
+      });
+
+      revalidatePath("/pinjaman");
+
+      await logAudit({
+        action: "CREATE",
+        modelType: "loan_applications",
+        modelId: null,
+        newValues: {
+          application_no: appNo,
+          loan_product_id: data.loan_product_id,
+          amount_requested: data.amount_requested,
+          tenor_months: data.tenor_months,
+          repayment_method: data.repayment_method,
+          purpose: data.purpose,
+          status: "rejected",
+          rejection_note: ruleViolationError,
+        },
+      });
+
+      return { success: false, error: ruleViolationError };
+    }
 
     await prisma.loan_applications.create({
       data: {

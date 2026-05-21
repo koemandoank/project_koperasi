@@ -156,6 +156,7 @@ export async function getMyPinjaman() {
           status: a.status,
           submitted_at: a.submitted_at?.toISOString() || null,
           rule_violations: violations,
+          rejection_note: a.rejection_note,
         };
       }))
     }

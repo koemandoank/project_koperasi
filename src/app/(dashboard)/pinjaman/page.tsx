@@ -175,6 +175,14 @@ export default async function PinjamanPage() {
                       ))}
                     </div>
                   )}
+                  {/* Warning/Reason for rejected applications */}
+                  {a.status === "rejected" && a.rejection_note && (
+                    <div className="px-3 pb-3 pt-1 bg-red-50/50 dark:bg-red-950/10 border-t border-red-100/50 dark:border-red-900/20 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <p className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                        ❌ {a.rejection_note}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

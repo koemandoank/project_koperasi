@@ -1,12 +1,16 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
+/**
+ * Global custom Toaster component utilizing Sonner.
+ * Safe for use without a next-themes ThemeProvider.
+ * 
+ * @param {ToasterProps} props - Sonner toaster props.
+ * @returns {React.ReactElement} The configured Sonner container.
+ */
+const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
@@ -38,7 +42,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast:
+            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:rounded-xl group-[.toaster]:p-4 group-[.toaster]:border group-[.toaster]:flex group-[.toaster]:items-center group-[.toaster]:gap-3",
+          description: "group-[.toast]:text-muted-foreground text-xs",
+          actionButton:
+            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground text-xs font-semibold",
+          cancelButton:
+            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground text-xs font-semibold",
         },
       }}
       {...props}
