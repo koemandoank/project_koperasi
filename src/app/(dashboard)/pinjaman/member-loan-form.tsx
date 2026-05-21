@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { submitLoanApplication } from "@/lib/actions/loans"
+import { submitLoanApplication, checkLoanRuleViolationsAction } from "@/lib/actions/loans"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
 
@@ -34,6 +34,37 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
     guarantor_name: "",
     guarantor_phone: "",
   })
+  const [ruleViolations, setRuleViolations] = useState<string[]>([])
+  const [checkingRules, setCheckingRules] = useState(false)
+
+  const checkRules = async (productId: string, amountStr: string) => {
+    if (!productId) return
+    setCheckingRules(true)
+    try {
+      const amt = Number(amountStr) || 0
+      const res = await checkLoanRuleViolationsAction(Number(productId), amt)
+      if (res.success) {
+        setRuleViolations(res.violations)
+      } else {
+        setRuleViolations([])
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCheckingRules(false)
+    }
+  }
+
+  useEffect(() => {
+    if (open && selectedProduct) {
+      const timer = setTimeout(() => {
+        checkRules(selectedProduct, form.amount_requested)
+      }, 300)
+      return () => clearTimeout(timer)
+    } else {
+      setRuleViolations([])
+    }
+  }, [open, selectedProduct, form.amount_requested])
 
   const product = loanProducts.find(p => p.id.toString() === selectedProduct)
   const formatRp = (v: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -196,6 +227,23 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
                   <Label>No. HP Penjamin</Label>
                   <Input required value={form.guarantor_phone} onChange={e => setForm(p => ({ ...p, guarantor_phone: e.target.value }))} />
                 </div>
+              </div>
+            )}
+            
+            {ruleViolations.length > 0 && (
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300 rounded-xl text-sm space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-2 font-bold text-red-950 dark:text-red-400">
+                  <span className="text-lg">🚨</span>
+                  <span>PERINGATAN ATURAN PINJAMAN:</span>
+                </div>
+                <ul className="list-disc pl-5 space-y-1 font-semibold text-red-800 dark:text-red-300">
+                  {ruleViolations.map((v, i) => (
+                    <li key={i}>{v}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-red-700 dark:text-red-400 italic font-semibold mt-1">
+                  * Pengajuan ini akan otomatis ditolak oleh sistem karena melanggar aturan di atas.
+                </p>
               </div>
             )}
             

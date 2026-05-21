@@ -88,6 +88,42 @@ export async function checkLoanRuleViolations(
   return violations;
 }
 
+/**
+ * Server action to check loan rules violations in real-time before submission.
+ * 
+ * @param {number} productId - The selected loan product ID.
+ * @param {number} amountRequested - The requested loan amount.
+ * @returns {Promise<{ success: boolean; violations: string[] }>} Verification result containing rule violations.
+ */
+export async function checkLoanRuleViolationsAction(
+  productId: number,
+  amountRequested: number
+): Promise<{ success: boolean; violations: string[] }> {
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, violations: ["Tidak terautentikasi"] };
+
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+      include: { members: true }
+    });
+    if (!user?.members) return { success: false, violations: ["Data anggota tidak ditemukan"] };
+
+    const violations = await checkLoanRuleViolations(
+      user.members.id,
+      BigInt(productId),
+      amountRequested,
+      BigInt(0)
+    );
+
+    return { success: true, violations };
+  } catch (error) {
+    console.error("checkLoanRuleViolationsAction error:", error);
+    return { success: false, violations: ["Gagal memverifikasi aturan."] };
+  }
+}
+
 /** Fetch all loan applications for admin/pengurus approval */
 export async function getLoanApplications(statusFilter?: string) {
   try {
