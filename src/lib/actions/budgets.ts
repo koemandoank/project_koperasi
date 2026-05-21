@@ -189,7 +189,7 @@ export async function getBudgetTransactions(code: string): Promise<BudgetTransac
       ],
       "501.04": [
         { id: "TX-BDG-101", date: "2026-05-20", description: "Restock Sembako (Beras, Minyak Goreng, Gula)", amount: 85200000, recipient: "PT Sumber Makmur", reference: "REF-20260520-210", status: "completed" },
-        { id: "TX-BDG-102", date: "2026-05-10", description: "Pengadaan Produk Susu Formula & Perlengkapan Bayi", amount: 48500000, recipient: "PT Fresh Distribusi", reference: "REF-20260510-188", status: "completed" },
+        { id: "TX-BDG-102", date: "2026-05-10", description: "Pengadaan Susu UHT Cair & Produk Minuman Kemasan", amount: 48500000, recipient: "PT Fresh Distribusi", reference: "REF-20260510-188", status: "completed" },
         { id: "TX-BDG-103", date: "2026-04-25", description: "Belanja ATK & Kebutuhan Rumah Tangga untuk Dijual Kembali", amount: 55500000, recipient: "CV Mitra Sejahtera", reference: "REF-20260425-014", status: "completed" },
       ],
       "501.05": [
