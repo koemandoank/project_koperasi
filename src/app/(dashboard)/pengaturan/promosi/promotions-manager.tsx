@@ -46,15 +46,16 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
     const file = e.target.files[0]
     const fd = new FormData()
     fd.append("file", file)
+    fd.append("folder", "koperasi/promotions")
     
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const data = await res.json()
-      if (data.success && data.path) {
-        setFormData(prev => ({ ...prev, image_url: data.path }))
+      if (data.url) {
+        setFormData(prev => ({ ...prev, image_url: data.url }))
         toast.success("Gambar berhasil diunggah")
       } else {
-        toast.error("Gagal mengunggah gambar")
+        toast.error(data.error ?? "Gagal mengunggah gambar")
       }
     } catch {
       toast.error("Terjadi kesalahan saat unggah")

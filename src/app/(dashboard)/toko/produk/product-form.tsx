@@ -85,6 +85,7 @@ export function ProductForm({
     setUploadingImage(true)
     const fd = new FormData()
     fd.append("file", file)
+    fd.append("folder", "koperasi/products")
     const res = await fetch("/api/upload", { method: "POST", body: fd })
     const data = await res.json()
     if (data.url) {
