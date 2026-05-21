@@ -10,6 +10,13 @@ import { Upload, User, Lock, Save } from "lucide-react"
 import { getMyProfile, updatePhoto, changePassword } from "@/lib/actions/profile"
 import { logout } from "@/lib/actions/auth"
 
+/** Rejects local /uploads/ paths — only displays verified external URLs */
+function isValidPhotoUrl(path: string | null | undefined): boolean {
+  if (!path) return false
+  if (path.startsWith("/uploads/") || path.startsWith("./")) return false
+  return path.startsWith("http://") || path.startsWith("https://")
+}
+
 export function ProfilClient() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -87,7 +94,7 @@ export function ProfilClient() {
         <Card className="md:col-span-1 border-0 shadow-md">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto h-32 w-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100 flex items-center justify-center relative mb-4">
-              {profile.member?.photo_path ? (
+              {isValidPhotoUrl(profile.member?.photo_path) ? (
                 <img src={profile.member.photo_path} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <User className="h-16 w-16 text-slate-300" />

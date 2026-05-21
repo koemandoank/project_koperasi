@@ -13,7 +13,13 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
+      },
     ],
+    // Allow unoptimized external <img> tags (for non-Next/Image usage)
+    unoptimized: false,
   },
 };
 

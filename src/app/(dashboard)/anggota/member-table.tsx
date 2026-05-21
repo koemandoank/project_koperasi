@@ -20,6 +20,21 @@ import { toast } from "sonner"
 import { MemberForm } from "./member-form"
 import { cn } from "@/lib/utils"
 
+/**
+ * Validates that a photo path is a proper external URL (Cloudinary, ui-avatars, etc).
+ * Rejects local /uploads/ paths that only exist on development filesystem.
+ *
+ * @param path - photo_path value from database
+ * @returns true if the path is a displayable external URL
+ */
+function isValidPhotoUrl(path: string | null | undefined): boolean {
+  if (!path) return false
+  // Reject local filesystem paths
+  if (path.startsWith("/uploads/") || path.startsWith("./") || path.startsWith("../")) return false
+  // Accept external http(s) URLs
+  return path.startsWith("http://") || path.startsWith("https://")
+}
+
 export function MemberTable({ members, units }: { members: any[], units: any[] }) {
   const [loading, setLoading] = useState<number | null>(null)
   const [search, setSearch] = useState("")
@@ -91,11 +106,12 @@ export function MemberTable({ members, units }: { members: any[], units: any[] }
             <div className="flex items-start justify-between gap-3 p-4 pb-3">
               {/* Avatar + Name */}
               <div className="flex items-center gap-3 min-w-0">
-                {member.photo_path ? (
+                {isValidPhotoUrl(member.photo_path) ? (
                   <img
                     src={member.photo_path}
                     alt={member.full_name}
                     className="h-11 w-11 rounded-full object-cover shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
                 ) : (
                   <div className="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-base shrink-0">
