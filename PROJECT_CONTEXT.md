@@ -1,5 +1,5 @@
 # PROJECT CONTEXT — Koperasi Digital (Next.js)
-> Last updated: 2026-05-21 | Version: 3.3.2
+> Last updated: 2026-05-21 | Version: 3.3.3
 
 ---
 
@@ -493,6 +493,10 @@ header-client.tsx (Client Component)
 ### Sesi 21 Mei 2026 (v3.3.2 — Perbaikan Favicon & Judul Tab Browser)
 33. **[FIX] Judul Tab Root Layout**: Mengubah metadata root layout title dari `"Create Next App"` menjadi `"Koperasi Sulfindo"`.
 34. **[FIX] Favicon Koperasi**: Mengganti favicon segitiga Vercel bawaan Next.js (`src/app/favicon.ico` & `src/app/icon.jpg`) dengan ikon resmi koperasi dari `public/icon.jpg` sebagai favicon situs.
+
+### Sesi 21 Mei 2026 (v3.3.3 — Pembaruan Pilihan Lokasi Radio Button)
+35. **[FEAT] Tampilan Pilihan Unit/Lokasi**: Mengubah input dropdown (Select) pada edit lokasi anggota menjadi pilihan contreng (RadioGroup) berbentuk kartu grid 2 kolom agar lebih interaktif dan ramah ponsel.
+36. **[FEAT] Opsi Tambah Lokasi Baru**: Memasukkan opsi "+ Tambah Lokasi Baru..." ke dalam daftar kartu pilihan contreng secara langsung, yang secara dinamis memunculkan input teks nama lokasi baru ketika terpilih.
 
 ---
 

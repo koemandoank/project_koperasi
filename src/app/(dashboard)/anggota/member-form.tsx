@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createMember, updateMember, createUnit } from "@/lib/actions/members"
 import { toast } from "sonner"
@@ -233,24 +232,56 @@ export function MemberForm({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="text-sm font-semibold">Unit / Dept / Lokasi</Label>
-                <Select
+                <RadioGroup
                   value={formData.unit_id}
                   onValueChange={v => setFormData({ ...formData, unit_id: v })}
+                  className="grid grid-cols-2 gap-2"
                 >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Pilih lokasi kerja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map(u => (
-                      <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
-                    ))}
-                    <SelectItem value="new" className="text-blue-600 font-medium border-t mt-1 pt-2">
-                      + Tambah Lokasi Baru...
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  {units.map(u => (
+                    <div
+                      key={u.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors active:bg-slate-50 dark:active:bg-slate-800 ${
+                        formData.unit_id === u.id.toString()
+                          ? "border-blue-500 bg-blue-50/20 dark:bg-blue-900/10"
+                          : "border-slate-200 dark:border-slate-800"
+                      }`}
+                      onClick={() => setFormData({ ...formData, unit_id: u.id.toString() })}
+                    >
+                      <RadioGroupItem
+                        value={u.id.toString()}
+                        id={`u-${u.id}-${memberToEdit?.id || 'new'}`}
+                      />
+                      <Label
+                        htmlFor={`u-${u.id}-${memberToEdit?.id || 'new'}`}
+                        className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300"
+                      >
+                        {u.name}
+                      </Label>
+                    </div>
+                  ))}
+
+                  <div
+                    className={`flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-colors active:bg-slate-50 dark:active:bg-slate-800 col-span-2 ${
+                      formData.unit_id === "new"
+                        ? "border-blue-500 bg-blue-50/20 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400"
+                        : "border-slate-300 dark:border-slate-700 text-slate-500"
+                    }`}
+                    onClick={() => setFormData({ ...formData, unit_id: "new" })}
+                  >
+                    <RadioGroupItem
+                      value="new"
+                      id={`u-new-${memberToEdit?.id || 'new'}`}
+                    />
+                    <Label
+                      htmlFor={`u-new-${memberToEdit?.id || 'new'}`}
+                      className="cursor-pointer text-sm font-semibold flex items-center gap-1.5"
+                    >
+                      <span>+ Tambah Lokasi Baru...</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               {formData.unit_id === "new" && (
