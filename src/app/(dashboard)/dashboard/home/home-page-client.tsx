@@ -9,6 +9,7 @@ import {
   Home, Megaphone, Clock, Users, BarChart3, Settings, Store,
   FileText, Package, BookOpen, Receipt, ShieldCheck, Truck,
   ClipboardList, Archive, History, UserCog, ScrollText, LogOut,
+  ArrowLeftRight, Coins, TrendingUp, Calculator, Landmark,
 } from "lucide-react"
 import { getGlobalFinancialStats } from "@/lib/actions/global-financial-stats"
 
@@ -227,10 +228,47 @@ function MenuShortcutAnggota() {
 // ─── Menu Grid Pengurus / Admin ───────────────────────────────────────────────
 type MenuSection = { title: string; color: string; items: { href: string; icon: React.ReactNode; label: string }[] }
 
+/**
+ * Komponen Grid Menu Navigasi Pengurus / Admin
+ * Menyaring menu secara dinamis menggunakan Role-Based Access Control (RBAC).
+ *
+ * @param props - Properti komponen
+ * @param props.role - Role pengguna aktif saat ini (contoh: 'superadmin', 'admin', 'pengurus', 'kasir')
+ * @returns Elemen React untuk merender grid navigasi mobile
+ */
 function MenuGridPengurus({ role }: { role: string }) {
-  const isAdmin = ["superadmin", "admin"].includes(role)
+  // Mapping hak akses menu per-role berdasarkan spesifikasi sistem
+  const itemRoles: Record<string, string[]> = {
+    "/anggota":                     ["superadmin", "admin", "pengurus"],
+    "/akun":                        ["superadmin", "admin"],
+    "/pinjaman/approval":           ["superadmin", "admin", "pengurus"],
+    "/pinjaman/produk":             ["superadmin", "admin", "pengurus"],
+    "/simpanan":                    ["superadmin", "admin", "pengurus"],
+    "/toko/kasir":                  ["superadmin", "admin", "pengurus", "kasir"],
+    "/toko/kasir/sesi":             ["superadmin", "admin", "pengurus", "kasir"],
+    "/toko/produk":                 ["superadmin", "admin", "pengurus", "kasir"],
+    "/toko/pesanan":                ["superadmin", "admin", "pengurus", "kasir"],
+    "/toko/inventaris":             ["superadmin", "admin", "pengurus", "kasir"],
+    "/toko/konsinyasi":             ["superadmin", "admin", "pengurus", "kasir"],
+    "/pembelian":                   ["superadmin", "admin", "pengurus"],
+    "/laporan/harian":              ["superadmin", "admin", "pengurus", "kasir"],
+    "/laporan/analitik":            ["superadmin", "admin", "pengurus", "kasir"],
+    "/laporan/po-konsinyasi":       ["superadmin", "admin", "pengurus"],
+    "/laporan/stok":                ["superadmin", "admin", "pengurus", "kasir"],
+    "/laporan/potongan-gaji":       ["superadmin", "admin", "pengurus"],
+    "/akuntansi/transaksi":         ["superadmin", "admin", "pengurus", "kasir"],
+    "/keuangan":                    ["superadmin", "admin", "pengurus", "kasir"],
+    "/akuntansi/anggaran":          ["superadmin", "admin", "pengurus", "kasir"],
+    "/akuntansi/aset-tetap":        ["superadmin", "admin", "pengurus", "kasir"],
+    "/akuntansi/buku-besar":        ["superadmin", "admin"],
+    "/akuntansi/tutup-buku":        ["superadmin", "admin"],
+    "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
+    "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
+    "/pengaturan":                  ["superadmin", "admin"],
+    "/profil":                      ["superadmin", "admin", "pengurus", "kasir", "anggota"],
+  }
 
-  const sections: MenuSection[] = [
+  const rawSections: MenuSection[] = [
     {
       title: "Manajemen",
       color: "from-blue-500 to-blue-700",
@@ -240,6 +278,18 @@ function MenuGridPengurus({ role }: { role: string }) {
         { href: "/pinjaman/approval", icon: <ShieldCheck className="h-6 w-6 text-white" />, label: "Approval" },
         { href: "/pinjaman/produk",   icon: <CreditCard className="h-6 w-6 text-white" />, label: "Prod. Pinjaman" },
         { href: "/simpanan",          icon: <Wallet className="h-6 w-6 text-white" />,    label: "Simpanan" },
+      ],
+    },
+    {
+      title: "Keuangan",
+      color: "from-rose-500 to-red-600",
+      items: [
+        { href: "/akuntansi/transaksi",   icon: <ArrowLeftRight className="h-6 w-6 text-white" />, label: "Transaksi" },
+        { href: "/keuangan",              icon: <Coins className="h-6 w-6 text-white" />,          label: "Keuangan" },
+        { href: "/laporan/analitik",      icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "Laporan Keu." },
+        { href: "/akuntansi/anggaran",    icon: <Calculator className="h-6 w-6 text-white" />,     label: "Anggaran" },
+        { href: "/pengaturan/shu",        icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "SHU & Dist." },
+        { href: "/akuntansi/aset-tetap",  icon: <Landmark className="h-6 w-6 text-white" />,       label: "Aset Tetap" },
       ],
     },
     {
@@ -260,7 +310,6 @@ function MenuGridPengurus({ role }: { role: string }) {
       color: "from-emerald-500 to-teal-600",
       items: [
         { href: "/laporan/harian",         icon: <FileText className="h-6 w-6 text-white" />,   label: "Laporan Harian" },
-        { href: "/laporan/analitik",       icon: <BarChart3 className="h-6 w-6 text-white" />,  label: "Analitik & P&L" },
         { href: "/laporan/po-konsinyasi",  icon: <ScrollText className="h-6 w-6 text-white" />, label: "Lap. PO" },
         { href: "/laporan/stok",           icon: <History className="h-6 w-6 text-white" />,    label: "Riwayat Stok" },
         { href: "/laporan/potongan-gaji",  icon: <Receipt className="h-6 w-6 text-white" />,    label: "Laporan Gaji" },
@@ -278,6 +327,17 @@ function MenuGridPengurus({ role }: { role: string }) {
       ],
     },
   ]
+
+  // Filter menu secara dinamis berdasarkan role pengguna aktif (RBAC)
+  const sections = rawSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        const allowedRoles = itemRoles[item.href]
+        return !allowedRoles || allowedRoles.includes(role)
+      })
+    }))
+    .filter((section) => section.items.length > 0)
 
   return (
     <div className="space-y-5">

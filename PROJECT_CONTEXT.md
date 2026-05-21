@@ -1,5 +1,5 @@
 # PROJECT CONTEXT — Koperasi Digital (Next.js)
-> Last updated: 2026-05-21 | Version: 3.3.3
+> Last updated: 2026-05-21 | Version: 3.3.6
 
 ---
 
@@ -282,6 +282,7 @@ src/
 | **Konfigurasi Parameter SHU (Multi-tab + RBAC + Audit)** | ✅ Done | v3.1 |
 | **Role Ketua Koperasi** | ✅ Done | v3.1 |
 | **Modul Konsinyasi (Titip Jual)** | ✅ Done | v3.2 |
+| **Input Transaksi Manual** | ✅ Done | v3.3.4 |
 | Tutup Buku | 🚧 Partial | v2.0 |
 | PPOB | ❌ Pending | — |
 
@@ -497,6 +498,25 @@ header-client.tsx (Client Component)
 ### Sesi 21 Mei 2026 (v3.3.3 — Pembaruan Pilihan Lokasi Radio Button)
 35. **[FEAT] Tampilan Pilihan Unit/Lokasi**: Mengubah input dropdown (Select) pada edit lokasi anggota menjadi pilihan contreng (RadioGroup) berbentuk kartu grid 2 kolom agar lebih interaktif dan ramah ponsel.
 36. **[FEAT] Opsi Tambah Lokasi Baru**: Memasukkan opsi "+ Tambah Lokasi Baru..." ke dalam daftar kartu pilihan contreng secara langsung, yang secara dinamis memunculkan input teks nama lokasi baru ketika terpilih.
+
+### Sesi 21 Mei 2026 (v3.3.4 — Menu Input Transaksi Manual & Dynamic Account Creation)
+37. **[NEW] Menu Input Transaksi**: Menambahkan halaman `/akuntansi/transaksi` dengan interface premium (tab Pemasukan/Pengeluaran, nominal besar berformat rupiah, input tanggal, catatan, dan rekening pembayar).
+38. **[NEW] Dynamic Account & Category Creation**: Menambahkan modal penambahan Kategori (Revenue/Expense) dan Rekening Bank/Kas (Asset) secara dinamis langsung dari form input transaksi.
+39. **[NEW] Statistik & Riwayat Harian**: Mengintegrasikan widget ringkasan statistik pemasukan & pengeluaran hari ini serta tabel riwayat transaksi terkini yang diperbarui otomatis.
+40. **[NEW] Navigasi & Integrasi Menu**: Mendaftarkan link menu baru ke sidebar desktop per-role (`superadmin`, `admin`, `pengurus`, `kasir`) serta MobileHeader title mapping.
+
+### Sesi 21 Mei 2026 (v3.3.5 — Restrukturisasi Menu Keuangan & Dashboard Aset Tetap)
+41. **[NEW] Restrukturisasi Sidebar Menu "KEUANGAN"**: Menggabungkan seluruh menu finansial (`Transaksi`, `Keuangan`, `Laporan Keuangan`, `Anggaran`, `SHU & Distribusi`, `Aset Tetap`) di bawah satu grup navigasi `"KEUANGAN"` untuk menghilangkan redundansi dan menyederhanakan UX.
+42. **[NEW] Active Tab Rose Styling**: Mengimplementasikan visual active state mewah bertema soft rose (`#fdf4f4` background, deep crimson `#a81c1c` text/icon, dan outline `border-2 border-slate-900`) khusus untuk item-item di dalam grup menu `"KEUANGAN"`.
+43. **[NEW] Halaman Dashboard Aset Tetap**: Membuat dashboard premium `/akuntansi/aset-tetap` dengan visualisasi stats nilai aset, status item aktif/semua, kartu detail aset interaktif lengkap dengan indikator sisa umur manfaat, dialog tambah aset baru, dan kalkulator depresiasi garis lurus.
+44. **[NEW] Progress UI Component**: Membuat komponen `@/components/ui/progress` baru yang reusable dan type-safe berbasis React forwardRef dan Tailwind CSS untuk mengatasi dependensi build.
+45. **[FIX] TypeScript Compilation Clean**: Menyelesaikan seluruh issue build typechecking sehingga perintah `npx tsc --noEmit` lulus 100% tanpa error compile.
+
+### Sesi 21 Mei 2026 (v3.3.6 — Integrasi Menu Mobile & Build APK Rilis)
+46. **[NEW] Integrasi Menu Mobile**: Menambahkan kategori **"Keuangan"** dengan gradien gradasi *rose-to-red* di menu beranda mobile (`home-page-client.tsx`), berisi 6 sub-menu finansial lengkap (*Transaksi, Keuangan, Laporan Keuangan, Anggaran, SHU & Distribusi,* dan *Aset Tetap*).
+47. **[NEW] Dynamic Role Filtering (RBAC)**: Menerapkan penyaringan menu mobile yang aman dan konsisten per-role menggunakan `ITEM_ROLE_MAP` dinamis. Menu yang tidak diizinkan otomatis tersembunyi secara estetis.
+48. **[FIX] Pembersihan Redundansi Laporan**: Menghapus item `/laporan/analitik` dari bagian "Laporan & Akuntansi" pada mobile grid untuk konsistensi penuh dengan tata letak desktop sidebar yang baru.
+49. **[NEW] Build APK Release Koperasi v3.3.5**: Menyinkronkan aset web dengan Capacitor dan berhasil merakit ulang APK native Android yang sudah ditandatangani (*signed production APK*), menghasilkan file rilis final di workspace root: `KoperasiSulfindo-v3.3.5.apk`.
 
 ---
 

@@ -8,8 +8,10 @@ import {
   Lock, Unlock, Settings, Store, Package, ClipboardCheck,
   BookOpen, PieChart, ChevronRight, ShoppingBag, Inbox,
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
-  Building2, Banknote, Receipt, ShieldAlert, Clock
+  Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp
 } from "lucide-react"
+
 
 // ─────────────────────────────────────────────
 // Type Definitions
@@ -62,6 +64,21 @@ const ALL_GROUPS: NavGroup[] = [
     ],
   },
 
+  // ── KEUANGAN ──────────────────────────────
+  {
+    groupLabel: "Keuangan",
+    icon: Banknote,
+    roles: ["superadmin", "admin", "pengurus", "kasir"],
+    items: [
+      { href: "/akuntansi/transaksi",   label: "Transaksi",         icon: ArrowLeftRight },
+      { href: "/keuangan",              label: "Keuangan",          icon: Coins },
+      { href: "/laporan/analitik",      label: "Laporan Keuangan",  icon: TrendingUp },
+      { href: "/akuntansi/anggaran",    label: "Anggaran",          icon: Calculator },
+      { href: "/pengaturan/shu",        label: "SHU & Distribusi",  icon: TrendingUp },
+      { href: "/akuntansi/aset-tetap",  label: "Aset Tetap",        icon: Landmark },
+    ],
+  },
+
   // ── TOKO ──────────────────────────────────
   {
     groupLabel: "Toko",
@@ -76,7 +93,6 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/toko/inventaris",label: "Inventaris",       icon: ClipboardCheck },
       { href: "/pembelian",      label: "Pembelian / PO",   icon: Truck },
       { href: "/toko/konsinyasi",label: "Konsinyasi",       icon: Package },
-      { href: "/keuangan",       label: "Hutang & Piutang", icon: TrendingDown },
     ],
   },
 
@@ -90,7 +106,6 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/laporan/po-konsinyasi", label: "Laporan PO & Konsinyasi",  icon: FileText },
       { href: "/laporan/stok",          label: "Riwayat Keluar Masuk Stok", icon: Package },
       { href: "/laporan/potongan-gaji", label: "Laporan Gaji",             icon: FileText },
-      { href: "/laporan/analitik",      label: "Analitik & P&L",           icon: BarChart3 },
       { href: "/akuntansi/buku-besar",  label: "Buku Besar",              icon: BookOpen },
       { href: "/akuntansi/tutup-buku",  label: "Tutup Buku",              icon: Lock },
     ],
@@ -113,7 +128,6 @@ const ALL_GROUPS: NavGroup[] = [
     icon: Settings,
     roles: ["superadmin", "admin", "pengurus"],
     items: [
-      { href: "/pengaturan/shu", label: "Pengaturan SHU", icon: PieChart },
       { href: "/pengaturan/promosi", label: "Promosi", icon: Megaphone },
       { href: "/pengaturan/dashboard-anggota", label: "Dashboard Anggota", icon: LayoutDashboard },
       { href: "/pengaturan", label: "Pengaturan Umum", icon: Settings },
@@ -147,21 +161,25 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/toko/inventaris":             ["superadmin", "admin", "pengurus", "kasir"],
   "/pembelian":                   ["superadmin", "admin", "pengurus"],
   "/toko/konsinyasi":             ["superadmin", "admin", "pengurus", "kasir"],
-  "/keuangan":                    ["superadmin", "admin"],
+  "/keuangan":                    ["superadmin", "admin", "pengurus", "kasir"],
   // Laporan & Akuntansi
+  "/akuntansi/transaksi":         ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/anggaran":          ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/aset-tetap":        ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/harian":              ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/po-konsinyasi":       ["superadmin", "admin", "pengurus"],
   "/laporan/stok":                ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/potongan-gaji":       ["superadmin", "admin", "pengurus"],
-  "/laporan/analitik":            ["superadmin", "admin", "pengurus"],
+  "/laporan/analitik":            ["superadmin", "admin", "pengurus", "kasir"],
   "/akuntansi/buku-besar":        ["superadmin", "admin"],
   "/akuntansi/tutup-buku":        ["superadmin", "admin"],
   // Pengaturan
-  "/pengaturan/shu":              ["superadmin", "admin"],
+  "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
   "/pengaturan/promosi":          ["superadmin", "admin"],
   "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
   "/pengaturan":                  ["superadmin", "admin"],
 }
+
 
 /**
  * Filter grup dan item menu berdasarkan role pengguna.
@@ -256,6 +274,8 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
 
                 const Icon = link.icon
 
+                const isFinancialGroup = group.groupLabel === "Keuangan"
+
                 return (
                   <Link
                     key={link.href}
@@ -265,19 +285,23 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
                       "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 group relative overflow-hidden",
                       link.mobileOnly ? "md:hidden" : "",
                       isActive
-                        ? "text-white shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30"
+                        ? (isFinancialGroup
+                          ? "text-red-800 dark:text-red-400 bg-[#fdf4f4] dark:bg-red-950/20 border-2 border-slate-900 dark:border-slate-800 font-extrabold shadow-sm rounded-xl"
+                          : "text-white shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30")
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400"
                     )}
                   >
                     {/* Active indicator bar */}
-                    {isActive && (
+                    {isActive && !isFinancialGroup && (
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/40 rounded-r-full" />
                     )}
 
                     <Icon
                       className={cn(
                         "h-4 w-4 shrink-0 transition-transform duration-200",
-                        isActive ? "text-white" : "text-slate-400 group-hover:text-blue-500"
+                        isActive 
+                          ? (isFinancialGroup ? "text-red-800 dark:text-red-400 font-extrabold" : "text-white") 
+                          : "text-slate-400 group-hover:text-blue-500"
                       )}
                     />
                     <span className="flex-1 truncate">{link.label}</span>
