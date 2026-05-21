@@ -12,9 +12,19 @@ import { submitLoanApplication } from "@/lib/actions/loans"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
 
+/**
+ * Member loan application form dialog component.
+ * Allows members to submit loan applications, validating limits and showing violations.
+ * 
+ * @param {Object} props - Properties.
+ * @param {any[]} props.loanProducts - List of active loan products.
+ * @param {number} props.memberId - Database ID of the current member.
+ * @returns {React.ReactElement} The styled loan application form button and dialog.
+ */
 export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[], memberId: number }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState(loanProducts[0]?.id?.toString() || "")
   const [form, setForm] = useState({
     amount_requested: "",
@@ -28,57 +38,82 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
   const product = loanProducts.find(p => p.id.toString() === selectedProduct)
   const formatRp = (v: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen)
+    if (!isOpen) {
+      setError(null)
+    }
+  }
+
+  const handleProductChange = (productId: string) => {
+    setSelectedProduct(productId)
+    setError(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedProduct) return toast.error("Pilih produk pinjaman")
+    setError(null)
+    if (!selectedProduct) {
+      setError("Pilih produk pinjaman")
+      return toast.error("Pilih produk pinjaman")
+    }
     
     const amount = Number(form.amount_requested)
     const tenor = parseInt(form.tenor_months)
     
     if (product) {
       if (amount < product.min_amount) {
-        setLoading(false)
+        setError(`Minimal pinjaman adalah ${formatRp(product.min_amount)}`)
         return toast.error(`Minimal pinjaman adalah ${formatRp(product.min_amount)}`)
       }
       if (amount > product.max_amount) {
-        setLoading(false)
+        setError(`Maksimal pinjaman adalah ${formatRp(product.max_amount)}`)
         return toast.error(`Maksimal pinjaman adalah ${formatRp(product.max_amount)}`)
       }
       if (tenor < 1) {
-        setLoading(false)
-        return toast.error(`Tenor minimal adalah 1 bulan`)
+        setError("Tenor minimal adalah 1 bulan")
+        return toast.error("Tenor minimal adalah 1 bulan")
       }
       if (tenor > product.max_tenor) {
-        setLoading(false)
+        setError(`Tenor maksimal adalah ${product.max_tenor} bulan`)
         return toast.error(`Tenor maksimal adalah ${product.max_tenor} bulan`)
       }
     }
 
     setLoading(true)
-    const res = await submitLoanApplication({
-      loan_product_id: Number(selectedProduct),
-      amount_requested: Number(form.amount_requested),
-      tenor_months: parseInt(form.tenor_months),
-      repayment_method: form.repayment_method,
-      purpose: form.purpose,
-      guarantor_name: form.guarantor_name,
-      guarantor_phone: form.guarantor_phone,
-    })
-    if (res.success) {
-      toast.success("Pengajuan pinjaman berhasil dikirim! Menunggu review pengurus.")
-      setOpen(false)
-    } else {
-      toast.error(res.error)
+    try {
+      const res = await submitLoanApplication({
+        loan_product_id: Number(selectedProduct),
+        amount_requested: Number(form.amount_requested),
+        tenor_months: parseInt(form.tenor_months),
+        repayment_method: form.repayment_method,
+        purpose: form.purpose,
+        guarantor_name: form.guarantor_name,
+        guarantor_phone: form.guarantor_phone,
+      })
+      if (res.success) {
+        toast.success("Pengajuan pinjaman berhasil dikirim! Menunggu review pengurus.")
+        setOpen(false)
+        setError(null)
+      } else {
+        toast.error(res.error)
+        setError(res.error || "Gagal mengajukan pinjaman.")
+      }
+    } catch (err) {
+      console.error("Failed to submit loan application:", err)
+      setError("Terjadi kesalahan sistem saat memproses pengajuan Anda.")
+      toast.error("Terjadi kesalahan sistem saat memproses pengajuan Anda.")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="gap-2">
+      <Button onClick={() => handleOpenChange(true)} className="gap-2">
         <Plus className="h-4 w-4" /> Ajukan Pinjaman
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Formulir Pengajuan Pinjaman</DialogTitle>
@@ -86,7 +121,7 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
           <form onSubmit={handleSubmit} className="space-y-4 pt-2">
             <div className="space-y-3">
               <Label className="text-base">Pilih Produk Pinjaman</Label>
-              <RadioGroup value={selectedProduct} onValueChange={setSelectedProduct} className="grid grid-cols-1 gap-3">
+              <RadioGroup value={selectedProduct} onValueChange={handleProductChange} className="grid grid-cols-1 gap-3">
                 {loanProducts.map(p => (
                   <Label
                     key={p.id}
@@ -138,7 +173,7 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
             </div>
             <div className="space-y-2">
               <Label>Metode Pembayaran Cicilan</Label>
-      <Select value={form.repayment_method} onValueChange={(v) => setForm(p => ({ ...p, repayment_method: v || p.repayment_method }))}>
+              <Select value={form.repayment_method} onValueChange={(v) => setForm(p => ({ ...p, repayment_method: v || p.repayment_method }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="salary_cut">Potong Gaji</SelectItem>
@@ -163,6 +198,14 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
                 </div>
               </div>
             )}
+            
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 rounded-xl text-sm flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <span className="text-base mt-0.5">⚠️</span>
+                <div className="flex-1 font-medium">{error}</div>
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Mengirim Pengajuan..." : "Kirim Pengajuan Pinjaman"}
             </Button>
