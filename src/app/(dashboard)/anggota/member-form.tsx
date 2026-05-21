@@ -240,12 +240,7 @@ export function MemberForm({
                   onValueChange={v => setFormData({ ...formData, unit_id: v })}
                 >
                   <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Pilih lokasi kerja">
-                      {formData.unit_id === "new"
-                        ? "+ Tambah Lokasi Baru..."
-                        : (formData.unit_id ? units.find(u => u.id.toString() === formData.unit_id)?.name : "Pilih lokasi kerja")
-                      }
-                    </SelectValue>
+                    <SelectValue placeholder="Pilih lokasi kerja" />
                   </SelectTrigger>
                   <SelectContent>
                     {units.map(u => (
