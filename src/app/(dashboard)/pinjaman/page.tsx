@@ -152,17 +152,29 @@ export default async function PinjamanPage() {
           ) : (
             <div className="space-y-2">
               {data.applications.map((a: any) => (
-                <div key={a.id} className="flex justify-between items-center p-3 rounded-lg border">
-                  <div>
-                    <p className="font-mono text-sm font-semibold">{a.application_no}</p>
-                    <p className="text-xs text-muted-foreground">{a.product_name} — {formatRp(a.amount_requested)}</p>
+                <div key={a.id} className="block rounded-lg border overflow-hidden bg-white dark:bg-slate-900">
+                  <div className="flex justify-between items-center p-3">
+                    <div>
+                      <p className="font-mono text-sm font-semibold">{a.application_no}</p>
+                      <p className="text-xs text-muted-foreground">{a.product_name} — {formatRp(a.amount_requested)}</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={STATUS_MAP[a.status]?.cls}>{STATUS_MAP[a.status]?.label}</Badge>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('id-ID') : "-"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge className={STATUS_MAP[a.status]?.cls}>{STATUS_MAP[a.status]?.label}</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('id-ID') : "-"}
-                    </p>
-                  </div>
+                  {/* Warning on rule violations for pending */}
+                  {a.status === "pending" && a.rule_violations && a.rule_violations.length > 0 && (
+                    <div className="px-3 pb-3 pt-1 bg-red-50/50 dark:bg-red-950/10 border-t border-red-100/50 dark:border-red-900/20">
+                      {a.rule_violations.map((violation: string, idx: number) => (
+                        <p key={idx} className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                          ⚠️ {violation}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -141,14 +141,22 @@ export async function getMyPinjaman() {
           status: s.status,
         })),
       })),
-      applications: member.loan_applications.map(a => ({
-        id: Number(a.id),
-        application_no: a.application_no,
-        product_name: a.loan_products.name,
-        amount_requested: Number(a.amount_requested),
-        tenor_months: a.tenor_months,
-        status: a.status,
-        submitted_at: a.submitted_at?.toISOString() || null,
+      applications: await Promise.all(member.loan_applications.map(async (a) => {
+        const { checkLoanRuleViolations } = await import("./loans");
+        const violations = a.status === "pending"
+          ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
+          : [];
+
+        return {
+          id: Number(a.id),
+          application_no: a.application_no,
+          product_name: a.loan_products.name,
+          amount_requested: Number(a.amount_requested),
+          tenor_months: a.tenor_months,
+          status: a.status,
+          submitted_at: a.submitted_at?.toISOString() || null,
+          rule_violations: violations,
+        };
       }))
     }
   } catch (error) {

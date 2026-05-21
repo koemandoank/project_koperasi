@@ -161,6 +161,21 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
                 </Badge>
               </div>
 
+              {/* Rule Violations Alert Box */}
+              {app.status === "pending" && app.rule_violations && app.rule_violations.length > 0 && (
+                <div className="mx-4 mb-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 rounded-xl flex items-start gap-2.5 shadow-sm">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-300">Peringatan Pelanggaran Aturan</p>
+                    {app.rule_violations.map((violation: string, idx: number) => (
+                      <p key={idx} className="text-xs font-medium text-red-700 dark:text-red-400 leading-relaxed">
+                        {violation}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Card Body — Loan Details */}
               <div className="px-4 pb-3 grid grid-cols-2 gap-2 border-t border-slate-50 dark:border-slate-800 pt-3">
                 <div>

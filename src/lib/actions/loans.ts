@@ -7,6 +7,88 @@ import { logAudit } from "@/lib/actions/log-audit";
 import { verifySessionAndRole } from "@/lib/auth-helpers";
 import { z } from "zod";
 
+/** Check if a loan application violates any of the active loan rules */
+export async function checkLoanRuleViolations(
+  memberId: bigint,
+  productId: bigint,
+  amountRequested: number,
+  applicationId: bigint
+): Promise<string[]> {
+  const violations: string[] = [];
+  try {
+    const { getLoanRules } = await import('./loan-rules');
+    const rules = await getLoanRules();
+    const productIdNum = Number(productId);
+
+    // 1. Cek Batas Frekuensi Pengajuan / Bulan
+    if (rules.max_loans_per_month.enabled && rules.max_loans_per_month.applied_to_products.includes(productIdNum)) {
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const applicationsThisMonth = await prisma.loan_applications.count({
+        where: {
+          member_id: memberId,
+          loan_product_id: productId,
+          submitted_at: { gte: startOfMonth },
+          id: { not: applicationId }
+        }
+      });
+      if (applicationsThisMonth >= rules.max_loans_per_month.value) {
+        violations.push(`Melebihi batas frekuensi pengajuan pinjaman per bulan (Maksimal ${rules.max_loans_per_month.value}x/bulan).`);
+      }
+    }
+
+    // 2. Cek Strict Single Active Loan (Wajib Lunas)
+    if (rules.strict_single_active_loan.enabled && rules.strict_single_active_loan.applied_to_products.includes(productIdNum)) {
+      const activeProductLoans = await prisma.loans.count({
+        where: {
+          member_id: memberId,
+          status: "active",
+          loan_applications: { loan_product_id: productId }
+        }
+      });
+      if (activeProductLoans > 0) {
+        violations.push("Pinjaman ditolak otomatis, karena masih ada pinjaman yang belum lunas");
+      }
+    }
+
+    // 3. Cek Syarat Sisa Cicilan Maksimal (Top-Up)
+    if (rules.min_remaining_installments_for_topup.enabled && rules.min_remaining_installments_for_topup.applied_to_products.includes(productIdNum)) {
+      const activeLoan = await prisma.loans.findFirst({
+        where: {
+          member_id: memberId,
+          status: "active",
+          loan_applications: { loan_product_id: productId }
+        },
+        include: { loan_schedules: true }
+      });
+      
+      if (activeLoan) {
+        const remainingSchedules = activeLoan.loan_schedules.filter(s => Number(s.principal_paid) < Number(s.principal_due)).length;
+        if (remainingSchedules > rules.min_remaining_installments_for_topup.value) {
+          violations.push(`Sisa cicilan pinjaman saat ini masih ${remainingSchedules}x. Batas top-up maksimal menyisakan ${rules.min_remaining_installments_for_topup.value}x cicilan.`);
+        }
+      }
+    }
+
+    // 4. Cek Maksimal Persentase Simpanan
+    if (rules.max_loan_percentage_of_savings.enabled && rules.max_loan_percentage_of_savings.applied_to_products.includes(productIdNum)) {
+      const totalSavings = await prisma.savings.aggregate({
+        where: { member_id: memberId },
+        _sum: { balance: true }
+      });
+      const balance = Number(totalSavings._sum?.balance ?? 0);
+      const maxAllowed = balance * (rules.max_loan_percentage_of_savings.value / 100);
+      
+      if (amountRequested > maxAllowed) {
+        violations.push(`Jumlah pengajuan (Rp ${amountRequested.toLocaleString('id-ID')}) melebihi ${rules.max_loan_percentage_of_savings.value}% saldo simpanan (Maksimal Rp ${maxAllowed.toLocaleString('id-ID')}).`);
+      }
+    }
+
+  } catch (error) {
+    console.error("checkLoanRuleViolations error:", error);
+  }
+  return violations;
+}
+
 /** Fetch all loan applications for admin/pengurus approval */
 export async function getLoanApplications(statusFilter?: string) {
   try {
@@ -24,20 +106,31 @@ export async function getLoanApplications(statusFilter?: string) {
       orderBy: { created_at: "desc" }
     });
 
-    return apps.map(a => ({
-      id: Number(a.id),
-      application_no: a.application_no,
-      member_name: a.members?.full_name || "Unknown",
-      member_nik: a.members?.nik || "-",
-      product_name: a.loan_products?.name || "-",
-      amount_requested: Number(a.amount_requested),
-      tenor_months: a.tenor_months,
-      purpose: a.purpose,
-      status: a.status,
-      repayment_method: a.repayment_method,
-      submitted_at: a.submitted_at?.toISOString() || null,
-      created_at: a.created_at?.toISOString() || null,
-    }));
+    const result = await Promise.all(
+      apps.map(async (a) => {
+        const violations = a.status === "pending"
+          ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
+          : [];
+
+        return {
+          id: Number(a.id),
+          application_no: a.application_no,
+          member_name: a.members?.full_name || "Unknown",
+          member_nik: a.members?.nik || "-",
+          product_name: a.loan_products?.name || "-",
+          amount_requested: Number(a.amount_requested),
+          tenor_months: a.tenor_months,
+          purpose: a.purpose,
+          status: a.status,
+          repayment_method: a.repayment_method,
+          submitted_at: a.submitted_at?.toISOString() || null,
+          created_at: a.created_at?.toISOString() || null,
+          rule_violations: violations,
+        };
+      })
+    );
+
+    return result;
   } catch (error) {
     console.error("getLoanApplications error:", error);
     return [];
