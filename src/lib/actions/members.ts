@@ -7,8 +7,12 @@ import { logAudit } from "@/lib/actions/log-audit";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // READ
-// ─────────────────────────────────────────────────────────────────────────────
-
+/**
+ * Mengambil daftar seluruh anggota koperasi beserta akun user dan unit/lokasinya.
+ * 
+ * @returns {Promise<Array<{ id: number, member_code: string, nik: string, full_name: string, email: string | null, phone: string | null, status: string, unit_id: number, unit_name: string, unit_code: string, role: string, user_id: number | null, photo_path: string | null }>>} List anggota koperasi
+ * @throws {Error} Jika terjadi kegagalan saat membaca database
+ */
 export async function getMembers() {
   try {
     const members = await prisma.member.findMany({
@@ -32,6 +36,7 @@ export async function getMembers() {
       unit_code: m.units?.code || "-",
       role: m.users?.role || "anggota",
       user_id: m.users ? Number(m.users.id) : null,
+      photo_path: m.photo_path,
     }));
   } catch (error) {
     console.error("Failed to fetch members:", error);
@@ -129,7 +134,8 @@ export async function resetMemberPassword(userId: number, customPassword?: strin
 /**
  * Buat anggota baru beserta akun user-nya (jika ada email).
  *
- * @param data - Data anggota baru
+ * @param {any} data - Data anggota baru termasuk nik, full_name, email, phone, unit_id, role, dan photo_path
+ * @returns {Promise<{ success: boolean, error?: string }>} Status keberhasilan
  */
 export async function createMember(data: any) {
   try {
@@ -149,6 +155,7 @@ export async function createMember(data: any) {
           unit_id: BigInt(data.unit_id),
           join_date: new Date(),
           status: "active",
+          photo_path: data.photo_path || null,
         },
       });
 
@@ -181,6 +188,7 @@ export async function createMember(data: any) {
         phone: data.phone,
         unit_id: data.unit_id,
         role: data.role || "anggota",
+        photo_path: data.photo_path || null,
       },
     });
 
@@ -200,15 +208,16 @@ export async function createMember(data: any) {
 /**
  * Update data anggota dan role akun user-nya.
  *
- * @param id   - ID member
- * @param data - Data yang diperbarui
+ * @param {number} id - ID member
+ * @param {any} data - Data yang diperbarui termasuk nik, full_name, email, phone, unit_id, role, dan photo_path
+ * @returns {Promise<{ success: boolean, error?: string }>} Status keberhasilan
  */
 export async function updateMember(id: number, data: any) {
   try {
     // Ambil data lama untuk audit
     const oldMember = await prisma.member.findUnique({
       where: { id: BigInt(id) },
-      select: { nik: true, full_name: true, email: true, phone: true, unit_id: true },
+      select: { nik: true, full_name: true, email: true, phone: true, unit_id: true, photo_path: true },
     });
     const oldUser = await prisma.user.findUnique({
       where: { member_id: BigInt(id) },
@@ -224,6 +233,7 @@ export async function updateMember(id: number, data: any) {
           email: data.email,
           phone: data.phone,
           unit_id: BigInt(data.unit_id),
+          photo_path: data.photo_path || null,
         },
       });
 
@@ -267,6 +277,7 @@ export async function updateMember(id: number, data: any) {
         phone: oldMember?.phone,
         unit_id: oldMember ? Number(oldMember.unit_id) : null,
         role: oldUser?.role,
+        photo_path: oldMember?.photo_path,
       },
       newValues: {
         nik: data.nik,
@@ -275,6 +286,7 @@ export async function updateMember(id: number, data: any) {
         phone: data.phone,
         unit_id: data.unit_id,
         role: data.role,
+        photo_path: data.photo_path,
       },
     });
 

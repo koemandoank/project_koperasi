@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createMember, updateMember, createUnit } from "@/lib/actions/members"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Upload, User } from "lucide-react"
 
 export function MemberForm({
   units: initialUnits,
@@ -40,6 +40,7 @@ export function MemberForm({
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [units, setUnits] = useState(initialUnits)
 
   const [formData, setFormData] = useState({
@@ -49,6 +50,7 @@ export function MemberForm({
     phone: memberToEdit?.phone || "",
     unit_id: memberToEdit?.unit_id?.toString() || (initialUnits.length > 0 ? initialUnits[0].id.toString() : ""),
     role: memberToEdit?.role || "anggota",
+    photo_path: memberToEdit?.photo_path || "",
   })
 
   const [newUnitName, setNewUnitName] = useState("")
@@ -62,6 +64,7 @@ export function MemberForm({
         phone: memberToEdit.phone || "",
         unit_id: memberToEdit.unit_id?.toString() || (units.length > 0 ? units[0].id.toString() : ""),
         role: memberToEdit.role || "anggota",
+        photo_path: memberToEdit.photo_path || "",
       })
       setNewUnitName("")
     } else if (open && !memberToEdit) {
@@ -69,10 +72,41 @@ export function MemberForm({
         nik: "", full_name: "", email: "", phone: "",
         unit_id: units.length > 0 ? units[0].id.toString() : "",
         role: "anggota",
+        photo_path: "",
       })
       setNewUnitName("")
     }
   }, [open, memberToEdit, units])
+
+  /**
+   * Mengunggah berkas foto profil anggota ke server.
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Event perubahan input file
+   */
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) return toast.error("Hanya file gambar yang diperbolehkan")
+    if (file.size > 2 * 1024 * 1024) return toast.error("Max 2MB")
+
+    setUploading(true)
+    const fd = new FormData()
+    fd.append("file", file)
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (data.url) {
+        setFormData(prev => ({ ...prev, photo_path: data.url }))
+        toast.success("Foto berhasil diunggah!")
+      } else {
+        toast.error("Gagal mengunggah foto")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Gagal mengunggah foto")
+    }
+    setUploading(false)
+  }
 
   /**
    * Handles form submission — creates or updates a member.
@@ -143,6 +177,21 @@ export function MemberForm({
 
           <DrawerBody>
             <form onSubmit={handleSubmit} id="member-form" className="space-y-4">
+              {/* Photo Upload Section */}
+              <div className="flex flex-col items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="h-24 w-24 rounded-full border-2 border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900 flex items-center justify-center relative">
+                  {formData.photo_path ? (
+                    <img src={formData.photo_path} alt="Preview Foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="h-12 w-12 text-slate-300 dark:text-slate-700" />
+                  )}
+                </div>
+                <label className="cursor-pointer inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploading ? "Mengupload..." : "Unggah Foto"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">NIK</Label>
                 <Input

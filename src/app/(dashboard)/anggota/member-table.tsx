@@ -91,9 +91,17 @@ export function MemberTable({ members, units }: { members: any[], units: any[] }
             <div className="flex items-start justify-between gap-3 p-4 pb-3">
               {/* Avatar + Name */}
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-base shrink-0">
-                  {member.full_name.charAt(0).toUpperCase()}
-                </div>
+                {member.photo_path ? (
+                  <img
+                    src={member.photo_path}
+                    alt={member.full_name}
+                    className="h-11 w-11 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-base shrink-0">
+                    {member.full_name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p className="font-semibold text-base text-slate-900 dark:text-slate-50 truncate">
                     {member.full_name}

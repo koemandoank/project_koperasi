@@ -1,5 +1,5 @@
 # PROJECT CONTEXT — Koperasi Digital (Next.js)
-> Last updated: 2026-05-20 | Version: 3.3.0
+> Last updated: 2026-05-21 | Version: 3.3.1
 
 ---
 
@@ -484,6 +484,11 @@ header-client.tsx (Client Component)
 27. **[FIX] Default Show Financial Stats** — Mengubah default pengaturan dashboard anggota agar `show_financial_stats` bernilai `true` saat konfigurasi cache kosong, sehingga statistik koperasi langsung tampil.
 28. **[NEW] Pembaruan Branding & Slogan Login** — Mengganti nama default "Koperasi Digital" menjadi "Koperasi Sulfindo" pada halaman login, home dashboard, error page, dan metadata halaman, serta memperbarui slogan login menjadi "Wujudkan budaya keterbukaan dan transparansi melalui transformasi digital."
 29. **[FIX] Default Redirect Halaman Mobile** — Menambahkan deteksi browser mobile berbasis User-Agent di middleware server-side (`auth.config.ts`), secara otomatis mengarahkan akses mobile dari `/dashboard` langsung ke `/dashboard/home` (Beranda) agar halaman Beranda langsung terbuka sejak awal masuk sistem.
+
+### Sesi 21 Mei 2026 (v3.3.1 — Perbaikan Foto & Lokasi Anggota/Pengurus)
+30. **[FIX] Perbaikan Foto & Lokasi Anggota**: Menambahkan dukungan `photo_path` pada pengambilan dan perubahan data anggota (`getMembers`, `createMember`, `updateMember` Server Actions).
+31. **[FIX] Unggah Foto di Form Anggota**: Menambahkan komponen unggah foto interaktif dan preview di dalam form drawer anggota (`member-form.tsx`) serta merender foto profil pada list card anggota (`member-table.tsx`).
+32. **[FIX] Link Akun Pengurus ke Member**: Menghubungkan akun-akun pengurus/staff yang tidak memiliki relasi member ke record member baru agar menu profil dan edit foto berfungsi normal.
 
 ---
 
