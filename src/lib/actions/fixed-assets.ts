@@ -399,3 +399,103 @@ export async function createFixedAsset(input: CreateFixedAssetInput): Promise<{ 
     return { success: false, error: error.message || "Gagal menyimpan aset baru." }
   }
 }
+
+/**
+ * Memperbarui detail nama dan kondisi aset tetap fisik di database.
+ * 
+ * @param {string} code - Kode rekening aset tetap yang akan diperbarui (misal: "12101").
+ * @param {object} data - Data baru berupa nama dan kondisi aset.
+ * @returns {Promise<{ success: boolean; error?: string }>} Hasil status operasi.
+ */
+export async function updateFixedAsset(
+  code: string,
+  data: { name: string; condition: "BARU" | "BAIK" | "RUSAK" }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return { success: false, error: "Sesi kedaluwarsa. Silakan login kembali." }
+    }
+
+    const unit = await prisma.unit.findFirst()
+    if (!unit) {
+      return { success: false, error: "Unit koperasi tidak ditemukan." }
+    }
+
+    const formattedName = `${data.name.trim()} [${data.condition}]`
+
+    const account = await prisma.chart_of_accounts.findFirst({
+      where: { unit_id: unit.id, code },
+    })
+
+    if (!account) {
+      return { success: false, error: "Rekening aset tetap tidak ditemukan." }
+    }
+
+    await prisma.chart_of_accounts.update({
+      where: { id: account.id },
+      data: { name: formattedName, updated_at: new Date() },
+    })
+
+    await logAudit({
+      action: "UPDATE",
+      modelType: "chart_of_accounts",
+      modelId: Number(account.id),
+      newValues: { code, name: data.name, condition: data.condition },
+    })
+
+    revalidatePath("/akuntansi/aset-tetap")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[updateFixedAsset] Exception:", error)
+    return { success: false, error: error.message || "Gagal memperbarui aset." }
+  }
+}
+
+/**
+ * Menghapus/menonaktifkan aset tetap dari dashboard dengan menandai rekening is_active = false.
+ * Hal ini menjaga keutuhan audit ledger transaksi historis ganda.
+ * 
+ * @param {string} code - Kode rekening aset tetap yang akan dinonaktifkan (misal: "12101").
+ * @returns {Promise<{ success: boolean; error?: string }>} Hasil status operasi.
+ */
+export async function deleteFixedAsset(code: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return { success: false, error: "Sesi kedaluwarsa. Silakan login kembali." }
+    }
+
+    const unit = await prisma.unit.findFirst()
+    if (!unit) {
+      return { success: false, error: "Unit koperasi tidak ditemukan." }
+    }
+
+    const account = await prisma.chart_of_accounts.findFirst({
+      where: { unit_id: unit.id, code },
+    })
+
+    if (!account) {
+      return { success: false, error: "Rekening aset tetap tidak ditemukan." }
+    }
+
+    await prisma.chart_of_accounts.update({
+      where: { id: account.id },
+      data: { is_active: false, updated_at: new Date() },
+    })
+
+    await logAudit({
+      action: "DELETE",
+      modelType: "chart_of_accounts",
+      modelId: Number(account.id),
+      newValues: { code, is_active: false },
+    })
+
+    revalidatePath("/akuntansi/aset-tetap")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[deleteFixedAsset] Exception:", error)
+    return { success: false, error: error.message || "Gagal menonaktifkan aset." }
+  }
+}
+

@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { Laptop, Bike, Building2, Plus, Calculator, Loader2 } from "lucide-react"
-import { getFixedAssets, createFixedAsset, FixedAssetItem } from "@/lib/actions/fixed-assets"
+import { Laptop, Bike, Building2, Plus, Calculator, Loader2, Edit, Trash2 } from "lucide-react"
+import { 
+  getFixedAssets, createFixedAsset, updateFixedAsset, deleteFixedAsset, FixedAssetItem 
+} from "@/lib/actions/fixed-assets"
 
 /**
  * AsetTetapPage - Fixed Assets Dashboard Page
@@ -22,6 +24,7 @@ export default function AsetTetapPage(): React.JSX.Element {
   const [assets, setAssets] = useState<FixedAssetItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
+
   // Dialog state for adding assets
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [name, setName] = useState<string>("")
@@ -30,6 +33,89 @@ export default function AsetTetapPage(): React.JSX.Element {
   const [date, setDate] = useState<string>(() => new Date().toISOString().split("T")[0])
   const [cost, setCost] = useState<number>(0)
   const [saving, setSaving] = useState<boolean>(false)
+
+  // Dialog state for editing assets
+  const [isEditOpen, setIsEditOpen] = useState<boolean>(false)
+  const [selectedAsset, setSelectedAsset] = useState<FixedAssetItem | null>(null)
+  const [editName, setEditName] = useState<string>("")
+  const [editCondition, setEditCondition] = useState<"BARU" | "BAIK" | "RUSAK">("BAIK")
+  const [updating, setUpdating] = useState<boolean>(false)
+  const [deleting, setDeleting] = useState<boolean>(false)
+
+  /**
+   * Prepares and opens the edit asset dialog.
+   * 
+   * @param {FixedAssetItem} asset - The asset item to edit.
+   */
+  const handleOpenEdit = (asset: FixedAssetItem) => {
+    setSelectedAsset(asset)
+    setEditName(asset.name)
+    setEditCondition(asset.condition)
+    setIsEditOpen(true)
+  }
+
+  /**
+   * Saves updated asset details (name & condition) to database.
+   */
+  const handleUpdateAsset = async (): Promise<void> => {
+    if (!selectedAsset) return
+    if (!editName.trim()) {
+      toast.error("Nama aset tidak boleh kosong.")
+      return
+    }
+
+    setUpdating(true)
+    try {
+      const code = selectedAsset.id.replace("AST-", "")
+      const res = await updateFixedAsset(code, {
+        name: editName.trim(),
+        condition: editCondition,
+      })
+
+      if (res.success) {
+        toast.success("Detail aset fisik berhasil diperbarui!")
+        setIsEditOpen(false)
+        await loadAssets()
+      } else {
+        toast.error(res.error || "Gagal memperbarui aset.")
+      }
+    } catch (err: any) {
+      toast.error("Gagal memperbarui aset di database.")
+      console.error(err)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  /**
+   * Handles soft deletion/deactivation of asset.
+   */
+  const handleDeleteAsset = async (): Promise<void> => {
+    if (!selectedAsset) return
+    
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus aset "${selectedAsset.name}"? Pencatatan ledger akan dinonaktifkan secara aman.`)
+    if (!confirmDelete) return
+
+    setDeleting(true)
+    try {
+      const code = selectedAsset.id.replace("AST-", "")
+      const res = await deleteFixedAsset(code)
+
+      if (res.success) {
+        toast.success("Aset fisik berhasil dinonaktifkan!")
+        setIsEditOpen(false)
+        await loadAssets()
+      } else {
+        toast.error(res.error || "Gagal menghapus aset.")
+      }
+    } catch (err: any) {
+      toast.error("Gagal menonaktifkan aset di database.")
+      console.error(err)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
 
   /**
    * Loads the fixed assets list from the database server actions.
@@ -262,11 +348,22 @@ export default function AsetTetapPage(): React.JSX.Element {
                 </div>
               </div>
 
-              <div className="text-right shrink-0">
-                <span className="font-extrabold text-sm text-red-850 dark:text-red-400">
-                  {formatCurrency(asset.acquisitionCost)}
-                </span>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <span className="font-extrabold text-sm text-red-850 dark:text-red-400 block">
+                    {formatCurrency(asset.acquisitionCost)}
+                  </span>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleOpenEdit(asset)}
+                  className="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
               </div>
+
             </div>
           ))}
         </div>
@@ -424,6 +521,122 @@ export default function AsetTetapPage(): React.JSX.Element {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog Form to edit assets / conditions or delete them */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-50">
+              Edit Detail & Kondisi Aset
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-550 dark:text-slate-400">
+              Perbarui detail nama atau kondisi fisik aset tetap, atau dinonaktifkan secara aman.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAsset && (
+            <div className="space-y-4 py-4">
+              
+              {/* Asset Name */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Nama Aset *
+                </label>
+                <Input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  placeholder="Misal: Printer Epson L3210 Kasir"
+                  className="h-12 rounded-xl border-slate-200 dark:border-slate-800 text-base"
+                  required
+                />
+              </div>
+
+              {/* Condition */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Kondisi Aset *
+                </label>
+                <div className="relative">
+                  <select
+                    value={editCondition}
+                    onChange={e => setEditCondition(e.target.value as any)}
+                    className="h-12 w-full text-base rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-slate-800 dark:text-slate-100 outline-none shadow-sm appearance-none"
+                  >
+                    <option value="BARU">Baru</option>
+                    <option value="BAIK">Baik</option>
+                    <option value="RUSAK">Rusak</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                    ▼
+                  </div>
+                </div>
+              </div>
+
+              {/* Read-only historical values */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-900">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Nilai Perolehan</p>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {formatCurrency(selectedAsset.acquisitionCost)}
+                  </p>
+                </div>
+                <div className="space-y-1 border-l border-slate-200 dark:border-slate-800 pl-3">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Perolehan</p>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {formatDateIndo(selectedAsset.acquisitionDate)}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-row items-center justify-between mt-4">
+            {/* Delete button positioned elegantly on the left */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDeleteAsset}
+              disabled={deleting || updating}
+              className="rounded-xl h-11 px-4 border-rose-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 dark:border-rose-950 dark:hover:bg-rose-950/20 dark:text-slate-400 flex items-center gap-1.5"
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 text-rose-500" />
+              )}
+              Hapus Aset
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+                className="rounded-xl h-11 px-4 text-slate-600 dark:text-slate-350"
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUpdateAsset}
+                disabled={updating || deleting}
+                className="bg-red-800 hover:bg-red-900 text-white rounded-xl h-11 px-5 font-bold shadow-md flex items-center gap-2"
+              >
+                {updating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Menyimpan...
+                  </>
+                ) : (
+                  "Simpan"
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }
+
