@@ -1,5 +1,5 @@
 # PROJECT CONTEXT — Koperasi Digital (Next.js)
-> Last updated: 2026-05-21 | Version: 3.3.1
+> Last updated: 2026-05-21 | Version: 3.3.2
 
 ---
 
@@ -489,6 +489,10 @@ header-client.tsx (Client Component)
 30. **[FIX] Perbaikan Foto & Lokasi Anggota**: Menambahkan dukungan `photo_path` pada pengambilan dan perubahan data anggota (`getMembers`, `createMember`, `updateMember` Server Actions).
 31. **[FIX] Unggah Foto di Form Anggota**: Menambahkan komponen unggah foto interaktif dan preview di dalam form drawer anggota (`member-form.tsx`) serta merender foto profil pada list card anggota (`member-table.tsx`).
 32. **[FIX] Link Akun Pengurus ke Member**: Menghubungkan akun-akun pengurus/staff yang tidak memiliki relasi member ke record member baru agar menu profil dan edit foto berfungsi normal.
+
+### Sesi 21 Mei 2026 (v3.3.2 — Perbaikan Favicon & Judul Tab Browser)
+33. **[FIX] Judul Tab Root Layout**: Mengubah metadata root layout title dari `"Create Next App"` menjadi `"Koperasi Sulfindo"`.
+34. **[FIX] Favicon Koperasi**: Mengganti favicon segitiga Vercel bawaan Next.js (`src/app/favicon.ico` & `src/app/icon.jpg`) dengan ikon resmi koperasi dari `public/icon.jpg` sebagai favicon situs.
 
 ---
 
