@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 import {
   Home, Wallet, CreditCard, ShoppingBag, User,
   Store, FileText, Settings, BarChart3, Menu,
-  LayoutDashboard, Package, Truck, BookOpen
+  Package, BookOpen
 } from "lucide-react"
 
 // ─────────────────────────────────────────────
@@ -45,7 +45,7 @@ function getTabsForRole(role: string): NavTab[] {
     case "anggota":
       return [
         { href: "/dashboard/home",                 label: "Beranda",   icon: Home },
-        { href: "/dashboard?forceDashboard=true",  label: "Transaksi", icon: LayoutDashboard },
+        { href: "/dashboard?forceDashboard=true",  label: "Transaksi", icon: BarChart3 },
         { href: "/simpanan",                       label: "Simpanan",  icon: Wallet },
         { href: "/pinjaman",                       label: "Pinjaman",  icon: CreditCard },
         { href: "/toko",                           label: "Toko",      icon: ShoppingBag },
@@ -54,7 +54,7 @@ function getTabsForRole(role: string): NavTab[] {
 
     case "kasir":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/toko/kasir",        label: "Kasir",    icon: Store, matchPrefixes: ["/toko/kasir"] },
         { href: "/toko/pesanan",      label: "Pesanan",  icon: Package },
         { href: "/laporan/harian",    label: "Laporan",  icon: FileText },
@@ -63,7 +63,7 @@ function getTabsForRole(role: string): NavTab[] {
 
     case "admin":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/anggota",           label: "Anggota",  icon: User },
         { href: "/toko/produk",       label: "Produk",   icon: Package },
         { href: "/laporan/analitik",  label: "Laporan",  icon: BarChart3 },
@@ -73,21 +73,21 @@ function getTabsForRole(role: string): NavTab[] {
     case "pengurus":
     case "ketua":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: LayoutDashboard },
-        { href: "/toko",              label: "Toko",     icon: Store, matchPrefixes: ["/toko", "/pembelian"] },
-        { href: "/laporan/analitik",  label: "Analitik", icon: BarChart3 },
-        { href: "/akuntansi/buku-besar", label: "Akuntansi", icon: BookOpen },
-        { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
+        { href: "/dashboard/home",       label: "Beranda",  icon: Home },
+        { href: "/anggota",              label: "Anggota",  icon: User },
+        { href: "/pinjaman/approval",    label: "Approval", icon: BookOpen, matchPrefixes: ["/pinjaman"] },
+        { href: "/laporan/analitik",     label: "Analitik", icon: BarChart3 },
+        { href: "/pengaturan",           label: "Pengaturan", icon: Settings },
       ]
 
     case "superadmin":
     default:
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/anggota",           label: "Anggota",  icon: User },
         { href: "/laporan/analitik",  label: "Laporan",  icon: BarChart3 },
         { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
-        { href: "/dashboard?forceDashboard=true", label: "Menu", icon: Menu },
+        { href: "/log",               label: "Log", icon: Menu },
       ]
   }
 }

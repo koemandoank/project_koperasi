@@ -4,12 +4,17 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, CreditCard, ShoppingBag, User, ChevronLeft, ChevronRight, Home, Megaphone, Clock } from "lucide-react"
+import {
+  Wallet, CreditCard, ShoppingBag, User, ChevronLeft, ChevronRight,
+  Home, Megaphone, Clock, Users, BarChart3, Settings, Store,
+  FileText, Package, BookOpen, Receipt, ShieldCheck, Truck,
+  ClipboardList, Archive, History, UserCog, ScrollText, LogOut,
+} from "lucide-react"
 import { getGlobalFinancialStats } from "@/lib/actions/global-financial-stats"
 
 // ─── Tipe ────────────────────────────────────────────────────────────────────
 type StatsPeriod = "weekly" | "monthly" | "yearly"
-type MobileTab   = "beranda" | "promosi" | "riwayat"
+type MobileTab   = "beranda" | "menu" | "promosi" | "riwayat"
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface Props {
@@ -17,6 +22,7 @@ interface Props {
   promotions: any[]
   todayOrders: any[]
   dashboardConfig?: { show_financial_stats?: boolean }
+  role?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -38,10 +44,7 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
     let active = true
     setLoading(true)
     getGlobalFinancialStats(period).then(res => {
-      if (active) {
-        setFinancialData(res)
-        setLoading(false)
-      }
+      if (active) { setFinancialData(res); setLoading(false) }
     }).catch(err => {
       console.error(err)
       if (active) setLoading(false)
@@ -63,20 +66,17 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
     </button>
   )
 
-  const formatVal = (label: string, value: number, isCurrency: boolean = true) => {
+  const formatVal = (value: number, isCurrency = true) => {
     if (loading) return "Memuat..."
     if (!financialData) return "—"
-    if (isCurrency) {
-      return formatRupiah(value)
-    }
-    return value.toLocaleString("id-ID")
+    return isCurrency ? formatRupiah(value) : value.toLocaleString("id-ID")
   }
 
   const items = [
-    { label: "Total Transaksi",    value: formatVal("Total Transaksi", financialData?.totalTransaksi || 0, false), color: "text-slate-700 dark:text-slate-200" },
-    { label: "Keuntungan (SHU)",   value: formatVal("Keuntungan (SHU)", financialData?.keuntunganSHU || 0),        color: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Pengeluaran",        value: formatVal("Pengeluaran", financialData?.pengeluaranOperasional || 0),    color: "text-rose-600 dark:text-rose-400" },
-    { label: "Saldo Kas Koperasi", value: formatVal("Saldo Kas Koperasi", financialData?.saldoKas || 0),           color: "text-blue-600 dark:text-blue-400" },
+    { label: "Total Transaksi",    value: formatVal(financialData?.totalTransaksi || 0, false), color: "text-slate-700 dark:text-slate-200" },
+    { label: "Keuntungan (SHU)",   value: formatVal(financialData?.keuntunganSHU || 0),         color: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Pengeluaran",        value: formatVal(financialData?.pengeluaranOperasional || 0), color: "text-rose-600 dark:text-rose-400" },
+    { label: "Saldo Kas Koperasi", value: formatVal(financialData?.saldoKas || 0),              color: "text-blue-600 dark:text-blue-400" },
   ]
 
   return (
@@ -116,7 +116,6 @@ function PromosiCarousel({ ads }: { ads: typeof FALLBACK_ADS }) {
 
   return (
     <Card>
-      {/* Header hanya tampil di desktop */}
       <CardHeader className="hidden md:block">
         <CardTitle className="text-lg">Promosi &amp; Iklan</CardTitle>
       </CardHeader>
@@ -170,7 +169,6 @@ function PromosiCarousel({ ads }: { ads: typeof FALLBACK_ADS }) {
 function RiwayatBelanja({ orders }: { orders: any[] }) {
   return (
     <Card>
-      {/* Header hanya tampil di desktop */}
       <CardHeader className="hidden md:block">
         <CardTitle className="text-lg">Riwayat Belanja Hari Ini</CardTitle>
       </CardHeader>
@@ -202,8 +200,8 @@ function RiwayatBelanja({ orders }: { orders: any[] }) {
   )
 }
 
-// ─── Komponen Menu Shortcut ───────────────────────────────────────────────────
-function MenuShortcut() {
+// ─── Menu Shortcut Anggota ────────────────────────────────────────────────────
+function MenuShortcutAnggota() {
   const menus = [
     { href: "/simpanan",  icon: <Wallet      className="mb-1.5 h-7 w-7 text-blue-600" />,   label: "Simpanan" },
     { href: "/pinjaman",  icon: <CreditCard  className="mb-1.5 h-7 w-7 text-emerald-600" />, label: "Pinjaman" },
@@ -226,25 +224,117 @@ function MenuShortcut() {
   )
 }
 
+// ─── Menu Grid Pengurus / Admin ───────────────────────────────────────────────
+type MenuSection = { title: string; color: string; items: { href: string; icon: React.ReactNode; label: string }[] }
+
+function MenuGridPengurus({ role }: { role: string }) {
+  const isAdmin = ["superadmin", "admin"].includes(role)
+
+  const sections: MenuSection[] = [
+    {
+      title: "Manajemen",
+      color: "from-blue-500 to-blue-700",
+      items: [
+        { href: "/anggota",           icon: <Users className="h-6 w-6 text-white" />,     label: "Data Anggota" },
+        { href: "/akun",              icon: <UserCog className="h-6 w-6 text-white" />,   label: "Data Akun" },
+        { href: "/pinjaman/approval", icon: <ShieldCheck className="h-6 w-6 text-white" />, label: "Approval" },
+        { href: "/pinjaman/produk",   icon: <CreditCard className="h-6 w-6 text-white" />, label: "Prod. Pinjaman" },
+        { href: "/simpanan",          icon: <Wallet className="h-6 w-6 text-white" />,    label: "Simpanan" },
+      ],
+    },
+    {
+      title: "Toko & Inventaris",
+      color: "from-amber-500 to-orange-600",
+      items: [
+        { href: "/toko/kasir",        icon: <Receipt className="h-6 w-6 text-white" />,    label: "Mesin Kasir" },
+        { href: "/toko/kasir/sesi",   icon: <Store className="h-6 w-6 text-white" />,      label: "Sesi Kasir" },
+        { href: "/toko/produk",       icon: <Package className="h-6 w-6 text-white" />,    label: "Katalog Produk" },
+        { href: "/toko/pesanan",      icon: <ShoppingBag className="h-6 w-6 text-white" />, label: "Pesanan Online" },
+        { href: "/toko/inventaris",   icon: <Archive className="h-6 w-6 text-white" />,    label: "Inventaris" },
+        { href: "/toko/konsinyasi",   icon: <ClipboardList className="h-6 w-6 text-white" />, label: "Konsinyasi" },
+        { href: "/pembelian",         icon: <Truck className="h-6 w-6 text-white" />,      label: "Pembelian / PO" },
+      ],
+    },
+    {
+      title: "Laporan & Akuntansi",
+      color: "from-emerald-500 to-teal-600",
+      items: [
+        { href: "/laporan/harian",         icon: <FileText className="h-6 w-6 text-white" />,   label: "Laporan Harian" },
+        { href: "/laporan/analitik",       icon: <BarChart3 className="h-6 w-6 text-white" />,  label: "Analitik & P&L" },
+        { href: "/laporan/po-konsinyasi",  icon: <ScrollText className="h-6 w-6 text-white" />, label: "Lap. PO" },
+        { href: "/laporan/stok",           icon: <History className="h-6 w-6 text-white" />,    label: "Riwayat Stok" },
+        { href: "/laporan/potongan-gaji",  icon: <Receipt className="h-6 w-6 text-white" />,    label: "Laporan Gaji" },
+        { href: "/akuntansi/buku-besar",   icon: <BookOpen className="h-6 w-6 text-white" />,   label: "Buku Besar" },
+        { href: "/akuntansi/tutup-buku",   icon: <ClipboardList className="h-6 w-6 text-white" />, label: "Tutup Buku" },
+      ],
+    },
+    {
+      title: "Log & Pengaturan",
+      color: "from-violet-500 to-purple-700",
+      items: [
+        { href: "/log",          icon: <ScrollText className="h-6 w-6 text-white" />,  label: "Log Aktivitas" },
+        { href: "/pengaturan",   icon: <Settings className="h-6 w-6 text-white" />,   label: "Pengaturan" },
+        { href: "/profil",       icon: <User className="h-6 w-6 text-white" />,       label: "Profil Saya" },
+      ],
+    },
+  ]
+
+  return (
+    <div className="space-y-5">
+      {sections.map((section) => (
+        <div key={section.title}>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
+            {section.title}
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {section.items.map(({ href, icon, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-transform"
+              >
+                <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${section.color} flex items-center justify-center shadow-sm`}>
+                  {icon}
+                </div>
+                <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-tight">
+                  {label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Komponen Utama ───────────────────────────────────────────────────────────
-export function DashboardHomePage({ settings, promotions, todayOrders, dashboardConfig }: Props) {
-  const [activeTab,  setActiveTab]  = useState<MobileTab>("beranda")
+export function DashboardHomePage({ settings, promotions, todayOrders, dashboardConfig, role = "anggota" }: Props) {
+  const [activeTab,   setActiveTab]   = useState<MobileTab>("beranda")
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>("monthly")
+
+  const isPengurus = ["superadmin", "admin", "pengurus", "ketua", "kasir"].includes(role)
 
   const ads = promotions.filter((p) => p.is_active).length > 0
     ? promotions.filter((p) => p.is_active)
     : FALLBACK_ADS
 
   // ── Tab Navigation (hanya mobile) ──────────────────────────────────────────
-  const tabs: { key: MobileTab; label: string; icon: React.ReactNode }[] = [
-    { key: "beranda", label: "Beranda", icon: <Home      className="h-4 w-4" /> },
-    { key: "promosi", label: "Promosi", icon: <Megaphone className="h-4 w-4" /> },
-    { key: "riwayat", label: "Riwayat", icon: <Clock     className="h-4 w-4" /> },
-  ]
+  const tabs: { key: MobileTab; label: string; icon: React.ReactNode }[] = isPengurus
+    ? [
+        { key: "beranda", label: "Beranda", icon: <Home      className="h-4 w-4" /> },
+        { key: "menu",    label: "Menu",    icon: <ClipboardList className="h-4 w-4" /> },
+        { key: "promosi", label: "Promosi", icon: <Megaphone className="h-4 w-4" /> },
+      ]
+    : [
+        { key: "beranda", label: "Beranda", icon: <Home      className="h-4 w-4" /> },
+        { key: "promosi", label: "Promosi", icon: <Megaphone className="h-4 w-4" /> },
+        { key: "riwayat", label: "Riwayat", icon: <Clock     className="h-4 w-4" /> },
+      ]
 
   return (
     <div className="md:max-w-3xl md:mx-auto">
-      {/* ── DESKTOP: layout stacked biasa (tidak diubah sama sekali) ─────────── */}
+      {/* ── DESKTOP: layout stacked biasa ─────────────────────────────────── */}
       <div className="hidden md:flex md:flex-col gap-6 p-4">
         {/* Welcome Card */}
         <div className="rounded-3xl border border-slate-200 bg-white/95 dark:bg-slate-950/90 dark:border-slate-800 p-6 shadow-sm text-center">
@@ -264,27 +354,30 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
           </p>
         </div>
 
-        {/* Menu 2x2 */}
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { href: "/simpanan", icon: <Wallet className="mb-2 h-8 w-8 text-blue-600" />,      label: "Simpanan" },
-            { href: "/pinjaman", icon: <CreditCard className="mb-2 h-8 w-8 text-emerald-600" />, label: "Pinjaman" },
-            { href: "/toko",     icon: <ShoppingBag className="mb-2 h-8 w-8 text-amber-600" />,  label: "Toko" },
-            { href: "/profil",   icon: <User className="mb-2 h-8 w-8 text-violet-600" />,        label: "Profil" },
-          ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
-              {icon}
-              <span className="text-sm font-semibold">{label}</span>
-            </Link>
-          ))}
-        </div>
+        {isPengurus ? (
+          <MenuGridPengurus role={role} />
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { href: "/simpanan", icon: <Wallet className="mb-2 h-8 w-8 text-blue-600" />,      label: "Simpanan" },
+              { href: "/pinjaman", icon: <CreditCard className="mb-2 h-8 w-8 text-emerald-600" />, label: "Pinjaman" },
+              { href: "/toko",     icon: <ShoppingBag className="mb-2 h-8 w-8 text-amber-600" />,  label: "Toko" },
+              { href: "/profil",   icon: <User className="mb-2 h-8 w-8 text-violet-600" />,        label: "Profil" },
+            ].map(({ href, icon, label }) => (
+              <Link key={href} href={href} className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
+                {icon}
+                <span className="text-sm font-semibold">{label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {dashboardConfig?.show_financial_stats && (
           <StatsCard period={statsPeriod} setPeriod={setStatsPeriod} />
         )}
 
         <PromosiCarousel ads={ads} />
-        <RiwayatBelanja orders={todayOrders} />
+        {!isPengurus && <RiwayatBelanja orders={todayOrders} />}
       </div>
 
       {/* ── MOBILE: Sistem TAB ────────────────────────────────────────────────── */}
@@ -313,10 +406,49 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
           {/* TAB: Beranda */}
           {activeTab === "beranda" && (
             <div className="space-y-4 p-4">
-              <MenuShortcut />
-              {dashboardConfig?.show_financial_stats && (
-                <StatsCard period={statsPeriod} setPeriod={setStatsPeriod} />
+              {isPengurus ? (
+                <>
+                  {/* Quick stats untuk pengurus */}
+                  {dashboardConfig?.show_financial_stats && (
+                    <StatsCard period={statsPeriod} setPeriod={setStatsPeriod} />
+                  )}
+                  {/* Shortcut 4 menu paling sering diakses pengurus */}
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Akses Cepat</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { href: "/anggota",           icon: <Users className="h-6 w-6 text-white" />,      label: "Anggota",   color: "from-blue-500 to-blue-700" },
+                        { href: "/pinjaman/approval", icon: <ShieldCheck className="h-6 w-6 text-white" />, label: "Approval",  color: "from-rose-500 to-rose-700" },
+                        { href: "/toko/kasir",        icon: <Receipt className="h-6 w-6 text-white" />,     label: "Kasir",     color: "from-amber-500 to-orange-600" },
+                        { href: "/laporan/analitik",  icon: <BarChart3 className="h-6 w-6 text-white" />,  label: "Analitik",  color: "from-emerald-500 to-teal-600" },
+                      ].map(({ href, icon, label, color }) => (
+                        <Link key={href} href={href}
+                          className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-transform"
+                        >
+                          <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-sm`}>
+                            {icon}
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-tight">{label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MenuShortcutAnggota />
+                  {dashboardConfig?.show_financial_stats && (
+                    <StatsCard period={statsPeriod} setPeriod={setStatsPeriod} />
+                  )}
+                </>
               )}
+            </div>
+          )}
+
+          {/* TAB: Menu (pengurus/admin only) */}
+          {activeTab === "menu" && isPengurus && (
+            <div className="p-4">
+              <MenuGridPengurus role={role} />
             </div>
           )}
 
@@ -325,7 +457,6 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
             <div className="p-4 space-y-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Promosi &amp; Iklan Aktif</p>
               <PromosiCarousel ads={ads} />
-              {/* Daftar ringkas semua promosi */}
               <div className="space-y-2">
                 {ads.map((ad) => (
                   <div key={ad.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 flex gap-3 items-start">
@@ -347,8 +478,8 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
             </div>
           )}
 
-          {/* TAB: Riwayat */}
-          {activeTab === "riwayat" && (
+          {/* TAB: Riwayat (anggota only) */}
+          {activeTab === "riwayat" && !isPengurus && (
             <div className="p-4 space-y-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Riwayat Belanja Hari Ini</p>
               <RiwayatBelanja orders={todayOrders} />
