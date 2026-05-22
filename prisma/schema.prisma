@@ -394,8 +394,9 @@ model order_items {
   product_id   BigInt    @db.UnsignedBigInt
   product_name String    @db.VarChar(200)
   qty          Int
-  unit_price   Decimal   @db.Decimal(15, 2)
-  discount     Decimal   @default(0.00) @db.Decimal(15, 2)
+  unit_price     Decimal   @db.Decimal(15, 2)
+  purchase_price Decimal   @default(0.00) @db.Decimal(15, 2)
+  discount       Decimal   @default(0.00) @db.Decimal(15, 2)
   subtotal     Decimal   @db.Decimal(15, 2)
   created_at   DateTime? @db.Timestamp(0)
   updated_at   DateTime? @db.Timestamp(0)

@@ -134,10 +134,9 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         LEFT JOIN (
           SELECT 
             DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS date,
-            SUM(oi.qty * p.purchase_price) AS cogs
+            SUM(oi.qty * oi.purchase_price) AS cogs
           FROM orders o
           INNER JOIN order_items oi ON oi.order_id = o.id
-          INNER JOIN products p ON p.id = oi.product_id
           WHERE o.payment_status = 'paid'
             AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
             AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
@@ -151,27 +150,36 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         where: { orders: orderWhere },
         select: {
           qty: true,
-          products: {
-            select: { purchase_price: true }
-          }
+          purchase_price: true
         }
       })
     ])
 
-    // ── Fetch HPP for all sold products ──────────────────────
+    // ── Fetch historical COGS for top products ────────────────
     const soldIds = itemGroups.map(p => p.product_id)
-    const hppRows = await prisma.products.findMany({
-      where:  { id: { in: soldIds } },
-      select: { id: true, purchase_price: true },
+    const topOrderItems = await prisma.order_items.findMany({
+      where: {
+        product_id: { in: soldIds },
+        orders: orderWhere,
+      },
+      select: {
+        product_id: true,
+        qty: true,
+        purchase_price: true,
+      },
     })
-    const hppMap = new Map(hppRows.map(p => [Number(p.id), Number(p.purchase_price)]))
+    const cogsMap = new Map<number, number>()
+    for (const item of topOrderItems) {
+      const pid = Number(item.product_id)
+      const itemCogs = item.qty * Number(item.purchase_price)
+      cogsMap.set(pid, (cogsMap.get(pid) ?? 0) + itemCogs)
+    }
 
     // ── Build top products with margin ───────────────────────
     const topProducts = itemGroups.map(p => {
       const qty     = p._sum.qty ?? 0
       const revenue = Number(p._sum.subtotal ?? 0)
-      const hpp     = hppMap.get(Number(p.product_id)) ?? 0
-      const cogs    = hpp * qty
+      const cogs    = cogsMap.get(Number(p.product_id)) ?? 0
       const profit  = revenue - cogs
       return {
         product_id:    Number(p.product_id),
@@ -186,7 +194,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
 
     // ── Calculate total real COGS from all sold items ─────────
     const totalRealCogs = allSoldItems.reduce((sum, item) => {
-      const price = Number(item.products?.purchase_price ?? 0)
+      const price = Number(item.purchase_price ?? 0)
       return sum + (item.qty * price)
     }, 0)
 

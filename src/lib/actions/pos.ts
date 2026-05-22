@@ -82,6 +82,8 @@ export async function processPosCheckout(data: {
     }
 
     await prisma.$transaction(async (tx) => {
+      const purchasePrices = new Map<bigint, number>();
+
       // Paylater limit is checked dynamically above, no separate field is updated here.
       // Validate stock atomically before committing the order
       for (const item of data.cart) {
@@ -92,6 +94,9 @@ export async function processPosCheckout(data: {
         if (!product) {
           throw new Error(`Produk ${item.name} tidak ditemukan.`);
         }
+
+        // Simpan harga pokok (purchase_price) historis saat transaksi dilakukan
+        purchasePrices.set(product.id, Number(product.purchase_price));
 
         const stockBefore = product.stock;
         if (stockBefore < item.qty) {
@@ -150,13 +155,17 @@ export async function processPosCheckout(data: {
 
       // Create Order Items
       for (const item of data.cart) {
+        const pId = BigInt(item.id);
+        const pPrice = purchasePrices.get(pId) ?? 0;
+
         await tx.order_items.create({
           data: {
             order_id: order.id,
-            product_id: BigInt(item.id),
+            product_id: pId,
             product_name: item.name,
             qty: item.qty,
             unit_price: item.price,
+            purchase_price: pPrice,
             discount: 0,
             subtotal: item.price * item.qty,
           }
