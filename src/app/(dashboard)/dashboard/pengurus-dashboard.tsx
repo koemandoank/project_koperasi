@@ -11,14 +11,17 @@ type RestockItem = {
   min_stock: number; purchase_price: number; category: string
 }
 
-export function PengurusDashboard({ data, suppliers }: { data: any; suppliers: Supplier[] }) {
+export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }: { data: any; suppliers: Supplier[]; companyName?: string }) {
   if (!data) return <div>Loading...</div>
 
   const restockAlerts: RestockItem[] = data.restockAlerts ?? []
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Administrator / Pengurus</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">{companyName}</h1>
+        <p className="text-sm text-muted-foreground font-medium">Dashboard Administrator / Pengurus</p>
+      </div>
       
       {/* RESTOCK NOTIFICATION WIDGET */}
       <RestockNotificationWidget restockAlerts={restockAlerts} suppliers={suppliers} />

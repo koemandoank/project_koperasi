@@ -4,6 +4,24 @@ import { Sidebar } from "@/components/shared/sidebar"
 import { Header } from "@/components/shared/header"
 import { BottomNav } from "@/components/shared/bottom-nav"
 import { getAppSettings } from "@/lib/actions/settings"
+import type { Metadata } from "next"
+
+/**
+ * Generate metadata dinamis dari database.
+ * Nama koperasi diambil dari app_settings.company_name.
+ *
+ * @returns {Promise<Metadata>} Next.js metadata object
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getAppSettings()
+  const name = settings?.company_name ?? "Koperasi Digital"
+  return {
+    title: {
+      default: name,
+      template: `%s | ${name}`,
+    },
+  }
+}
 
 export default async function DashboardLayout({
   children,
@@ -23,7 +41,7 @@ export default async function DashboardLayout({
     <div className="flex h-screen w-full overflow-hidden bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-blue-200">
       {/* ── Desktop Sidebar (hidden on mobile) ── */}
       <div className="hidden md:flex">
-        <Sidebar role={role} />
+        <Sidebar role={role} companyName={settings?.company_name ?? "Koperasi"} logoUrl={settings?.logo_url ?? "/icon.jpg"} />
       </div>
       
       <div className="flex flex-1 flex-col overflow-hidden relative">

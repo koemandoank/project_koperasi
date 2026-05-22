@@ -48,7 +48,7 @@ interface Payable {
   settlements: any[];
 }
 
-export default function KonsinyasiClient({ items, payables, suppliers, products }: { items: Item[], payables: Payable[], suppliers: any[], products: any[] }) {
+export default function KonsinyasiClient({ items, payables, suppliers, products }: { items: Item[], payables: Payable[], suppliers: any[], products: { id: number; name: string; category: string; purchase_price: number }[] }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("stok")
   
@@ -88,6 +88,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
     if (res.success) {
       toast.success("Barang konsinyasi berhasil ditambahkan")
       setIsAddOpen(false)
+      setAddForm({ product_id: "", supplier_id: "", qty: "", price: "", date: new Date().toISOString().split("T")[0] })
+      router.refresh()
     } else {
       toast.error(res.error || "Gagal menambahkan")
     }
@@ -478,7 +480,11 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                   <SelectValue placeholder="Pilih Produk" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                  {products.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name}{p.category ? ` — ${p.category}` : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

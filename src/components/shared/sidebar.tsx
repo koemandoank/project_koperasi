@@ -220,7 +220,19 @@ function GroupLabel({ label, icon: Icon }: { label: string; icon?: React.Element
 // Sidebar Component
 // ─────────────────────────────────────────────
 
-export function Sidebar({ role, onClose }: { role: string; onClose?: () => void }) {
+export function Sidebar({
+  role,
+  onClose,
+  companyName = "Koperasi",
+  logoUrl = "/icon.jpg",
+}: {
+  role: string
+  onClose?: () => void
+  /** Nama koperasi dari pengaturan umum (app_settings.company_name) */
+  companyName?: string
+  /** URL logo dari pengaturan umum (app_settings.logo_url) */
+  logoUrl?: string
+}) {
   const pathname = usePathname()
   const groups = getGroupsByRole(role)
 
@@ -241,11 +253,11 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
       <div className="flex h-20 shrink-0 items-center px-6 border-b border-white/10 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-blue-900 dark:via-indigo-900 dark:to-violet-900 shadow-inner">
         <div className="flex items-center gap-3 w-full">
           <div className="h-10 w-10 rounded-xl overflow-hidden shadow-sm border border-white/30 flex-shrink-0">
-            <img src="/icon.jpg" alt="Logo Koperasi" className="h-full w-full object-cover" />
+            <img src={logoUrl || "/icon.jpg"} alt="Logo Koperasi" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-lg tracking-wide text-white drop-shadow-md">
-              KOEMAN-PROJECT
+            <span className="font-extrabold text-lg tracking-wide text-white drop-shadow-md leading-tight line-clamp-2">
+              {companyName}
             </span>
             <span className="text-[10px] text-blue-100 uppercase tracking-widest font-medium capitalize">
               {role}

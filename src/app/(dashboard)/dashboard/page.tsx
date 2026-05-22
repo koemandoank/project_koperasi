@@ -8,7 +8,7 @@ import { getMySimpanan, getMyPinjaman, getMyOrders, getMyLoyalty } from "@/lib/a
 import { getKoperasiStats } from "@/lib/actions/koperasi-stats"
 import { getAdminStats, getKreditStats, getKasirStats } from "@/lib/actions/dashboard-stats"
 import { getPromotions } from "@/lib/actions/promotions"
-import { getMemberDashboardConfig } from "@/lib/actions/settings"
+import { getMemberDashboardConfig, getAppSettings } from "@/lib/actions/settings"
 import { DashboardMobileRedirect } from "@/components/shared/dashboard-mobile-redirect"
 import { getSuppliers } from "@/lib/actions/procurement"
 
@@ -20,6 +20,8 @@ export default async function DashboardPage() {
   }
 
   const role = session.user.role
+  const settings = await getAppSettings()
+  const companyName = settings?.company_name ?? "Koperasi"
 
   if (["superadmin", "pengurus"].includes(role)) {
     const [data, suppliersResult] = await Promise.all([
@@ -32,7 +34,7 @@ export default async function DashboardPage() {
     }))
     return (
       <DashboardMobileRedirect>
-        <PengurusDashboard data={data} suppliers={suppliers} />
+        <PengurusDashboard data={data} suppliers={suppliers} companyName={companyName} />
       </DashboardMobileRedirect>
     )
   } 
@@ -41,7 +43,7 @@ export default async function DashboardPage() {
     const data = await getKreditStats()
     return (
       <DashboardMobileRedirect>
-        <KreditDashboard data={data} />
+        <KreditDashboard data={data} companyName={companyName} />
       </DashboardMobileRedirect>
     )
   }
@@ -50,7 +52,7 @@ export default async function DashboardPage() {
     const data = await getKasirStats()
     return (
       <DashboardMobileRedirect>
-        <KasirDashboard data={data} />
+        <KasirDashboard data={data} companyName={companyName} />
       </DashboardMobileRedirect>
     )
   }

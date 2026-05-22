@@ -8,13 +8,12 @@ export default async function KonsinyasiPage() {
     getConsignmentItems(),
     getConsignmentPayables(),
     getSuppliers(),
-    // Hanya ambil produk kategori Konsinyasi untuk dropdown form penerimaan
+    // Ambil semua produk aktif untuk dropdown penerimaan konsinyasi
+    // Filter 'konsinyasi' tidak digunakan karena kategori tersebut mungkin tidak ada di semua environment
     prisma.products.findMany({
-      where: {
-        is_active: true,
-        product_categories: { slug: 'konsinyasi' }
-      },
-      select: { id: true, name: true, purchase_price: true }
+      where: { is_active: true },
+      select: { id: true, name: true, purchase_price: true, product_categories: { select: { name: true } } },
+      orderBy: { name: 'asc' },
     })
   ]);
 
@@ -61,10 +60,11 @@ export default async function KonsinyasiPage() {
     supplier_name: s.supplier_name
   })) : [];
 
-  // Hanya tampilkan produk kategori Konsinyasi di form penerimaan
+  // Semua produk aktif ditampilkan di dropdown; sertakan nama kategori sebagai context
   const products = productsRaw.map(p => ({
     id: Number(p.id),
     name: p.name,
+    category: (p as any).product_categories?.name ?? "",
     purchase_price: Number(p.purchase_price ?? 0)
   }));
 

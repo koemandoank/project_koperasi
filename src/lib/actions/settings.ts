@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
@@ -13,18 +14,31 @@ type AppSettings = {
   logo_url?: string | null;
 };
 
-function isMissingTableError(error: unknown) {
+/** Deteksi error tabel belum ada di DB */
+function isMissingTableError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
-  // Prisma MySQL missing table typically contains: "does not exist in the current database" / "Unknown table"
   return /app_settings\b.*(does not exist|Unknown table|doesn't exist|not exist)/i.test(msg);
 }
 
-export async function getAppSettings(): Promise<AppSettings | null> {
+/** Deteksi error koneksi DB unreachable / timeout */
+function isConnectionError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /Can't reach database|Connection refused|ECONNREFUSED|ETIMEDOUT|P1001|P1008|P1017/i.test(msg);
+}
+
+/**
+ * Ambil konfigurasi umum aplikasi dari tabel app_settings.
+ * Di-wrap dengan React `cache()` agar hanya 1 DB query per request,
+ * meski dipanggil dari generateMetadata() dan layout() secara terpisah.
+ *
+ * @returns {Promise<AppSettings | null>} Settings atau null jika DB tidak tersedia
+ */
+export const getAppSettings = cache(async (): Promise<AppSettings | null> => {
   try {
     const settings = await (prisma as any).app_settings?.findFirst?.();
 
     if (!settings) {
-      // If table exists but empty, create a default row.
+      // Tabel ada tapi kosong — buat baris default
       const created = await (prisma as any).app_settings.create({
         data: {
           company_name: "Koperasi Sulfindo",
@@ -44,16 +58,20 @@ export async function getAppSettings(): Promise<AppSettings | null> {
     };
   } catch (error) {
     if (isMissingTableError(error)) {
-      // Critical for login: do not block authentication if app_settings table isn't migrated yet.
-      // Return null so UI can render fallback values.
-      console.warn("app_settings table missing; returning null settings.", error);
+      console.warn("[settings] app_settings table belum ada, pakai fallback.", error);
       return null;
     }
 
-    console.error("Failed to fetch app settings:", error);
+    if (isConnectionError(error)) {
+      // DB unreachable — jangan crash, kembalikan null agar UI pakai fallback
+      console.warn("[settings] DB tidak dapat dijangkau, pakai fallback settings.");
+      return null;
+    }
+
+    console.error("[settings] Gagal fetch app_settings:", error);
     return null;
   }
-}
+});
 
 export async function updateAppSettings(data: {
   company_name: string;

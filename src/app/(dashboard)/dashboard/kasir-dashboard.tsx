@@ -7,7 +7,7 @@ import { useState } from "react"
 import { requestRestock } from "@/lib/actions/stock-alerts"
 import { toast } from "sonner"
 
-export function KasirDashboard({ data }: { data: any }) {
+export function KasirDashboard({ data, companyName = "Koperasi" }: { data: any; companyName?: string }) {
   const [loadingItems, setLoadingItems] = useState<Record<number, boolean>>({})
 
   const handleRequestRestock = async (productId: number) => {
@@ -30,7 +30,10 @@ export function KasirDashboard({ data }: { data: any }) {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Kasir (POS)</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">{companyName}</h1>
+        <p className="text-sm text-muted-foreground font-medium">Dashboard Kasir (POS)</p>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

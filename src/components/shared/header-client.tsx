@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, User as UserIcon, Bell, Search, Menu, CreditCard, ShoppingBag, X } from "lucide-react"
+import { LogOut, User as UserIcon, Bell, Search, Menu, CreditCard, ShoppingBag } from "lucide-react"
 import { logout } from "@/lib/actions/auth"
-import Image from "next/image"
 import Link from "next/link"
 import { Sidebar } from "./sidebar"
+import { PageHeader } from "./page-header"
 
 export function HeaderClient({
   user,
@@ -32,7 +32,7 @@ export function HeaderClient({
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-full max-w-xs bg-white dark:bg-slate-950 shadow-2xl transform transition-transform duration-300">
-            <Sidebar role={user?.role} onClose={() => setSidebarOpen(false)} />
+            <Sidebar role={user?.role} onClose={() => setSidebarOpen(false)} companyName={settings?.company_name ?? "Koperasi"} logoUrl={settings?.logo_url ?? "/icon.jpg"} />
           </div>
         </div>
       )}
@@ -47,19 +47,9 @@ export function HeaderClient({
             <Menu className="h-5 w-5" />
           </button>
 
-          <div className="hidden md:flex items-center gap-3">
-            <div className="relative h-10 w-10 bg-white rounded-lg shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
-              <Image
-                src={settings?.logo_url || "/koperasi.png"}
-                alt="Logo"
-                fill
-                className="object-contain p-1"
-                priority
-              />
-            </div>
-            <h2 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 dark:from-blue-400 dark:to-indigo-400">
-              {settings?.company_name || "Koperasi Digital"}
-            </h2>
+          {/* Nama & Icon halaman aktif — hanya desktop */}
+          <div className="hidden md:flex">
+            <PageHeader />
           </div>
         </div>
 
