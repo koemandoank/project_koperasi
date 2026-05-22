@@ -47,36 +47,81 @@ export type ExecutiveDashboardData = {
 // ─── Sub-services (Single Responsibility) ──────────────────────────────────────
 
 /**
- * Mengambil ringkasan data finansial koperasi (Kas/Bank, Simpanan, Outstanding Pinjaman, Estimasi SHU).
+ * Menghitung saldo Kas & Bank koperasi berdasarkan COA Aset.
+ * Jika saldo COA bernilai 0, dilakukan fallback kalkulasi dari sub-ledger operasional.
+ *
+ * @returns {Promise<number>} Saldo Kas & Bank riil
+ * @throws {Error} Jika terjadi kesalahan pada query database
+ */
+async function calculateTotalKasBank(): Promise<number> {
+  try {
+    const assetAccounts = await prisma.chart_of_accounts.findMany({ where: { type: "asset" } });
+    const assetIds = assetAccounts.map((a) => a.id);
+    const assetLines = await prisma.journal_lines.aggregate({
+      _sum: { debit: true, credit: true },
+      where: { account_id: { in: assetIds }, journal_entries: { is_posted: true } },
+    });
+    const totalKasBank = Number(assetLines._sum.debit || 0) - Number(assetLines._sum.credit || 0);
+
+    if (totalKasBank !== 0) return Math.max(0, totalKasBank);
+
+    const [savingsDeposit, savingsWithdraw, loanDisbursedAll, loanRepaid, salesAll] = await Promise.all([
+      prisma.saving_transactions.aggregate({ _sum: { amount: true }, where: { type: "deposit" } }),
+      prisma.saving_transactions.aggregate({ _sum: { amount: true }, where: { type: "withdraw" } }),
+      prisma.loans.aggregate({ _sum: { principal: true } }),
+      prisma.loan_schedules.aggregate({ _sum: { principal_paid: true, interest_paid: true, penalty_paid: true } }),
+      prisma.orders.aggregate({ _sum: { grand_total: true }, where: { payment_status: "paid" } }),
+    ]);
+
+    const netSavings = Number(savingsDeposit._sum.amount || 0) - Number(savingsWithdraw._sum.amount || 0);
+    const totalDisbursed = Number(loanDisbursedAll._sum.principal || 0);
+    const totalRepaid = Number(loanRepaid._sum.principal_paid || 0) +
+      Number(loanRepaid._sum.interest_paid || 0) +
+      Number(loanRepaid._sum.penalty_paid || 0);
+    const totalSalesAll = Number(salesAll._sum.grand_total || 0);
+
+    return Math.max(0, netSavings + totalRepaid + totalSalesAll - totalDisbursed);
+  } catch (error) {
+    console.error("[calculateTotalKasBank] Error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Menghitung akumulasi total simpanan bersih anggota (deposit - withdraw).
+ *
+ * @returns {Promise<number>} Total simpanan bersih anggota
+ * @throws {Error} Jika terjadi kesalahan pada query database
+ */
+async function calculateTotalSimpanan(): Promise<number> {
+  try {
+    const totalSimpananAgg = await prisma.saving_transactions.groupBy({
+      by: ["type"],
+      _sum: { amount: true },
+    });
+    const simpananMap = Object.fromEntries(
+      totalSimpananAgg.map((g) => [g.type, Number(g._sum.amount || 0)])
+    );
+    return Math.max(0, (simpananMap["deposit"] || 0) - (simpananMap["withdraw"] || 0));
+  } catch (error) {
+    console.error("[calculateTotalSimpanan] Error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Menghitung estimasi sisa hasil usaha (SHU) berjalan YTD.
  *
  * @param {Date} yearStart - Awal tahun berjalan (1 Januari)
- * @returns {Promise<FinancialOverview>} Data ringkasan keuangan
+ * @returns {Promise<number>} Estimasi nilai SHU YTD
+ * @throws {Error} Jika terjadi kesalahan pada query database
  */
-async function getFinancialOverview(yearStart: Date): Promise<FinancialOverview> {
+async function calculateEstimasiSHU(yearStart: Date): Promise<number> {
   try {
-    const [
-      assetAccounts,
-      totalSimpananAgg,
-      activeLoansAgg,
-      ytdRevenues,
-      ytdHppItems,
-      ytdExpenses,
-    ] = await Promise.all([
-      prisma.chart_of_accounts.findMany({ where: { type: "asset" } }),
-      prisma.saving_transactions.groupBy({
-        by: ["type"],
-        _sum: { amount: true },
-      }),
-      prisma.loans.aggregate({
-        _sum: { outstanding_principal: true },
-        where: { status: "active" },
-      }),
+    const [ytdRev, ytdHppItems, ytdExp, omzetYtd] = await Promise.all([
       prisma.journal_lines.aggregate({
         _sum: { credit: true, debit: true },
-        where: {
-          chart_of_accounts: { type: "revenue" },
-          journal_entries: { is_posted: true, entry_date: { gte: yearStart } },
-        },
+        where: { chart_of_accounts: { type: "revenue" }, journal_entries: { is_posted: true, entry_date: { gte: yearStart } } },
       }),
       prisma.order_items.findMany({
         where: { orders: { payment_status: "paid", ordered_at: { gte: yearStart } } },
@@ -84,55 +129,53 @@ async function getFinancialOverview(yearStart: Date): Promise<FinancialOverview>
       }),
       prisma.journal_lines.aggregate({
         _sum: { debit: true, credit: true },
-        where: {
-          chart_of_accounts: { type: "expense" },
-          journal_entries: { is_posted: true, entry_date: { gte: yearStart } },
-        },
+        where: { chart_of_accounts: { type: "expense" }, journal_entries: { is_posted: true, entry_date: { gte: yearStart } } },
       }),
-    ])
+      prisma.orders.aggregate({
+        _sum: { grand_total: true },
+        where: { payment_status: "paid", ordered_at: { gte: yearStart } },
+      }),
+    ]);
 
-    const assetIds = assetAccounts.map((a) => a.id)
-    const assetLines = await prisma.journal_lines.aggregate({
-      _sum: { debit: true, credit: true },
-      where: { account_id: { in: assetIds }, journal_entries: { is_posted: true } },
-    })
-    const totalKasBank = Math.max(
-      0,
-      Number(assetLines._sum.debit || 0) - Number(assetLines._sum.credit || 0)
-    )
+    const ytdHpp = ytdHppItems.reduce((s, i) => s + i.qty * Number(i.products?.purchase_price ?? 0), 0);
+    const labaKotor = Number(omzetYtd._sum.grand_total || 0) - ytdHpp;
+    const pendapatanSP = Number(ytdRev._sum.credit || 0) - Number(ytdRev._sum.debit || 0);
+    const bebanYtd = Number(ytdExp._sum.debit || 0) - Number(ytdExp._sum.credit || 0);
+    
+    return labaKotor + pendapatanSP - bebanYtd;
+  } catch (error) {
+    console.error("[calculateEstimasiSHU] Error:", error);
+    throw error;
+  }
+}
 
-    const simpananMap = Object.fromEntries(
-      totalSimpananAgg.map((g) => [g.type, Number(g._sum.amount || 0)])
-    )
-    const totalSimpanan = Math.max(
-      0,
-      (simpananMap["deposit"] || 0) - (simpananMap["withdraw"] || 0)
-    )
-
-    const totalPinjamanBeredar = Number(activeLoansAgg._sum.outstanding_principal || 0)
-
-    const omzetYtd = await prisma.orders.aggregate({
-      _sum: { grand_total: true },
-      where: { payment_status: "paid", ordered_at: { gte: yearStart } },
-    })
-    const ytdOmzet = Number(omzetYtd._sum.grand_total || 0)
-    const ytdHpp   = ytdHppItems.reduce(
-      (sum, i) => sum + i.qty * Number(i.products?.purchase_price ?? 0), 0
-    )
-    const labaKotor = ytdOmzet - ytdHpp
-    const pendapatanSPYtd = Number(ytdRevenues._sum.credit || 0) - Number(ytdRevenues._sum.debit || 0)
-    const bebanYtd = Number(ytdExpenses._sum.debit || 0) - Number(ytdExpenses._sum.credit || 0)
-    const estimasiSHU = labaKotor + pendapatanSPYtd - bebanYtd
+/**
+ * Mengambil ringkasan data finansial koperasi (Kas/Bank, Simpanan, Outstanding Pinjaman, Estimasi SHU).
+ *
+ * @param {Date} yearStart - Awal tahun berjalan (1 Januari)
+ * @returns {Promise<FinancialOverview>} Data ringkasan keuangan
+ */
+async function getFinancialOverview(yearStart: Date): Promise<FinancialOverview> {
+  try {
+    const [totalKasBank, totalSimpanan, activeLoansAgg, estimasiSHU] = await Promise.all([
+      calculateTotalKasBank(),
+      calculateTotalSimpanan(),
+      prisma.loans.aggregate({
+        _sum: { outstanding_principal: true },
+        where: { status: "active" },
+      }),
+      calculateEstimasiSHU(yearStart),
+    ]);
 
     return {
       totalKasBank,
       totalSimpanan,
-      totalPinjamanBeredar,
+      totalPinjamanBeredar: Number(activeLoansAgg._sum.outstanding_principal || 0),
       estimasiSHU,
-    }
+    };
   } catch (error) {
-    console.error("[getFinancialOverview] Error:", error)
-    throw error
+    console.error("[getFinancialOverview] Error:", error);
+    throw error;
   }
 }
 
