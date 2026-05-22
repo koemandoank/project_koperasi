@@ -12,7 +12,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import { generatePdfHeader, generateExcelHeader } from "@/lib/report-helpers"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -27,7 +27,7 @@ const PAYMENT_LABEL: Record<string, { label: string; icon: any; cls: string }> =
   transfer: { label: "Transfer", icon: Banknote,   cls: "bg-purple-100 text-purple-700" },
 }
 
-export function LaporanHarianClient({ data, from, to, q }: { data: any; from: string; to: string; q: string }) {
+export function LaporanHarianClient({ data, from, to, q, templateConfig }: { data: any; from: string; to: string; q: string; templateConfig?: any }) {
   const router = useRouter()
   
   const [search, setSearch] = useState(q)
@@ -77,8 +77,6 @@ export function LaporanHarianClient({ data, from, to, q }: { data: any; from: st
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet("Transaksi POS")
 
-    const startRow = generateExcelHeader(worksheet, "LAPORAN HARIAN TRANSAKSI TOKO", data.tanggal, 6)
-
     worksheet.columns = [
       { header: 'No. Transaksi', key: 'order_no', width: 20 },
       { header: 'Pelanggan', key: 'member', width: 30 },
@@ -87,6 +85,8 @@ export function LaporanHarianClient({ data, from, to, q }: { data: any; from: st
       { header: 'Total (Rp)', key: 'total', width: 18 },
       { header: 'Tanggal Waktu', key: 'time', width: 25 },
     ]
+
+    const startRow = generateExcelHeader(worksheet, "LAPORAN HARIAN TRANSAKSI TOKO", data.tanggal, 6, templateConfig)
 
     const headerRow = worksheet.getRow(startRow)
     headerRow.values = ['No. Transaksi', 'Pelanggan', 'Pembayaran', 'Status', 'Total (Rp)', 'Tanggal Waktu']
@@ -141,6 +141,8 @@ export function LaporanHarianClient({ data, from, to, q }: { data: any; from: st
     worksheet.getCell(`B${currentRow+5}`).value = data.totalQris
     worksheet.getCell(`B${currentRow+5}`).numFmt = '"Rp"#,##0.00'
 
+    const lastFooterRow = generateExcelFooter(worksheet, currentRow + 6, 6, templateConfig)
+
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
     saveAs(blob, `Laporan_Harian_Toko_${dateFrom}.xlsx`)
@@ -148,7 +150,7 @@ export function LaporanHarianClient({ data, from, to, q }: { data: any; from: st
 
   const handleExportPDF = () => {
     const doc = new jsPDF()
-    const startY = generatePdfHeader(doc, "LAPORAN HARIAN TRANSAKSI TOKO", data.tanggal)
+    const startY = generatePdfHeader(doc, "LAPORAN HARIAN TRANSAKSI TOKO", data.tanggal, templateConfig)
     
     const tableData = data.orders.map((o: any) => {
       const pm = PAYMENT_LABEL[o.payment_method] || { label: o.payment_method }
@@ -178,6 +180,8 @@ export function LaporanHarianClient({ data, from, to, q }: { data: any; from: st
     doc.text(`Total Transaksi: ${data.totalTransaksi}`, 14, finalY + 6)
     doc.text(`Total Pendapatan: ${formatRp(data.totalPendapatan)}`, 14, finalY + 12)
     doc.text(`Tunai: ${formatRp(data.totalTunai)}  |  Paylater: ${formatRp(data.totalPaylater)}  |  QRIS: ${formatRp(data.totalQris)}`, 14, finalY + 18)
+
+    generatePdfFooter(doc, finalY + 24, templateConfig)
 
     doc.save(`Laporan_Harian_Toko_${dateFrom}.pdf`)
   }

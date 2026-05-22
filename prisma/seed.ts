@@ -336,6 +336,95 @@ async function main() {
     }
   }
 
+  // 9) Seed promotions using raw SQL
+  console.log('🚀 Mempersiapkan tabel promosi jika belum ada...');
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS promotions (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      description TEXT NULL,
+      image_url VARCHAR(255) NOT NULL,
+      link_url VARCHAR(255) NULL,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  `);
+
+  console.log('🚀 Menambahkan 4 data promosi dummy...');
+  const promotionsData = [
+    {
+      title: "MEGA DISKON 50% Akhir Bulan!",
+      description: "Nikmati potongan harga hingga 50% untuk berbagai kebutuhan pokok dan sembako di Toko Koperasi. Belanja hemat, anggota untung!",
+      image_url: "/uploads/promosi/promo-diskon-toko.png",
+      link_url: "/toko",
+      is_active: 1,
+      sort_order: 1,
+    },
+    {
+      title: "Restock Terlaris: Rokok Dunhill Menthol",
+      description: "Barang paling laku kini sudah tersedia kembali! Dapatkan Rokok Dunhill Menthol dengan harga spesial khusus anggota di mesin POS/Toko kami.",
+      image_url: "/uploads/promosi/promo-dunhill-menthol.png",
+      link_url: "/toko/produk",
+      is_active: 1,
+      sort_order: 2,
+    },
+    {
+      title: "Segera Hadir: Layanan PPOB Koperasi",
+      description: "Pengembangan layanan loket pembayaran PPOB (Listrik, Air, Pulsa, dll) sedang berlangsung. Bersiaplah menikmati kemudahan bayar tagihan langsung dari saldo simpanan Anda!",
+      image_url: "/uploads/promosi/promo-ppob-coming-soon.png",
+      link_url: "",
+      is_active: 1,
+      sort_order: 3,
+    },
+    {
+      title: "Dana Pinjaman Kilat Telah Tersedia!",
+      description: "Butuh dana cepat cair? Produk Pinjaman Kilat kini sudah bisa diajukan dengan proses persetujuan cepat (maksimal tenor 1 bulan). Ajukan sekarang di menu Pinjaman.",
+      image_url: "/uploads/promosi/promo-pinjaman-kilat.png",
+      link_url: "/pinjaman",
+      is_active: 1,
+      sort_order: 4,
+    }
+  ];
+
+  for (const promo of promotionsData) {
+    try {
+      const existing = await prisma.$queryRawUnsafe<any[]>(
+        "SELECT id FROM promotions WHERE title = ? LIMIT 1",
+        promo.title
+      );
+
+      if (existing.length === 0) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO promotions (title, description, image_url, link_url, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          promo.title,
+          promo.description,
+          promo.image_url,
+          promo.link_url,
+          promo.is_active,
+          promo.sort_order
+        );
+        console.log(`✅ Ditambahkan promosi: ${promo.title}`);
+      } else {
+        await prisma.$executeRawUnsafe(
+          `UPDATE promotions SET description = ?, image_url = ?, link_url = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE title = ?`,
+          promo.description,
+          promo.image_url,
+          promo.link_url,
+          promo.is_active,
+          promo.sort_order,
+          promo.title
+        );
+        console.log(`♻️ Diperbarui promosi: ${promo.title}`);
+      }
+    } catch (e) {
+      console.warn(`⚠️ Warning seeding promotion '${promo.title}': Table 'promotions' might not exist yet.`);
+    }
+  }
+
   console.log('Seeding finished.');
 }
 

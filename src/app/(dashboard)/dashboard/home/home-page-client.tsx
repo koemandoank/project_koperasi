@@ -266,6 +266,7 @@ function MenuGridPengurus({ role }: { role: string }) {
     "/akuntansi/buku-besar":        ["superadmin", "admin"],
     "/akuntansi/tutup-buku":        ["superadmin", "admin"],
     "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
+    "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
     "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
     "/pengaturan":                  ["superadmin", "admin"],
     "/profil":                      ["superadmin", "admin", "pengurus", "kasir", "anggota"],

@@ -1,4 +1,7 @@
 import { getNeraca, getLabaRugi } from "@/lib/actions/laporan-keuangan"
+import { getArusKas } from "@/lib/actions/laporan-arus-kas"
+import { getPerubahanEkuitas } from "@/lib/actions/laporan-perubahan-ekuitas"
+import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { LaporanKeuanganClient } from "./laporan-keuangan-client"
 
 export default async function LaporanKeuanganPage() {
@@ -6,10 +9,19 @@ export default async function LaporanKeuanganPage() {
   
   let initialNeraca = null
   let initialLabaRugi = null
+  let initialArusKas = null
+  let initialPerubahanEkuitas = null
+  let templateConfig = null
   
   try {
-    initialNeraca = await getNeraca(currentYear)
-    initialLabaRugi = await getLabaRugi(currentYear)
+    ;[initialNeraca, initialLabaRugi, initialArusKas, initialPerubahanEkuitas, templateConfig] =
+      await Promise.all([
+        getNeraca(currentYear),
+        getLabaRugi(currentYear),
+        getArusKas(currentYear),
+        getPerubahanEkuitas(currentYear),
+        getReportTemplateConfig(),
+      ])
   } catch (error) {
     console.error("Error loading financial reports page:", error)
   }
@@ -19,15 +31,19 @@ export default async function LaporanKeuanganPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Laporan Keuangan RAT</h1>
         <p className="text-muted-foreground">
-          Laporan Neraca Standar (Double-Entry) dan Perhitungan Hasil Usaha (PHU / Laba Rugi) untuk pertanggungjawaban RAT.
+          Laporan Neraca, PHU, Arus Kas, dan Perubahan Ekuitas sesuai SAK ETAP untuk pertanggungjawaban RAT.
         </p>
       </div>
 
       <LaporanKeuanganClient 
         initialNeraca={initialNeraca} 
-        initialLabaRugi={initialLabaRugi} 
+        initialLabaRugi={initialLabaRugi}
+        initialArusKas={initialArusKas}
+        initialPerubahanEkuitas={initialPerubahanEkuitas}
         initialYear={currentYear} 
+        templateConfig={templateConfig}
       />
     </div>
   )
 }
+

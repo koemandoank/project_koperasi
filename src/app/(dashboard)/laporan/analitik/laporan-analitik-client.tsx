@@ -16,6 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, FileSpreadsheet, FileText, TrendingUp, TrendingDown, DollarSign, Percent, ShoppingBag, PackageOpen, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { ReportTemplateConfig } from '@/lib/actions/settings'
+import {
+  generateExcelHeader,
+  generateExcelFooter,
+  generatePdfHeader,
+  generatePdfFooter
+} from '@/lib/report-helpers'
 
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -67,7 +74,7 @@ function parseTanggal(s: string): Date {
   return new Date(`20${y}-${MONTH_MAP[m] ?? '01'}-${d.padStart(2,'0')}`)
 }
 
-export function LaporanAnalitikClient() {
+export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: ReportTemplateConfig }) {
   const now = new Date()
   const [startDate, setStartDate]     = useState(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
   const [endDate, setEndDate]         = useState(now.toISOString().split('T')[0])
@@ -255,17 +262,25 @@ export function LaporanAnalitikClient() {
     try {
       const ExcelJS = (await import('exceljs')).default
       const wb = new ExcelJS.Workbook()
+      const datePeriodStr = `${startDate} s/d ${endDate}`
 
       // ── Sheet 1: Ringkasan ──────────────────────────
       const ws1 = wb.addWorksheet('Ringkasan P&L')
-      ws1.addRow(['Laporan Analitik & Keuntungan Toko'])
-      ws1.addRow([`Periode: ${startDate} s/d ${endDate}`])
-      ws1.addRow([`Metode: ${PAYMENT_LABELS[payMethod] ?? payMethod} | Dicetak: ${new Date().toLocaleString('id-ID')}`])
-      ws1.addRow([])
-      ws1.getCell('A1').font = { size: 14, bold: true }
+      ws1.getColumn(1).width = 30
+      ws1.getColumn(2).width = 22
 
-      const h1 = ws1.addRow(['Indikator', 'Nilai'])
+      const startRow1 = generateExcelHeader(
+        ws1,
+        'LAPORAN ANALITIK & KEUNTUNGAN TOKO',
+        `Periode: ${datePeriodStr} | Metode: ${PAYMENT_LABELS[payMethod] ?? payMethod}`,
+        3,
+        templateConfig
+      )
+
+      const h1 = ws1.getRow(startRow1)
+      h1.values = ['Indikator', 'Nilai']
       h1.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E78'} }; c.font = { color:{argb:'FFFFFFFF'}, bold:true }; c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
+      
       const rows1 = [
         ['Omzet (Penjualan)', data.summary.omzet],
         ['Modal Pembelian (HPP)', data.summary.cogs],
@@ -274,41 +289,80 @@ export function LaporanAnalitikClient() {
         ['Jumlah Transaksi', data.summary.transaction_count],
         ['Rata-rata Transaksi', data.summary.avg_transaction],
       ]
+
+      let currentRow1 = startRow1 + 1
       rows1.forEach(([k, v], i) => {
-        const r = ws1.addRow([k, v])
+        const r = ws1.getRow(currentRow1)
+        r.values = [k, v]
         if (typeof v === 'number' && i !== 3 && i !== 4) r.getCell(2).numFmt = '"Rp"#,##0'
         r.eachCell(c => { c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
+        currentRow1++
       })
-      ws1.getColumn(1).width = 30; ws1.getColumn(2).width = 22
+
+      generateExcelFooter(ws1, currentRow1, 3, templateConfig)
 
       // ── Sheet 2: Per Produk ─────────────────────────
       const ws2 = wb.addWorksheet('Keuntungan per Produk')
-      ws2.addRow(['Laporan Keuntungan per Produk'])
-      ws2.addRow([`Periode: ${startDate} s/d ${endDate}`])
-      ws2.addRow([])
-      ws2.getCell('A1').font = { size: 13, bold: true }
+      ws2.getColumn(1).width = 5
+      ws2.getColumn(2).width = 35
+      ws2.getColumn(3).width = 12
+      ws2.getColumn(4).width = 18
+      ws2.getColumn(5).width = 18
+      ws2.getColumn(6).width = 18
+      ws2.getColumn(7).width = 12
 
-      const h2 = ws2.addRow(['#','Produk','Qty Terjual','Omzet','Modal (HPP)','Laba Kotor','Margin %'])
+      const startRow2 = generateExcelHeader(
+        ws2,
+        'LAPORAN KEUNTUNGAN PER PRODUK',
+        `Periode: ${datePeriodStr}`,
+        7,
+        templateConfig
+      )
+
+      const h2 = ws2.getRow(startRow2)
+      h2.values = ['#','Produk','Qty Terjual','Omzet','Modal (HPP)','Laba Kotor','Margin %']
       h2.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E78'} }; c.font = { color:{argb:'FFFFFFFF'}, bold:true }; c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
-      ;[1,2,3,4,5,6,7].forEach(i => { ws2.getColumn(i).width = [5,35,12,18,18,18,12][i-1] })
-
+      
+      let currentRow2 = startRow2 + 1
       data.topProducts.forEach((p, idx) => {
-        const r = ws2.addRow([idx+1, p.product_name, p.total_qty, p.total_revenue, p.total_cogs, p.gross_profit, `${p.margin_pct}%`])
+        const r = ws2.getRow(currentRow2)
+        r.values = [idx+1, p.product_name, p.total_qty, p.total_revenue, p.total_cogs, p.gross_profit, `${p.margin_pct}%`]
         ;[4,5,6].forEach(i => r.getCell(i).numFmt = '"Rp"#,##0')
         if (p.gross_profit < 0) r.getCell(6).font = { color:{argb:'FFDC2626'}, bold:true }
         r.eachCell(c => { c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
+        currentRow2++
       })
+
+      generateExcelFooter(ws2, currentRow2, 7, templateConfig)
 
       // ── Sheet 3: Per Metode Bayar ───────────────────
       const ws3 = wb.addWorksheet('Per Metode Bayar')
-      const h3 = ws3.addRow(['Metode Pembayaran','Jumlah Transaksi','Total Omzet'])
+      ws3.getColumn(1).width = 25
+      ws3.getColumn(2).width = 20
+      ws3.getColumn(3).width = 22
+
+      const startRow3 = generateExcelHeader(
+        ws3,
+        'LAPORAN OMZET PER METODE BAYAR',
+        `Periode: ${datePeriodStr}`,
+        3,
+        templateConfig
+      )
+
+      const h3 = ws3.getRow(startRow3)
+      h3.values = ['Metode Pembayaran','Jumlah Transaksi','Total Omzet']
       h3.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E78'} }; c.font = { color:{argb:'FFFFFFFF'}, bold:true }; c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
-      ws3.getColumn(1).width = 25; ws3.getColumn(2).width = 20; ws3.getColumn(3).width = 22
+      
+      let currentRow3 = startRow3 + 1
       data.byPaymentMethod.forEach(m => {
-        const r = ws3.addRow([PAYMENT_LABELS[m.method]??m.method, m.count, m.total])
+        const r = ws3.getRow(currentRow3)
+        r.values = [PAYMENT_LABELS[m.method]??m.method, m.count, m.total]
         r.getCell(3).numFmt = '"Rp"#,##0'
         r.eachCell(c => { c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
+        currentRow3++
       })
+
+      generateExcelFooter(ws3, currentRow3, 3, templateConfig)
 
       const buf = await wb.xlsx.writeBuffer()
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}))
@@ -321,16 +375,19 @@ export function LaporanAnalitikClient() {
     try {
       const { default: jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
-      const doc = new jsPDF({ orientation: 'landscape' })
-      doc.setFontSize(16); doc.setFont('helvetica','bold')
-      doc.text('Laporan Analitik & Keuntungan Toko', 14, 16)
-      doc.setFontSize(10); doc.setFont('helvetica','normal')
-      doc.text(`Periode: ${startDate} s/d ${endDate} | Metode: ${PAYMENT_LABELS[payMethod]??payMethod}`, 14, 23)
-      doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 14, 29)
+      const doc = new jsPDF()
+      const datePeriodStr = `${startDate} s/d ${endDate}`
+
+      let startY = generatePdfHeader(
+        doc,
+        'LAPORAN ANALITIK & KEUNTUNGAN TOKO',
+        `Periode: ${datePeriodStr} | Metode: ${PAYMENT_LABELS[payMethod] ?? payMethod}`,
+        templateConfig
+      )
 
       // Summary table
       autoTable(doc, {
-        startY: 34,
+        startY: startY,
         head: [['Indikator','Nilai']],
         body: [
           ['Omzet (Penjualan)', formatRp(data.summary.omzet)],
@@ -346,10 +403,17 @@ export function LaporanAnalitikClient() {
 
       // Products table
       const y = (doc as any).lastAutoTable.finalY + 10
-      doc.setFont('helvetica','bold'); doc.setFontSize(12)
-      doc.text('Keuntungan per Produk', 14, y)
+      if (y > 230) {
+        doc.addPage()
+        startY = 20
+      } else {
+        startY = y
+      }
+
+      doc.setFont('helvetica','bold'); doc.setFontSize(11)
+      doc.text('Keuntungan per Produk', 14, startY)
       autoTable(doc, {
-        startY: y + 4,
+        startY: startY + 4,
         head: [['#','Produk','Qty','Omzet','Modal','Laba Kotor','Margin']],
         body: data.topProducts.map((p,i) => [
           i+1, p.product_name, p.total_qty,
@@ -359,6 +423,10 @@ export function LaporanAnalitikClient() {
         columnStyles: { 3:{halign:'right'}, 4:{halign:'right'}, 5:{halign:'right'}, 6:{halign:'center'} },
         margin: { left: 14 },
       })
+
+      const finalY = (doc as any).lastAutoTable.finalY + 12
+      generatePdfFooter(doc, finalY, templateConfig)
+
       doc.save(`Analitik_${startDate}_${endDate}.pdf`)
     } catch { toast.error('Gagal export PDF') }
   }

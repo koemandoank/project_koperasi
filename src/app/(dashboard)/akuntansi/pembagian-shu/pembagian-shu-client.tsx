@@ -8,14 +8,20 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getSHUProjection, distributeSHUMassal, ShuProjectionReport } from "@/lib/actions/shu-calculation"
 import { toast } from "sonner"
-import { Award, Users, DollarSign, ArrowRight, ShieldCheck, HelpCircle, Coins, CheckCircle, Percent } from "lucide-react"
+import { Award, Users, DollarSign, ArrowRight, ShieldCheck, HelpCircle, Coins, CheckCircle, Percent, Download, FileText } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import ExcelJS from "exceljs"
+import { saveAs } from "file-saver"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 
 interface Props {
   initialReport: ShuProjectionReport | null;
   initialYear: number;
+  templateConfig?: any;
 }
 
-export function PembagianShuClient({ initialReport, initialYear }: Props) {
+export function PembagianShuClient({ initialReport, initialYear, templateConfig }: Props) {
   const [year, setYear] = useState(initialYear.toString())
   const [report, setReport] = useState<ShuProjectionReport | null>(initialReport)
   const [loading, setLoading] = useState(false)
@@ -66,8 +72,291 @@ export function PembagianShuClient({ initialReport, initialYear }: Props) {
     } catch (error) {
       console.error(error)
       toast.error("Terjadi kesalahan sistem saat mendistribusikan SHU.")
-    } finally {
-      setActionLoading(false)
+    }
+  }
+
+  /**
+   * Mengekspor Laporan Alokasi dan Pembagian SHU RAT ke format PDF premium.
+   * Lengkap dengan Kop Surat dinamis dan footer TTD ganda.
+   */
+  const handleExportPDF = async () => {
+    if (!report) {
+      toast.error("Data proyeksi SHU tidak tersedia.")
+      return
+    }
+
+    try {
+      const doc = new jsPDF()
+
+      // Header Kop Surat
+      const startY = generatePdfHeader(doc, "LAPORAN ALOKASI DAN DISTRIBUSI SHU RAT", `Tahun Buku ${report.year}`, templateConfig)
+
+      // 1. Ringkasan Alokasi Makro Koperasi
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "bold")
+      doc.text("A. RINGKASAN ALOKASI MAKRO KOPERASI", 14, startY)
+
+      const macroRows = [
+        ["Total SHU RAT Bersih", formatCurrency(report.totalNetIncome), "100.00%"],
+        ["Cadangan Koperasi (Wajib)", formatCurrency(report.cadanganTotal), "20.00%"],
+        ["Honorarium Pengurus", formatCurrency(report.pengurusTotal), "5.00%"],
+        ["Kesejahteraan Pegawai", formatCurrency(report.pegawaiTotal), "5.00%"],
+        ["Dana Pendidikan", formatCurrency(report.pendidikanTotal), "5.00%"],
+        ["Dana Pembangunan & Sosial", formatCurrency(report.sosialTotal), "10.00%"],
+        ["Total Jasa Anggota (Modal & Usaha)", formatCurrency(report.jasaAnggotaTotal), "55.00%"],
+        ["  - Porsi Jasa Modal Anggota (40%)", formatCurrency(report.jasaModalTotal), "22.00%"],
+        ["  - Porsi Jasa Usaha Anggota (60%)", formatCurrency(report.jasaUsahaTotal), "33.00%"]
+      ]
+
+      autoTable(doc, {
+        startY: startY + 4,
+        head: [['Pos Alokasi SHU', 'Nilai Nominal', 'Persentase']],
+        body: macroRows,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { cellWidth: 100 },
+          1: { cellWidth: 45, halign: 'right' },
+          2: { cellWidth: 35, halign: 'center' }
+        },
+        styles: { fontSize: 8.5 }
+      })
+
+      const finalY1 = (doc as any).lastAutoTable.finalY + 8
+
+      // 2. Daftar Penerimaan SHU Per Anggota
+      doc.setFont("helvetica", "bold")
+      doc.text("B. BUKU PEMBANTU SHU RAT PER ANGGOTA", 14, finalY1)
+
+      const memberRows = report.members.map((m, idx) => [
+        (idx + 1).toString(),
+        `${m.memberName}\n(${m.memberNo})`,
+        `${formatCurrency(m.savingsBalance)}\n(Bobot: ${formatPercent(m.savingsWeight)})`,
+        formatCurrency(m.jasaModal),
+        `${formatCurrency(m.belanjaPaid + m.bungaPaid)}\n(Bobot: ${formatPercent(m.activityWeight)})`,
+        formatCurrency(m.jasaUsaha),
+        formatCurrency(m.totalShu)
+      ])
+
+      // Tambahkan baris total
+      const totalSavings = report.members.reduce((acc, m) => acc + m.savingsBalance, 0)
+      const totalJasaModal = report.members.reduce((acc, m) => acc + m.jasaModal, 0)
+      const totalPartisipasi = report.members.reduce((acc, m) => acc + m.belanjaPaid + m.bungaPaid, 0)
+      const totalJasaUsaha = report.members.reduce((acc, m) => acc + m.jasaUsaha, 0)
+      const totalShuMembers = report.members.reduce((acc, m) => acc + m.totalShu, 0)
+
+      memberRows.push([
+        "",
+        "TOTAL ANGGOTA",
+        formatCurrency(totalSavings),
+        formatCurrency(totalJasaModal),
+        formatCurrency(totalPartisipasi),
+        formatCurrency(totalJasaUsaha),
+        formatCurrency(totalShuMembers)
+      ])
+
+      autoTable(doc, {
+        startY: finalY1 + 4,
+        head: [['No', 'Anggota', 'Simpanan (Modal)', 'Jasa Modal', 'Partisipasi Usaha', 'Jasa Usaha', 'Total SHU RAT']],
+        body: memberRows,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 35, halign: 'right' },
+          3: { cellWidth: 26, halign: 'right' },
+          4: { cellWidth: 35, halign: 'right' },
+          5: { cellWidth: 26, halign: 'right' },
+          6: { cellWidth: 27, halign: 'right', fontStyle: 'bold' }
+        },
+        styles: { fontSize: 8 },
+        didParseCell: (data) => {
+          if (data.row.index === memberRows.length - 1) {
+            data.cell.styles.fontStyle = 'bold'
+            data.cell.styles.fillColor = [241, 245, 249]
+          }
+        }
+      })
+
+      const finalY2 = (doc as any).lastAutoTable.finalY
+      generatePdfFooter(doc, finalY2, templateConfig)
+
+      doc.save(`Laporan_Pembagian_SHU_${report.year}.pdf`)
+      toast.success("Laporan Pembagian SHU PDF berhasil diexport.")
+    } catch (error) {
+      console.error("Gagal export PDF:", error)
+      toast.error("Terjadi kesalahan saat memproses PDF.")
+    }
+  }
+
+  /**
+   * Mengekspor Laporan Alokasi dan Pembagian SHU RAT ke format Excel premium (XLSX).
+   * Dilengkapi Kop Surat Koperasi dan footer tanda tangan ganda dinamis.
+   */
+  const handleExportExcel = async () => {
+    if (!report) {
+      toast.error("Data proyeksi SHU tidak tersedia.")
+      return
+    }
+
+    try {
+      const workbook = new ExcelJS.Workbook()
+      const ws = workbook.addWorksheet("Pembagian SHU RAT")
+      ws.views = [{ showGridLines: true }]
+
+      // Lebar kolom
+      ws.columns = [
+        { key: 'A', width: 6 },
+        { key: 'B', width: 22 },
+        { key: 'C', width: 25 },
+        { key: 'D', width: 20 },
+        { key: 'E', width: 12 },
+        { key: 'F', width: 18 },
+        { key: 'G', width: 20 },
+        { key: 'H', width: 12 },
+        { key: 'I', width: 18 },
+        { key: 'J', width: 22 }
+      ]
+
+      const startRow = generateExcelHeader(ws, "LAPORAN ALOKASI DAN DISTRIBUSI SHU RAT", `Tahun Buku ${report.year}`, 10, templateConfig)
+      let currentRow = startRow
+
+      // 1. TULIS BLOK MAKRO SHU KOPERASI
+      ws.mergeCells(`A${currentRow}:J${currentRow}`)
+      ws.getCell(`A${currentRow}`).value = "A. RINGKASAN ALOKASI MAKRO KOPERASI"
+      ws.getCell(`A${currentRow}`).font = { bold: true, size: 12 }
+      currentRow += 2
+
+      const addSummaryRow = (label: string, value: number, pct: string, isBold: boolean = false) => {
+        ws.getCell(`A${currentRow}`).value = label
+        ws.getCell(`D${currentRow}`).value = value
+        ws.getCell(`E${currentRow}`).value = pct
+        
+        ws.getCell(`A${currentRow}`).font = { bold: isBold }
+        ws.getCell(`D${currentRow}`).font = { bold: isBold }
+        ws.getCell(`E${currentRow}`).font = { bold: isBold }
+
+        ws.getCell(`D${currentRow}`).numFmt = '#,##0'
+        ws.getCell(`D${currentRow}`).alignment = { horizontal: 'right' }
+        ws.getCell(`E${currentRow}`).alignment = { horizontal: 'center' }
+        
+        ws.getRow(currentRow).height = 20
+        currentRow++
+      }
+
+      addSummaryRow("Total SHU RAT Bersih", report.totalNetIncome, "100.00%", true)
+      addSummaryRow("Cadangan Koperasi (Wajib 20%)", report.cadanganTotal, "20.00%")
+      addSummaryRow("Honorarium Pengurus (5%)", report.pengurusTotal, "5.00%")
+      addSummaryRow("Kesejahteraan Pegawai (5%)", report.pegawaiTotal, "5.00%")
+      addSummaryRow("Dana Pendidikan (5%)", report.pendidikanTotal, "5.00%")
+      addSummaryRow("Dana Pembangunan & Sosial (10%)", report.sosialTotal, "10.00%")
+      addSummaryRow("Total Jasa Anggota (Modal & Usaha 55%)", report.jasaAnggotaTotal, "55.00%", true)
+      addSummaryRow("  - Porsi Jasa Modal Anggota (40%)", report.jasaModalTotal, "22.00%")
+      addSummaryRow("  - Porsi Jasa Usaha Anggota (60%)", report.jasaUsahaTotal, "33.00%")
+
+      currentRow += 2
+
+      // 2. DAFTAR PENERIMAAN ANGGOTA
+      ws.mergeCells(`A${currentRow}:J${currentRow}`)
+      ws.getCell(`A${currentRow}`).value = "B. BUKU PEMBANTU SHU RAT PER ANGGOTA"
+      ws.getCell(`A${currentRow}`).font = { bold: true, size: 12 }
+      currentRow += 2
+
+      // Headers table
+      const headerRow = ws.getRow(currentRow)
+      headerRow.values = [
+        'No', 'No. Anggota', 'Nama Anggota', 'Simpanan (Modal)', 'Bobot Modal',
+        'Jasa Modal (IDR)', 'Partisipasi Usaha', 'Bobot Usaha', 'Jasa Usaha (IDR)', 'Total SHU RAT'
+      ]
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+      })
+      headerRow.height = 28
+      currentRow++
+
+      // Rows members
+      report.members.forEach((m, idx) => {
+        const row = ws.getRow(currentRow)
+        row.values = [
+          idx + 1,
+          m.memberNo,
+          m.memberName,
+          m.savingsBalance,
+          m.savingsWeight,
+          m.jasaModal,
+          m.belanjaPaid + m.bungaPaid,
+          m.activityWeight,
+          m.jasaUsaha,
+          m.totalShu
+        ]
+
+        row.getCell(1).alignment = { horizontal: 'center' }
+        row.getCell(2).alignment = { horizontal: 'center' }
+        row.getCell(4).numFmt = '#,##0'
+        row.getCell(5).numFmt = '0.00%'
+        row.getCell(6).numFmt = '#,##0'
+        row.getCell(7).numFmt = '#,##0'
+        row.getCell(8).numFmt = '0.00%'
+        row.getCell(9).numFmt = '#,##0'
+        row.getCell(10).numFmt = '#,##0'
+        row.getCell(10).font = { bold: true }
+
+        row.eachCell((cell) => {
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+        })
+        row.height = 20
+        currentRow++
+      })
+
+      // Add Total Row
+      const totalSavings = report.members.reduce((acc, m) => acc + m.savingsBalance, 0)
+      const totalJasaModal = report.members.reduce((acc, m) => acc + m.jasaModal, 0)
+      const totalPartisipasi = report.members.reduce((acc, m) => acc + m.belanjaPaid + m.bungaPaid, 0)
+      const totalJasaUsaha = report.members.reduce((acc, m) => acc + m.jasaUsaha, 0)
+      const totalShuMembers = report.members.reduce((acc, m) => acc + m.totalShu, 0)
+
+      const totalRow = ws.getRow(currentRow)
+      totalRow.values = [
+        "",
+        "",
+        "TOTAL ANGGOTA",
+        totalSavings,
+        "",
+        totalJasaModal,
+        totalPartisipasi,
+        "",
+        totalJasaUsaha,
+        totalShuMembers
+      ]
+      totalRow.font = { bold: true }
+      totalRow.getCell(4).numFmt = '#,##0'
+      totalRow.getCell(6).numFmt = '#,##0'
+      totalRow.getCell(7).numFmt = '#,##0'
+      totalRow.getCell(9).numFmt = '#,##0'
+      totalRow.getCell(10).numFmt = '#,##0'
+
+      totalRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+      })
+      totalRow.height = 22
+      currentRow++
+
+      // Footer Signatures
+      generateExcelFooter(ws, currentRow, 10, templateConfig)
+
+      // Save
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      saveAs(blob, `Laporan_Pembagian_SHU_${report.year}.xlsx`)
+      toast.success("Laporan Pembagian SHU Excel berhasil diexport.")
+    } catch (error) {
+      console.error("Gagal export Excel:", error)
+      toast.error("Terjadi kesalahan saat memproses Excel.")
     }
   }
 
@@ -96,22 +385,32 @@ export function PembagianShuClient({ initialReport, initialYear }: Props) {
           </Select>
         </div>
 
-        {report && report.totalNetIncome > 0 && (
-          <div className="flex items-center gap-2">
-            {isAlreadyDistributed ? (
-              <Badge className="bg-emerald-500 text-white font-bold h-10 px-4 rounded-xl flex items-center gap-2 border-0">
-                <CheckCircle className="h-4 w-4" />
-                Sudah Didistribusikan & Dikunci
-              </Badge>
-            ) : (
-              <Button 
-                onClick={handleDistribute} 
-                disabled={actionLoading} 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all duration-200"
-              >
-                <Coins className="h-4 w-4" />
-                {actionLoading ? "Memproses..." : "Eksekusi Distribusi SHU Massal"}
-              </Button>
+        {report && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <Button onClick={handleExportExcel} disabled={loading || actionLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-4 text-xs font-semibold flex items-center gap-2 shadow-sm">
+              <Download className="h-4 w-4" /> Export Excel
+            </Button>
+            <Button onClick={handleExportPDF} disabled={loading || actionLoading} variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl h-10 px-4 text-xs font-semibold flex items-center gap-2 shadow-sm">
+              <FileText className="h-4 w-4" /> Export PDF
+            </Button>
+            {report.totalNetIncome > 0 && (
+              <>
+                {isAlreadyDistributed ? (
+                  <Badge className="bg-emerald-500 text-white font-bold h-10 px-4 rounded-xl flex items-center gap-2 border-0">
+                    <CheckCircle className="h-4 w-4" />
+                    Sudah Didistribusikan & Dikunci
+                  </Badge>
+                ) : (
+                  <Button 
+                    onClick={handleDistribute} 
+                    disabled={actionLoading} 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all duration-200"
+                  >
+                    <Coins className="h-4 w-4" />
+                    {actionLoading ? "Memproses..." : "Eksekusi Distribusi SHU Massal"}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         )}

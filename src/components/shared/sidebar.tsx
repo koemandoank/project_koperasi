@@ -9,7 +9,7 @@ import {
   BookOpen, PieChart, ChevronRight, ShoppingBag, Inbox,
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
   Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
-  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck
 } from "lucide-react"
 
 
@@ -114,6 +114,16 @@ const ALL_GROUPS: NavGroup[] = [
     ],
   },
 
+  // ── PENGAWAS KOPERASI ─────────────────────
+  {
+    groupLabel: "Pengawas Koperasi",
+    icon: ShieldCheck,
+    roles: ["superadmin", "admin", "pengurus"],
+    items: [
+      { href: "/pengawas", label: "Dashboard Pengawas", icon: ShieldCheck },
+    ],
+  },
+
   // ── LOG AKTIVITAS ─────────────────────────
   {
     groupLabel: "Log & Audit",
@@ -133,6 +143,7 @@ const ALL_GROUPS: NavGroup[] = [
     items: [
       { href: "/pengaturan/promosi", label: "Promosi", icon: Megaphone },
       { href: "/pengaturan/dashboard-anggota", label: "Dashboard Anggota", icon: LayoutDashboard },
+      { href: "/pengaturan/kop-surat", label: "Kop & TTD Laporan", icon: Printer },
       { href: "/pengaturan", label: "Pengaturan Umum", icon: Settings },
     ],
   },
@@ -179,10 +190,13 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/laporan/analitik":            ["superadmin", "admin", "pengurus", "kasir"],
   "/akuntansi/buku-besar":        ["superadmin", "admin"],
   "/akuntansi/tutup-buku":        ["superadmin", "admin"],
+  // Pengawas
+  "/pengawas":                    ["superadmin", "admin", "pengurus"],
   // Pengaturan
   "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
   "/pengaturan/promosi":          ["superadmin", "admin"],
   "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
+  "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
   "/pengaturan":                  ["superadmin", "admin"],
 }
 

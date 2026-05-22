@@ -1,12 +1,15 @@
 import { getSHUProjection } from "@/lib/actions/shu-calculation"
+import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { PartisipasiClient } from "./partisipasi-client"
 
 export default async function PartisipasiAnggotaPage() {
   const currentYear = new Date().getFullYear()
 
   let initialReport = null
+  let templateConfig = null
   try {
     initialReport = await getSHUProjection(currentYear)
+    templateConfig = await getReportTemplateConfig()
   } catch (error) {
     console.error("Error loading member participation page:", error)
   }
@@ -23,6 +26,7 @@ export default async function PartisipasiAnggotaPage() {
       <PartisipasiClient 
         initialReport={initialReport} 
         initialYear={currentYear} 
+        templateConfig={templateConfig}
       />
     </div>
   )

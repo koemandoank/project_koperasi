@@ -12,7 +12,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import { generatePdfHeader, generateExcelHeader } from "@/lib/report-helpers"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 import type { MemberDeductionRow } from "@/lib/actions/reports"
 
 // ─────────────────────────────────────────────
@@ -124,11 +124,13 @@ export function ReportClient({
   from,
   to,
   q,
+  templateConfig,
 }: {
   data: MemberDeductionRow[]
   from: string
   to: string
   q: string
+  templateConfig?: any
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(q)
@@ -200,7 +202,7 @@ export function ReportClient({
     ]
     ws.columns = COLS
 
-    const startRow = generateExcelHeader(ws, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, COLS.length)
+    const startRow = generateExcelHeader(ws, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, COLS.length, templateConfig)
 
     const hdrRow = ws.getRow(startRow)
     hdrRow.values = COLS.map((c) => c.header)
@@ -231,6 +233,8 @@ export function ReportClient({
       }
     })
 
+    generateExcelFooter(ws, cur + 2, COLS.length, templateConfig)
+
     const buf = await wb.xlsx.writeBuffer()
     saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `Potongan_Gaji_${dateFrom || "all"}_${dateTo || "all"}.xlsx`)
   }
@@ -238,7 +242,7 @@ export function ReportClient({
   // ── Export PDF ────────────────────────────────────────────────────────────
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape" })
-    const startY = generatePdfHeader(doc, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel)
+    const startY = generatePdfHeader(doc, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, templateConfig)
 
     const tableData = data.map((r, i) => [
       i + 1, r.nik, r.name, r.department,
@@ -268,6 +272,10 @@ export function ReportClient({
         if (d.row.index === tableData.length - 1 && d.section === "body") doc.setFont("helvetica", "bold")
       },
     })
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    generatePdfFooter(doc, finalY, templateConfig)
+
     doc.save(`Potongan_Gaji_${dateFrom || "all"}.pdf`)
   }
 

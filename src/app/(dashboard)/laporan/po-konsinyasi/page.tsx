@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { getSuppliersForFilter, getProductsForFilter } from '@/lib/actions/laporan-po-konsinyasi'
+import { getReportTemplateConfig } from '@/lib/actions/settings'
 import LaporanPOKonsinyasiClient from './laporan-po-konsinyasi-client'
 
 export const metadata = { title: 'Laporan PO & Konsinyasi | Koperasi' }
@@ -15,9 +16,10 @@ export default async function LaporanPOKonsinyasiPage() {
     redirect('/dashboard')
   }
 
-  const [suppliers, products] = await Promise.all([
+  const [suppliers, products, templateConfig] = await Promise.all([
     getSuppliersForFilter(),
     getProductsForFilter(),
+    getReportTemplateConfig()
   ])
 
   return (
@@ -29,7 +31,8 @@ export default async function LaporanPOKonsinyasiPage() {
         </p>
       </div>
 
-      <LaporanPOKonsinyasiClient suppliers={suppliers} products={products} />
+      <LaporanPOKonsinyasiClient suppliers={suppliers} products={products} templateConfig={templateConfig} />
     </div>
   )
 }
+

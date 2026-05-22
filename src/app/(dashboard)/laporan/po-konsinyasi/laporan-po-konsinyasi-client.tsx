@@ -17,6 +17,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Filter, FileText, Package, TrendingUp, ChevronDown, ChevronRight, Download } from 'lucide-react'
 import { toast } from 'sonner'
+import { ReportTemplateConfig } from '@/lib/actions/settings'
+import {
+  generateExcelHeader,
+  generateExcelFooter,
+  generatePdfHeader,
+  generatePdfFooter
+} from '@/lib/report-helpers'
 
 type PORow = Awaited<ReturnType<typeof getPOReport>>[number]
 type ConsignmentRow = Awaited<ReturnType<typeof getConsignmentReport>>[number]
@@ -46,9 +53,10 @@ function getPresetDates(days: number) {
 interface Props {
   suppliers: { id: number; supplier_name: string }[]
   products:  { id: number; name: string; sku: string }[]
+  templateConfig?: ReportTemplateConfig
 }
 
-export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props) {
+export default function LaporanPOKonsinyasiClient({ suppliers, products, templateConfig }: Props) {
   const [isPending, startTransition] = useTransition()
 
   // Filter state
@@ -112,28 +120,11 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
     try {
       const ExcelJS = (await import('exceljs')).default
       const workbook = new ExcelJS.Workbook()
+      const datePeriodStr = `Dicetak: ${new Date().toLocaleString('id-ID')}`
       
       if (reportType === 'all' || reportType === 'po') {
         const wsPO = workbook.addWorksheet('Purchase Order')
         
-        // TITLE
-        wsPO.addRow(['Laporan Pembelian (PO) & Konsinyasi'])
-        wsPO.addRow([`Periode Cetak: ${new Date().toLocaleString('id-ID')}`])
-        wsPO.addRow(['Data Purchase Order'])
-        wsPO.addRow([])
-        wsPO.getCell('A1').font = { size: 14, bold: true }
-        wsPO.getCell('A2').font = { size: 10, italic: true }
-        wsPO.getCell('A3').font = { size: 12, bold: true }
-
-        // Header Styling
-        const headerRow = wsPO.addRow(['No. PO', 'Tgl PO', 'Supplier', 'Total Amount', 'Status', '', ''])
-        wsPO.mergeCells(headerRow.number, 5, headerRow.number, 7)
-        for (let i = 1; i <= 7; i++) {
-          const cell = headerRow.getCell(i)
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }
-          cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
-          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
-        }
         wsPO.getColumn(1).width = 20
         wsPO.getColumn(2).width = 15
         wsPO.getColumn(3).width = 30
@@ -142,15 +133,40 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
         wsPO.getColumn(6).width = 18
         wsPO.getColumn(7).width = 20
 
+        const startRow = generateExcelHeader(
+          wsPO,
+          'LAPORAN PURCHASE ORDER (PO)',
+          datePeriodStr,
+          7,
+          templateConfig
+        )
+
+        // Header Styling
+        const headerRow = wsPO.getRow(startRow)
+        headerRow.values = ['No. PO', 'Tgl PO', 'Supplier', 'Total Amount', 'Status', '', '']
+        wsPO.mergeCells(headerRow.number, 5, headerRow.number, 7)
+        for (let i = 1; i <= 7; i++) {
+          const cell = headerRow.getCell(i)
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }
+          cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+        }
+        headerRow.height = 24
+
+        let currentRow = startRow + 1
+
         poData.forEach(po => {
-          const row = wsPO.addRow([po.po_no, po.po_date, po.supplier_name, po.total_amount, STATUS_PO[po.status] || po.status, '', ''])
+          const row = wsPO.getRow(currentRow)
+          row.values = [po.po_no, po.po_date, po.supplier_name, po.total_amount, STATUS_PO[po.status] || po.status, '', '']
           wsPO.mergeCells(row.number, 5, row.number, 7)
           row.getCell(4).numFmt = '"Rp"#,##0.00'
           for (let i = 1; i <= 7; i++) {
             row.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
           }
+          currentRow++
           
-          const itemHeader = wsPO.addRow(['', 'SKU', 'Produk', 'Qty Pesan', 'Qty Terima', 'Harga', 'Total'])
+          const itemHeader = wsPO.getRow(currentRow)
+          itemHeader.values = ['', 'SKU', 'Produk', 'Qty Pesan', 'Qty Terima', 'Harga', 'Total']
           for (let i = 2; i <= 7; i++) {
             const cell = itemHeader.getCell(i)
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
@@ -158,38 +174,29 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
             cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
             if (i >= 4) cell.alignment = { horizontal: 'right' }
           }
+          currentRow++
 
           po.items.forEach(item => {
-            const iRow = wsPO.addRow(['', item.product_sku, item.product_name, item.qty_ordered, item.qty_received, item.unit_price, item.total_price])
+            const iRow = wsPO.getRow(currentRow)
+            iRow.values = ['', item.product_sku, item.product_name, item.qty_ordered, item.qty_received, item.unit_price, item.total_price]
             iRow.getCell(6).numFmt = '"Rp"#,##0.00'
             iRow.getCell(7).numFmt = '"Rp"#,##0.00'
             for (let i = 2; i <= 7; i++) {
               iRow.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
             }
+            currentRow++
           })
-          wsPO.addRow(['']) // blank row separator
+          
+          wsPO.getRow(currentRow).values = [] // blank row separator
+          currentRow++
         })
+
+        generateExcelFooter(wsPO, currentRow, 7, templateConfig)
       }
 
       if (reportType === 'all' || reportType === 'konsinyasi') {
         const wsCon = workbook.addWorksheet('Konsinyasi')
         
-        // TITLE
-        wsCon.addRow(['Laporan Pembelian (PO) & Konsinyasi'])
-        wsCon.addRow([`Periode Cetak: ${new Date().toLocaleString('id-ID')}`])
-        wsCon.addRow(['Data Konsinyasi (Titip Jual)'])
-        wsCon.addRow([])
-        wsCon.getCell('A1').font = { size: 14, bold: true }
-        wsCon.getCell('A2').font = { size: 10, italic: true }
-        wsCon.getCell('A3').font = { size: 12, bold: true }
-
-        const headerRow = wsCon.addRow(['Tgl Masuk', 'SKU', 'Produk', 'Supplier', 'Diterima', 'Terjual', 'Sisa', 'HPP/Unit', 'Tagihan', 'Margin', 'Status', 'Retur'])
-        headerRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }
-          cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
-          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
-        })
-
         wsCon.getColumn(1).width = 15
         wsCon.getColumn(2).width = 15
         wsCon.getColumn(3).width = 30
@@ -203,19 +210,42 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
         wsCon.getColumn(11).width = 15
         wsCon.getColumn(12).width = 25
 
+        const startRow = generateExcelHeader(
+          wsCon,
+          'LAPORAN KONSINYASI (TITIP JUAL)',
+          datePeriodStr,
+          12,
+          templateConfig
+        )
+
+        const headerRow = wsCon.getRow(startRow)
+        headerRow.values = ['Tgl Masuk', 'SKU', 'Produk', 'Supplier', 'Diterima', 'Terjual', 'Sisa', 'HPP/Unit', 'Tagihan', 'Margin', 'Status', 'Retur']
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } }
+          cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+        })
+        headerRow.height = 24
+
+        let currentRow = startRow + 1
+
         conData.forEach(c => {
-          const row = wsCon.addRow([
+          const row = wsCon.getRow(currentRow)
+          row.values = [
             c.consignment_date, c.product_sku, c.product_name, c.supplier_name,
             c.qty_received, c.qty_sold, c.qty_remaining, c.unit_price, c.total_payable, c.margin,
             STATUS_CONSIGNMENT[c.status] || c.status, c.return_reason || '-'
-          ])
+          ]
           row.getCell(8).numFmt = '"Rp"#,##0.00'
           row.getCell(9).numFmt = '"Rp"#,##0.00'
           row.getCell(10).numFmt = '"Rp"#,##0.00'
           row.eachCell(cell => {
             cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
           })
+          currentRow++
         })
+
+        generateExcelFooter(wsCon, currentRow, 12, templateConfig)
       }
 
       const buf = await workbook.xlsx.writeBuffer()
@@ -236,30 +266,32 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
       const { jsPDF } = await import('jspdf')
       const autoTable = (await import('jspdf-autotable')).default
       const doc = new jsPDF()
+      const datePeriodStr = `Dicetak: ${new Date().toLocaleString('id-ID')}`
 
-      doc.setFontSize(14)
-      doc.text('Laporan Pembelian (PO) & Konsinyasi', 14, 15)
-      doc.setFontSize(10)
-      doc.text(`Periode Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 22)
-
-      let startY = 30
+      let startY = generatePdfHeader(doc, 'LAPORAN PURCHASE ORDER & KONSINYASI', datePeriodStr, templateConfig)
 
       if (reportType === 'all' || reportType === 'po') {
+        doc.setFontSize(11)
+        doc.setFont("helvetica", "bold")
         doc.text('Data Purchase Order', 14, startY)
         const poRows: any[] = []
         poData.forEach(po => {
           poRows.push([po.po_no, po.po_date, po.supplier_name, formatCurrency(po.total_amount), STATUS_PO[po.status] || po.status])
         })
         autoTable(doc, {
-          startY: startY + 5,
+          startY: startY + 4,
           head: [['No. PO', 'Tgl PO', 'Supplier', 'Total', 'Status']],
           body: poRows,
+          theme: 'striped',
+          headStyles: { fillColor: [31, 78, 120] }
         })
-        startY = (doc as any).lastAutoTable.finalY + 15
+        startY = (doc as any).lastAutoTable.finalY + 12
       }
 
       if (reportType === 'all' || reportType === 'konsinyasi') {
-        if (startY > 250) { doc.addPage(); startY = 20 }
+        if (startY > 230) { doc.addPage(); startY = 20 }
+        doc.setFontSize(11)
+        doc.setFont("helvetica", "bold")
         doc.text('Data Konsinyasi (Titip Jual)', 14, startY)
         const conRows: any[] = []
         conData.forEach(c => {
@@ -270,12 +302,17 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products }: Props
           ])
         })
         autoTable(doc, {
-          startY: startY + 5,
+          startY: startY + 4,
           head: [['Tgl', 'Produk', 'Supplier', 'Terima', 'Laku', 'Sisa', 'Tagihan', 'Status']],
           body: conRows,
-          styles: { fontSize: 8 }
+          styles: { fontSize: 8 },
+          theme: 'striped',
+          headStyles: { fillColor: [31, 78, 120] }
         })
+        startY = (doc as any).lastAutoTable.finalY + 12
       }
+
+      generatePdfFooter(doc, startY, templateConfig)
 
       doc.save(`Laporan_PO_Konsinyasi_${new Date().toISOString().split('T')[0]}.pdf`)
     } catch (error) {

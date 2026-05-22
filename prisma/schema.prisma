@@ -1730,3 +1730,18 @@ model budgets {
 
   @@map("budgets")
 }
+
+model Promotion {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  image_url   String    @db.VarChar(255)
+  link_url    String?   @db.VarChar(255)
+  is_active   Boolean   @default(true)
+  sort_order  Int       @default(0)
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+
+  @@map("promotions")
+}
+

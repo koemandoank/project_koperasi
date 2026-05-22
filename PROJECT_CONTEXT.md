@@ -65,3 +65,6 @@ Berikut adalah struktur data inti yang digunakan dalam sistem Koperasi Sulfindo:
   - Mengubah `calculateLoanInterestForPeriod` & `calculateLoanPenaltyForPeriod` pada `src/lib/actions/laporan-keuangan.ts` agar menyajikan pendapatan operasional bunga & denda secara riil dari tabel `loan_schedules`.
   - Mengubah `calculateOperationalRevenue` pada `src/lib/actions/accounting.ts` agar menutup buku bulanan dengan basis data operasional bunga & denda yang seimbang.
   - Memperbarui logic pencatatan kasir manual `recordLoanPayment` pada `src/lib/actions/loan-payments.ts` agar sinkron menulis pokok, bunga, dan denda terbayar ke dalam `loan_schedules`.
+- **Fix (Promotions Data Resilience)**:
+  - Mendaftarkan model `Promotion` secara resmi ke dalam `prisma/schema.prisma` agar terintegrasi penuh dalam siklus migrasi database dan tidak terhapus (dropped) saat `npx prisma db push`.
+  - Menambahkan kueri raw SQL DDL `CREATE TABLE IF NOT EXISTS promotions` di awal berkas `prisma/seed.ts` sebagai proteksi ganda (idempotensi) agar database reset dapat langsung merekonstruksi tabel promosi secara otomatis sebelum pengisian data.

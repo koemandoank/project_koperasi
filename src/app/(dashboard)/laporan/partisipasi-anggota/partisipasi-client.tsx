@@ -9,14 +9,64 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getSHUProjection, ShuProjectionReport, MemberShuProjection } from "@/lib/actions/shu-calculation"
 import { toast } from "sonner"
-import { Search, Eye, Download, Users, Briefcase, Calculator, Layers, FileSpreadsheet } from "lucide-react"
+import { Search, Eye, Download, Users, Briefcase, Calculator, Layers, FileSpreadsheet, FileText } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import ExcelJS from "exceljs"
+import { saveAs } from "file-saver"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 
 interface Props {
   initialReport: ShuProjectionReport | null;
   initialYear: number;
+  templateConfig?: any;
 }
 
-export function PartisipasiClient({ initialReport, initialYear }: Props) {
+interface Totals {
+  savings: number;
+  belanja: number;
+  bunga: number;
+  shu: number;
+}
+
+/**
+ * Menghitung total simpanan, belanja, bunga, dan SHU dari list anggota.
+ * 
+ * @param {MemberShuProjection[]} members - Daftar anggota terproyeksi
+ * @returns {Totals} Objek total akumulasi
+ */
+function calculateTotals(members: MemberShuProjection[]): Totals {
+  return members.reduce(
+    (acc, m) => {
+      acc.savings += m.savingsBalance;
+      acc.belanja += m.belanjaPaid;
+      acc.bunga += m.bungaPaid;
+      acc.shu += m.totalShu;
+      return acc;
+    },
+    { savings: 0, belanja: 0, bunga: 0, shu: 0 }
+  );
+}
+
+/**
+ * Memetakan daftar anggota menjadi baris-baris data untuk PDF.
+ * 
+ * @param {MemberShuProjection[]} members - Daftar anggota
+ * @returns {string[][]} Array baris data untuk PDF
+ */
+function getPDFRows(members: MemberShuProjection[]): string[][] {
+  return members.map((m, idx) => [
+    (idx + 1).toString(),
+    m.memberNo,
+    m.memberName,
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(m.savingsBalance),
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(m.belanjaPaid),
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(m.bungaPaid),
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(m.totalShu)
+  ]);
+}
+
+export function PartisipasiClient({ initialReport, initialYear, templateConfig }: Props) {
   const [year, setYear] = useState(initialYear.toString())
   const [report, setReport] = useState<ShuProjectionReport | null>(initialReport)
   const [loading, setLoading] = useState(false)
@@ -52,33 +102,168 @@ export function PartisipasiClient({ initialReport, initialYear }: Props) {
     setIsModalOpen(true)
   }
 
-  const handleExportCSV = () => {
-    if (!report) return
+  /**
+   * Mengekspor data partisipasi anggota ke format PDF premium.
+   * 
+   * @returns {Promise<void>}
+   * @throws {Error} Jika proses pembuatan PDF gagal
+   */
+  const handleExportPDF = async (): Promise<void> => {
+    if (!report) {
+      toast.error("Data partisipasi tidak tersedia.")
+      return
+    }
 
-    // Bangun header dan baris CSV
-    const headers = ["No Anggota", "Nama Anggota", "Simpanan Terhitung (IDR)", "Partisipasi Belanja (IDR)", "Partisipasi Bunga (IDR)", "Jasa Modal (IDR)", "Jasa Usaha (IDR)", "Total SHU Diterima (IDR)"]
-    const rows = report.members.map((m) => [
-      m.memberNo,
-      m.memberName,
-      m.savingsBalance,
-      m.belanjaPaid,
-      m.bungaPaid,
-      m.jasaModal,
-      m.jasaUsaha,
-      m.totalShu,
-    ])
+    try {
+      const doc = new jsPDF()
+      const title = "LAPORAN PARTISIPASI DAN DISTRIBUSI SHU RAT ANGGOTA"
+      const subtitle = `Tahun Buku ${year}`
+      const startY = generatePdfHeader(doc, title, subtitle, templateConfig)
 
-    const csvContent = "data:text/csv;charset=utf-8," + 
-      [headers.join(","), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n")
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "bold")
+      doc.text("BUKU PEMBANTU PARTISIPASI SHU RAT ANGGOTA", 14, startY)
 
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", `Laporan_Partisipasi_RAT_${year}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast.success("Laporan berhasil diekspor ke CSV.")
+      const rows = getPDFRows(filteredMembers)
+      const totals = calculateTotals(filteredMembers)
+
+      rows.push([
+        "",
+        "TOTAL",
+        "SELURUH ANGGOTA",
+        formatCurrency(totals.savings),
+        formatCurrency(totals.belanja),
+        formatCurrency(totals.bunga),
+        formatCurrency(totals.shu)
+      ])
+
+      autoTable(doc, {
+        startY: startY + 4,
+        head: [['No', 'No. Anggota', 'Nama Anggota', 'Simpanan Modal', 'Partisipasi Belanja', 'Jasa Bunga', 'Total SHU']],
+        body: rows,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 45 },
+          3: { cellWidth: 28, halign: 'right' },
+          4: { cellWidth: 28, halign: 'right' },
+          5: { cellWidth: 28, halign: 'right' },
+          6: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
+        },
+        styles: { fontSize: 8 },
+        didParseCell: (data) => {
+          if (data.row.index === rows.length - 1) {
+            data.cell.styles.fontStyle = 'bold'
+            data.cell.styles.fillColor = [241, 245, 249]
+          }
+        }
+      })
+
+      const finalY = (doc as any).lastAutoTable.finalY
+      generatePdfFooter(doc, finalY, templateConfig)
+
+      doc.save(`Laporan_Partisipasi_RAT_${year}.pdf`)
+      toast.success("Laporan PDF berhasil diexport.")
+    } catch (error) {
+      console.error("Gagal mengekspor PDF:", error)
+      toast.error("Terjadi kesalahan saat memproses ekspor PDF.")
+    }
+  }
+
+  /**
+   * Mengekspor data partisipasi anggota ke format Excel premium (XLSX).
+   * 
+   * @returns {Promise<void>}
+   * @throws {Error} Jika proses pembuatan Excel gagal
+   */
+  const handleExportExcel = async (): Promise<void> => {
+    if (!report) {
+      toast.error("Data partisipasi tidak tersedia.")
+      return
+    }
+
+    try {
+      const workbook = new ExcelJS.Workbook()
+      const ws = workbook.addWorksheet("Partisipasi RAT Anggota")
+      ws.views = [{ showGridLines: true }]
+
+      ws.columns = [
+        { key: 'A', width: 6 },
+        { key: 'B', width: 15 },
+        { key: 'C', width: 25 },
+        { key: 'D', width: 20 },
+        { key: 'E', width: 20 },
+        { key: 'F', width: 20 },
+        { key: 'G', width: 20 }
+      ]
+
+      const title = "LAPORAN PARTISIPASI DAN DISTRIBUSI SHU RAT ANGGOTA"
+      const subtitle = `Tahun Buku ${year}`
+      const startRow = generateExcelHeader(ws, title, subtitle, 7, templateConfig)
+      let currentRow = startRow
+
+      ws.mergeCells(`A${currentRow}:G${currentRow}`)
+      ws.getCell(`A${currentRow}`).value = "BUKU PEMBANTU PARTISIPASI SHU RAT ANGGOTA"
+      ws.getCell(`A${currentRow}`).font = { bold: true, size: 12 }
+      currentRow += 2
+
+      const headerRow = ws.getRow(currentRow)
+      headerRow.values = ['No', 'No. Anggota', 'Nama Anggota', 'Simpanan Modal', 'Partisipasi Belanja', 'Jasa Bunga', 'Total SHU']
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' }
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+      })
+      headerRow.height = 25
+      currentRow++
+
+      filteredMembers.forEach((m, idx) => {
+        const row = ws.getRow(currentRow)
+        row.values = [idx + 1, m.memberNo, m.memberName, m.savingsBalance, m.belanjaPaid, m.bungaPaid, m.totalShu]
+        row.getCell(1).alignment = { horizontal: 'center' }
+        row.getCell(2).alignment = { horizontal: 'center' }
+        row.getCell(4).numFmt = '#,##0'
+        row.getCell(5).numFmt = '#,##0'
+        row.getCell(6).numFmt = '#,##0'
+        row.getCell(7).numFmt = '#,##0'
+        row.getCell(7).font = { bold: true }
+
+        row.eachCell((cell) => {
+          cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+        })
+        row.height = 20
+        currentRow++
+      })
+
+      const totals = calculateTotals(filteredMembers)
+      const totalRow = ws.getRow(currentRow)
+      totalRow.values = ["", "", "TOTAL SELURUH ANGGOTA", totals.savings, totals.belanja, totals.bunga, totals.shu]
+      totalRow.font = { bold: true }
+      totalRow.getCell(4).numFmt = '#,##0'
+      totalRow.getCell(5).numFmt = '#,##0'
+      totalRow.getCell(6).numFmt = '#,##0'
+      totalRow.getCell(7).numFmt = '#,##0'
+
+      totalRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
+        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+      })
+      totalRow.height = 22
+      currentRow += 2
+
+      generateExcelFooter(ws, currentRow, 7, templateConfig)
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      saveAs(blob, `Laporan_Partisipasi_RAT_${year}.xlsx`)
+      toast.success("Laporan Excel berhasil diexport.")
+    } catch (error) {
+      console.error("Gagal mengekspor Excel:", error)
+      toast.error("Terjadi kesalahan saat memproses ekspor Excel.")
+    }
   }
 
   const filteredMembers = report
@@ -122,9 +307,23 @@ export function PartisipasiClient({ initialReport, initialYear }: Props) {
             />
           </div>
 
-          <Button variant="outline" size="sm" onClick={handleExportCSV} className="rounded-xl h-10 flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Ekspor CSV
+          <Button 
+            onClick={handleExportExcel} 
+            disabled={loading || !report} 
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-4 text-xs font-semibold flex items-center gap-2 shadow-sm"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Ekspor Excel
+          </Button>
+
+          <Button 
+            onClick={handleExportPDF} 
+            disabled={loading || !report} 
+            variant="outline" 
+            className="text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl h-10 px-4 text-xs font-semibold flex items-center gap-2 shadow-sm"
+          >
+            <FileText className="h-4 w-4" />
+            Ekspor PDF
           </Button>
         </div>
       </div>

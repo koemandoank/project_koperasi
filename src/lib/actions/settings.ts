@@ -200,3 +200,104 @@ export async function setMemberDashboardConfig(config: { show_financial_stats: b
     return { success: false, error: "Gagal menyimpan pengaturan dashboard anggota" }
   }
 }
+
+/** Tipe data untuk konfigurasi Kop Surat & TTD Laporan */
+export interface ReportTemplateConfig {
+  logo_base64?: string;
+  company_name: string;
+  company_tagline?: string;
+  company_address?: string;
+  company_phone?: string;
+  footer_location?: string;
+  footer_date_type: "auto" | "custom";
+  footer_custom_date?: string;
+  footer_left_title?: string;
+  footer_left_name?: string;
+  footer_right_title?: string;
+  footer_right_name?: string;
+}
+
+/** Key untuk report template settings di cache */
+const REPORT_TEMPLATE_KEY = "report_template_config";
+
+/**
+ * Menyediakan konfigurasi default Kop Surat dan Footer TTD jika belum di-set di DB.
+ * 
+ * @returns {ReportTemplateConfig} Konfigurasi default standar
+ */
+function getReportTemplateDefaults(): ReportTemplateConfig {
+  return {
+    company_name: "KOEMAN-PROJECT",
+    company_tagline: "Project Koperasi Sulfindo Goes To Digital",
+    company_address: "Jl. Raya Serang Km. 80, Cilegon, Banten",
+    company_phone: "(0254) 123456",
+    footer_location: "Serang",
+    footer_date_type: "auto",
+    footer_left_title: "Bendahara",
+    footer_left_name: "......................",
+    footer_right_title: "Ketua Koperasi",
+    footer_right_name: "......................"
+  };
+}
+
+/**
+ * Mendapatkan konfigurasi Kop Surat dan Tanda Tangan Laporan dari cache database.
+ * Jika tidak ditemukan, akan mengembalikan nilai default standar koperasi.
+ * 
+ * @returns {Promise<ReportTemplateConfig>} Konfigurasi template laporan
+ * @throws {Error} Jika terjadi kesalahan pada operasi database
+ */
+export async function getReportTemplateConfig(): Promise<ReportTemplateConfig> {
+  try {
+    const data = await prisma.cache.findUnique({ where: { key: REPORT_TEMPLATE_KEY } });
+    if (!data) return getReportTemplateDefaults();
+    return JSON.parse(data.value) as ReportTemplateConfig;
+  } catch (error) {
+    console.error("[settings] Gagal mengambil report_template_config:", error);
+    return getReportTemplateDefaults();
+  }
+}
+
+/**
+ * Menyimpan konfigurasi Kop Surat dan Tanda Tangan Laporan ke dalam tabel cache.
+ * Memerlukan otorisasi peran superadmin, admin, atau pengurus.
+ * 
+ * @param {ReportTemplateConfig} config - Objek konfigurasi yang akan disimpan
+ * @returns {Promise<{ success: boolean; error?: string }>} Hasil operasi penyimpanan
+ * @throws {Error} Jika database gagal menulis data atau otorisasi gagal
+ */
+export async function saveReportTemplateConfig(
+  config: ReportTemplateConfig
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifySessionAndRole(["superadmin", "admin", "pengurus"]);
+    
+    if (!config.company_name) {
+      return { success: false, error: "Nama Koperasi tidak boleh kosong" };
+    }
+
+    const value = JSON.stringify(config);
+    await prisma.cache.upsert({
+      where: { key: REPORT_TEMPLATE_KEY },
+      update: { value, expiration: 2147483647 },
+      create: { key: REPORT_TEMPLATE_KEY, value, expiration: 2147483647 }
+    });
+
+    await logAudit({
+      action: "UPDATE",
+      modelType: "cache",
+      modelId: null,
+      oldValues: {},
+      newValues: config as unknown as Record<string, unknown>,
+    });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/pengaturan/kop-surat");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("[settings] Gagal menyimpan report_template_config:", error);
+    return { success: false, error: error?.message || "Gagal menyimpan konfigurasi" };
+  }
+}
+

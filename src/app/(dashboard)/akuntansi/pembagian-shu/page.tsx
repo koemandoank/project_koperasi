@@ -1,12 +1,15 @@
 import { getSHUProjection } from "@/lib/actions/shu-calculation"
+import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { PembagianShuClient } from "./pembagian-shu-client"
 
 export default async function PembagianShuPage() {
   const currentYear = new Date().getFullYear()
 
   let initialReport = null
+  let templateConfig = null
   try {
     initialReport = await getSHUProjection(currentYear)
+    templateConfig = await getReportTemplateConfig()
   } catch (error) {
     console.error("Error loading SHU projection page:", error)
   }
@@ -23,6 +26,7 @@ export default async function PembagianShuPage() {
       <PembagianShuClient 
         initialReport={initialReport} 
         initialYear={currentYear} 
+        templateConfig={templateConfig}
       />
     </div>
   )

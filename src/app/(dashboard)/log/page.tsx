@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { getAuditLogs, getRoleSummary, getTimelineSummary } from "@/lib/actions/audit-log"
 import { LogClient } from "./log-client"
 import { ShieldAlert } from "lucide-react"
+import { getReportTemplateConfig } from "@/lib/actions/settings"
 
 const ALLOWED_ROLES = ["superadmin", "admin", "pengurus", "ketua"] as const
 
@@ -74,6 +75,8 @@ export default async function LogPage({
       ? `${filters.from} s/d ${filters.to}`
       : "Bulan Ini"
 
+  const templateConfig = await getReportTemplateConfig()
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -92,6 +95,7 @@ export default async function LogPage({
         roleSummary={roleSummary}
         timeline={timeline}
         filters={filters}
+        templateConfig={templateConfig}
       />
     </div>
   )

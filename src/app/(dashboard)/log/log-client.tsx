@@ -15,7 +15,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import { generatePdfHeader, generateExcelHeader } from "@/lib/report-helpers"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -144,12 +144,13 @@ type Filters = {
 }
 
 export function LogClient({
-  result, roleSummary, timeline, filters,
+  result, roleSummary, timeline, filters, templateConfig,
 }: {
   result: AuditLogResult
   roleSummary: RoleSummaryRow[]
   timeline: TimelineDayRow[]
   filters: Filters
+  templateConfig?: any
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -213,7 +214,7 @@ export function LogClient({
       { header: "IP",       key: "ip",     width: 16 },
     ]
     ws.columns = COLS
-    const startRow = generateExcelHeader(ws, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, COLS.length)
+    const startRow = generateExcelHeader(ws, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, COLS.length, templateConfig)
     const hdr = ws.getRow(startRow)
     hdr.values = COLS.map((c) => c.header)
     hdr.font   = { bold: true, color: { argb: "FFFFFFFF" } }
@@ -238,6 +239,9 @@ export function LogClient({
         cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } }
       })
     })
+
+    generateExcelFooter(ws, cur + 2, COLS.length, templateConfig)
+
     const buf = await wb.xlsx.writeBuffer()
     saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `AuditLog_${dateFrom || "all"}.xlsx`)
   }
@@ -245,7 +249,7 @@ export function LogClient({
   // ── Export PDF ────────────────────────────────────────────────────────────────
   const handleExportPDF = () => {
     const doc    = new jsPDF({ orientation: "landscape" })
-    const startY = generatePdfHeader(doc, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`)
+    const startY = generatePdfHeader(doc, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, templateConfig)
     const rows   = data.map((r, i) => [
       i + 1, fmt(r.created_at),
       r.user?.full_name ?? r.user?.username ?? "-",
@@ -263,6 +267,10 @@ export function LogClient({
       styles: { fontSize: 7, cellPadding: 2 },
       headStyles: { fillColor: [30, 64, 175] },
     })
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    generatePdfFooter(doc, finalY, templateConfig)
+
     doc.save(`AuditLog_${dateFrom || "all"}.pdf`)
   }
 
