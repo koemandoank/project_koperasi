@@ -59,6 +59,7 @@ export function OpnameStockPanel({
   const [rows, setRows] = useState<OpnameProductRow[]>([
     { productId: "", qtySystem: 0, qtyPhysical: 0, notes: "" },
   ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLocationChange = (newLocationId: string) => {
     setLocationId(newLocationId);
@@ -106,8 +107,9 @@ export function OpnameStockPanel({
     return any;
   }, [locationId, rows]);
 
-  async function handleCreateDraftAndRecord() {
+  async function handleCreateDraftAndRecord(approveDirectly: boolean = false) {
     if (!canCreate) return;
+    setIsSubmitting(true);
 
     try {
       const lid = BigInt(locationId);
@@ -120,18 +122,31 @@ export function OpnameStockPanel({
 
       for (const r of rows) {
         if (!r.productId.trim()) continue;
-        await recordOpnameDetail(
+        const resDetail = await recordOpnameDetail(
           opnameId,
           BigInt(r.productId),
           Number(r.qtySystem),
           Number(r.qtyPhysical),
           r.notes || undefined
         );
+        if (!resDetail?.success) throw new Error(resDetail?.error ?? `Gagal mencatat detail produk ID ${r.productId}`);
       }
 
-      toast.success("Stock opname draft created");
+      if (approveDirectly) {
+        const approved = await approveStockOpname(opnameId);
+        if (!approved?.success) throw new Error(approved?.error ?? "Gagal menyetujui opname");
+        toast.success(`Stock opname #${opnameId} berhasil dibuat & disetujui langsung`);
+      } else {
+        toast.success(`Stock opname draft #${opnameId} berhasil dibuat`);
+      }
+
+      // Reset form
+      setRows([{ productId: "", qtySystem: 0, qtyPhysical: 0, notes: "" }]);
+      setNotes("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal membuat opname");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -270,9 +285,23 @@ export function OpnameStockPanel({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleCreateDraftAndRecord} disabled={!canCreate} className="w-full h-12 text-base font-semibold">
-          Buat Draft Opname + Catat Item
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => handleCreateDraftAndRecord(false)}
+          disabled={!canCreate || isSubmitting}
+          className="w-full sm:w-1/2 h-12 text-base font-semibold border-slate-200 text-slate-750 hover:bg-slate-50"
+        >
+          {isSubmitting ? "Memproses..." : "Buat Draft Saja"}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => handleCreateDraftAndRecord(true)}
+          disabled={!canCreate || isSubmitting}
+          className="w-full sm:w-1/2 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          {isSubmitting ? "Memproses..." : "Simpan & Setujui Langsung"}
         </Button>
       </div>
 
