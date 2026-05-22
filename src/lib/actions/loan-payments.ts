@@ -60,12 +60,27 @@ export async function recordLoanPayment({
     const interestRate       = Number(loan.interest_rate)
     const outstanding        = Number(loan.outstanding_principal)
 
-    // Flat interest: bunga tetap per bulan
-    const interestPortion  = Number(loan.loan_applications?.loan_products?.interest_method) === 1
-      ? (outstanding * interestRate) / 100
-      : monthlyInstallment - (outstanding / loan.tenor_months)
+    let interestPortion = 0
+    let principalPortion = 0
 
-    const principalPortion = amountPaid - interestPortion - penaltyAmount
+    if (scheduleId) {
+      const schedule = await prisma.loan_schedules.findUnique({
+        where: { id: BigInt(scheduleId) },
+      })
+      if (schedule) {
+        interestPortion = Number(schedule.interest_due)
+        principalPortion = amountPaid - interestPortion - penaltyAmount
+      }
+    }
+
+    if (!scheduleId || interestPortion === 0) {
+      // Flat interest: bunga tetap per bulan berdasarkan plafon awal (loan.principal)
+      interestPortion = Number(loan.loan_applications?.loan_products?.interest_method) === 1
+        ? (Number(loan.principal) * interestRate) / 100
+        : monthlyInstallment - (Number(loan.principal) / loan.tenor_months)
+      
+      principalPortion = amountPaid - interestPortion - penaltyAmount
+    }
 
     // Generate nomor pembayaran unik
     const count     = await prisma.loan_payments.count()

@@ -132,12 +132,13 @@ export function ShuConfigForm({
       </div>
 
       <Tabs defaultValue="alokasi">
-        <TabsList className="grid grid-cols-5 h-auto">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 h-auto gap-1 bg-slate-100 p-1">
           <TabsTrigger value="alokasi" className="text-xs py-2">A. Alokasi SHU</TabsTrigger>
           <TabsTrigger value="bobot_jasa" className="text-xs py-2">B. Bobot Jasa</TabsTrigger>
           <TabsTrigger value="bobot_unit" className="text-xs py-2">C. Bobot Unit</TabsTrigger>
           <TabsTrigger value="formula_modal" className="text-xs py-2">D. Formula Modal</TabsTrigger>
           <TabsTrigger value="formula_usaha" className="text-xs py-2">E. Formula Usaha</TabsTrigger>
+          <TabsTrigger value="zakat_csr" className="text-xs py-2">F. Zakat & CSR</TabsTrigger>
         </TabsList>
 
         {/* ===== TAB A: ALOKASI SHU ===== */}
@@ -357,6 +358,62 @@ export function ShuConfigForm({
                     </Label>
                   </div>
                 </RadioGroup>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ===== TAB F: ZAKAT & CSR ===== */}
+        <TabsContent value="zakat_csr">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">F. Alokasi Zakat & CSR Koperasi</CardTitle>
+              <CardDescription>
+                Pemotongan langsung dari SHU Bersih sebelum didistribusikan ke anggota sesuai dengan prinsip Koperasi Syariah/Karyawan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-semibold text-sm">Persentase Zakat (%)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Biasanya 2.5% dari SHU Bersih.</p>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="h-9 w-28 text-right"
+                    disabled={!canEdit}
+                    value={cfg.zakat_rate ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setCfg((p) => ({ ...p, zakat_rate: val }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-semibold text-sm">Persentase CSR / Dana Sosial Keagamaan (%)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Untuk alokasi tanggung jawab sosial kemasyarakatan.</p>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="h-9 w-28 text-right"
+                    disabled={!canEdit}
+                    value={cfg.csr_rate ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setCfg((p) => ({ ...p, csr_rate: val }));
+                    }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

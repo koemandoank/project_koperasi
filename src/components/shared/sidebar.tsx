@@ -9,7 +9,7 @@ import {
   BookOpen, PieChart, ChevronRight, ShoppingBag, Inbox,
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
   Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
-  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck, CalendarCheck
 } from "lucide-react"
 
 
@@ -104,6 +104,7 @@ const ALL_GROUPS: NavGroup[] = [
     items: [
       { href: "/akuntansi/laporan-keuangan", label: "Laporan Keuangan RAT", icon: FileText },
       { href: "/laporan/partisipasi-anggota", label: "Partisipasi Anggota RAT", icon: Users },
+      { href: "/akuntansi/rat-absensi", label: "Absensi & Hak Suara RAT", icon: CalendarCheck },
       { href: "/akuntansi/buku-besar",  label: "Buku Besar",              icon: BookOpen },
       { href: "/akuntansi/tutup-buku",  label: "Tutup Buku",              icon: Lock },
       { href: "/laporan/analitik",      label: "Analitik Keuangan",       icon: TrendingUp },
@@ -183,6 +184,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/akuntansi/pembagian-shu":     ["superadmin", "admin", "pengurus"],
   "/akuntansi/laporan-keuangan":  ["superadmin", "admin", "pengurus"],
   "/laporan/partisipasi-anggota": ["superadmin", "admin", "pengurus"],
+  "/akuntansi/rat-absensi":       ["superadmin", "admin", "pengurus"],
   "/laporan/harian":              ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/po-konsinyasi":       ["superadmin", "admin", "pengurus"],
   "/laporan/stok":                ["superadmin", "admin", "pengurus", "kasir"],

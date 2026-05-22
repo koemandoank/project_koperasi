@@ -78,6 +78,8 @@ export const ShuConfigSchema = z.object({
     basis_sp: z.enum(["pendapatan_bunga", "nominal_pokok"]),
     basis_toko: z.enum(["profit_margin", "omset_gross"]),
   }).strict(),
+  zakat_rate: z.number().min(0).max(100).default(0).optional(),
+  csr_rate: z.number().min(0).max(100).default(0).optional(),
 }).strict();
 
 export type ShuConfig = z.infer<typeof ShuConfigSchema>;
@@ -102,6 +104,8 @@ export const DEFAULT_SHU_CONFIG: ShuConfig = {
     basis_sp: "pendapatan_bunga",
     basis_toko: "profit_margin",
   },
+  zakat_rate: 0,
+  csr_rate: 0,
 };
 
 /** Role yang diizinkan mengubah konfigurasi SHU */
@@ -168,6 +172,8 @@ export function migrateLegacyShuConfig(raw: Record<string, unknown>): ShuConfig 
       bobot_unit: DEFAULT_SHU_CONFIG.bobot_unit,
       formula_jasa_modal: DEFAULT_SHU_CONFIG.formula_jasa_modal,
       formula_jasa_usaha: DEFAULT_SHU_CONFIG.formula_jasa_usaha,
+      zakat_rate: typeof old.zakat_rate === "number" ? old.zakat_rate : 0,
+      csr_rate: typeof old.csr_rate === "number" ? old.csr_rate : 0,
     };
   }
 
@@ -178,5 +184,7 @@ export function migrateLegacyShuConfig(raw: Record<string, unknown>): ShuConfig 
     bobot_unit: { ...DEFAULT_SHU_CONFIG.bobot_unit, ...(raw.bobot_unit as BobotUnit ?? {}) },
     formula_jasa_modal: { ...DEFAULT_SHU_CONFIG.formula_jasa_modal, ...(raw.formula_jasa_modal as FormulaJasaModal ?? {}) },
     formula_jasa_usaha: { ...DEFAULT_SHU_CONFIG.formula_jasa_usaha, ...(raw.formula_jasa_usaha as FormulaJasaUsaha ?? {}) },
+    zakat_rate: typeof raw.zakat_rate === "number" ? raw.zakat_rate : 0,
+    csr_rate: typeof raw.csr_rate === "number" ? raw.csr_rate : 0,
   };
 }

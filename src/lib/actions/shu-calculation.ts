@@ -32,6 +32,8 @@ export interface ShuProjectionReport {
   pegawaiTotal: number;
   pendidikanTotal: number;
   sosialTotal: number;
+  zakatTotal?: number;
+  csrTotal?: number;
   totalSimpananSeluruh: number;
   totalBungaSeluruh: number;
   totalBelanjaSeluruh: number;
@@ -245,7 +247,14 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
     const labaRugi = await getLabaRugi(year);
     const totalShu = labaRugi.netShu;
 
-    const macros = calculateMacroAllocations(totalShu, config);
+    const zakatRate = config.zakat_rate ?? 0;
+    const csrRate = config.csr_rate ?? 0;
+    const zakatTotal = Number(((zakatRate / 100) * totalShu).toFixed(2));
+    const csrTotal = Number(((csrRate / 100) * totalShu).toFixed(2));
+
+    const netShuToDistribute = Math.max(0, totalShu - zakatTotal - csrTotal);
+
+    const macros = calculateMacroAllocations(netShuToDistribute, config);
     const jasaModalTotal = (config.jasa_anggota_bobot.modal / 100) * macros.jasaAnggotaTotal;
     const jasaUsahaTotal = (config.jasa_anggota_bobot.usaha / 100) * macros.jasaAnggotaTotal;
 
@@ -284,6 +293,8 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
       pegawaiTotal: macros.pegawaiTotal,
       pendidikanTotal: macros.pendidikanTotal,
       sosialTotal: macros.sosialTotal,
+      zakatTotal,
+      csrTotal,
       totalSimpananSeluruh,
       totalBungaSeluruh,
       totalBelanjaSeluruh,
@@ -440,6 +451,8 @@ export async function distributeSHUMassal(year: number): Promise<{ success: bool
       return { success: false, error: "Total SHU Bersih tahun berjalan bernilai nol atau negatif, tidak bisa dibagikan." };
     }
 
+    const labaRugi = await getLabaRugi(year);
+
     await prisma.$transaction(async (tx) => {
       await validateDistributionPeriod(tx, unitId, year);
       const sukarelaType = await getSukarelaSavingType(tx);
@@ -449,8 +462,8 @@ export async function distributeSHUMassal(year: number): Promise<{ success: bool
         create: {
           unit_id: unitId,
           period_year: year,
-          total_revenue: report.totalNetIncome + report.cadanganTotal,
-          total_expense: report.cadanganTotal + report.pengurusTotal + report.pegawaiTotal,
+          total_revenue: labaRugi.revenue.totalRevenue,
+          total_expense: labaRugi.expenses.totalExpenses,
           total_shu: report.totalNetIncome,
           shu_for_member: report.jasaAnggotaTotal,
           shu_for_reserve: report.cadanganTotal,
