@@ -1,0 +1,333 @@
+"use server"
+
+import { prisma } from "@/lib/db/prisma"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type FinancialOverview = {
+  totalKasBank:       number   // Total saldo aset likuid (kas + bank) dari COA
+  totalSimpanan:      number   // Akumulasi simpanan pokok + wajib + sukarela anggota
+  totalPinjamanBeredar: number // Outstanding principal seluruh pinjaman aktif
+  estimasiSHU:        number   // Laba YTD = (pendapatan - HPP - beban operasional)
+}
+
+export type LoanHealth = {
+  nplAmount:        number  // Nilai total pinjaman macet/telat (outstanding)
+  nplRatio:         number  // Persentase NPL vs total outstanding (%)
+  pendingApprovals: number  // Jumlah pengajuan pinjaman menunggu persetujuan
+  dueSoon:          {       // Angsuran jatuh tempo 7 hari ke depan
+    member_name: string
+    loan_no:     string
+    due_date:    string
+    amount_due:  number
+  }[]
+}
+
+export type MembershipStats = {
+  total:     number
+  active:    number
+  inactive:  number
+  growthByMonth: { month: string; new_members: number }[]
+}
+
+export type CashFlowPoint = {
+  label:      string  // e.g. "2025-05-01"
+  pemasukan:  number  // angsuran masuk + simpanan masuk + penjualan
+  pengeluaran: number // pencairan pinjaman + pengeluaran operasional
+}
+
+export type ExecutiveDashboardData = {
+  financialOverview:  FinancialOverview
+  loanHealth:         LoanHealth
+  membershipStats:    MembershipStats
+  cashFlowMonthly:    CashFlowPoint[]   // 12 bulan terakhir
+  generatedAt:        string            // ISO timestamp
+}
+
+// ─── Main Action ──────────────────────────────────────────────────────────────
+
+/**
+ * Mengambil semua data dashboard eksekutif pengurus koperasi dari database riil.
+ * Mencakup: Ringkasan Finansial, Kesehatan Kredit, Statistik Anggota, dan Arus Kas.
+ *
+ * @returns {Promise<ExecutiveDashboardData>} Data dashboard komprehensif
+ * @throws {Error} Mengembalikan data kosong jika terjadi error database
+ */
+export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardData> {
+  const emptyData: ExecutiveDashboardData = {
+    financialOverview:  { totalKasBank: 0, totalSimpanan: 0, totalPinjamanBeredar: 0, estimasiSHU: 0 },
+    loanHealth:         { nplAmount: 0, nplRatio: 0, pendingApprovals: 0, dueSoon: [] },
+    membershipStats:    { total: 0, active: 0, inactive: 0, growthByMonth: [] },
+    cashFlowMonthly:    [],
+    generatedAt:        new Date().toISOString(),
+  }
+
+  try {
+    const now        = new Date()
+    const yearStart  = new Date(now.getFullYear(), 0, 1)
+    const next7Days  = new Date(now)
+    next7Days.setDate(now.getDate() + 7)
+
+    // ─── 1. FINANCIAL OVERVIEW ─────────────────────────────────────────────────
+    const [
+      assetAccounts,
+      totalSimpananAgg,
+      activeLoansAgg,
+      ytdRevenues,
+      ytdHppItems,
+      ytdExpenses,
+    ] = await Promise.all([
+      // 1a. Kas & Bank dari COA aset
+      prisma.chart_of_accounts.findMany({ where: { type: "asset" } }),
+
+      // 1b. Total simpanan anggota (saldo berjalan)
+      prisma.saving_transactions.groupBy({
+        by: ["type"],
+        _sum: { amount: true },
+      }),
+
+      // 1c. Outstanding pinjaman aktif
+      prisma.loans.aggregate({
+        _sum: { outstanding_principal: true },
+        where: { status: "active" },
+      }),
+
+      // 1d. Pendapatan YTD (kredit jurnal tipe revenue)
+      prisma.journal_lines.aggregate({
+        _sum: { credit: true, debit: true },
+        where: {
+          chart_of_accounts: { type: "revenue" },
+          journal_entries: { is_posted: true, entry_date: { gte: yearStart } },
+        },
+      }),
+
+      // 1e. HPP YTD dari seluruh item terjual (bukan estimasi)
+      prisma.order_items.findMany({
+        where: { orders: { payment_status: "paid", ordered_at: { gte: yearStart } } },
+        select: { qty: true, products: { select: { purchase_price: true } } },
+      }),
+
+      // 1f. Beban operasional YTD
+      prisma.journal_lines.aggregate({
+        _sum: { debit: true, credit: true },
+        where: {
+          chart_of_accounts: { type: "expense" },
+          journal_entries: { is_posted: true, entry_date: { gte: yearStart } },
+        },
+      }),
+    ])
+
+    // Hitung Total Kas & Bank dari jurnal COA aset
+    const assetIds = assetAccounts.map((a) => a.id)
+    const assetLines = await prisma.journal_lines.aggregate({
+      _sum: { debit: true, credit: true },
+      where: { account_id: { in: assetIds }, journal_entries: { is_posted: true } },
+    })
+    const totalKasBank = Math.max(
+      0,
+      Number(assetLines._sum.debit || 0) - Number(assetLines._sum.credit || 0)
+    )
+
+    // Hitung Total Simpanan (deposit - withdraw - salary_cut negatif)
+    const simpananMap = Object.fromEntries(
+      totalSimpananAgg.map((g) => [g.type, Number(g._sum.amount || 0)])
+    )
+    const totalSimpanan = Math.max(
+      0,
+      (simpananMap["deposit"] || 0) - (simpananMap["withdraw"] || 0)
+    )
+
+    const totalPinjamanBeredar = Number(activeLoansAgg._sum.outstanding_principal || 0)
+
+    // Estimasi SHU YTD = Pendapatan Toko (Omzet - HPP) + Pendapatan SP - Beban
+    const omzetYtd = await prisma.orders.aggregate({
+      _sum: { grand_total: true },
+      where: { payment_status: "paid", ordered_at: { gte: yearStart } },
+    })
+    const ytdOmzet = Number(omzetYtd._sum.grand_total || 0)
+    const ytdHpp   = ytdHppItems.reduce(
+      (sum, i) => sum + i.qty * Number(i.products?.purchase_price ?? 0), 0
+    )
+    const labaKotor = ytdOmzet - ytdHpp
+    const pendapatanSPYtd = Number(ytdRevenues._sum.credit || 0) - Number(ytdRevenues._sum.debit || 0)
+    const bebanYtd = Number(ytdExpenses._sum.debit || 0) - Number(ytdExpenses._sum.credit || 0)
+    const estimasiSHU = labaKotor + pendapatanSPYtd - bebanYtd
+
+    // ─── 2. LOAN HEALTH ────────────────────────────────────────────────────────
+    const [nplSchedules, pendingApprovals, dueSoonSchedules] = await Promise.all([
+      // 2a. NPL: angsuran telat/belum bayar melewati jatuh tempo
+      prisma.loan_schedules.findMany({
+        where: {
+          due_date: { lt: now },
+          status: { in: ["pending", "partial", "overdue"] },
+        },
+        select: {
+          total_due: true,
+          principal_paid: true,
+          interest_paid: true,
+          penalty_paid: true,
+        },
+      }),
+
+      // 2b. Pengajuan pinjaman menunggu approval
+      prisma.loan_applications.count({
+        where: { status: { in: ["pending", "under_review"] } },
+      }),
+
+      // 2c. Angsuran jatuh tempo 7 hari ke depan
+      prisma.loan_schedules.findMany({
+        where: {
+          due_date: { gte: now, lte: next7Days },
+          status: { in: ["pending", "partial"] },
+        },
+        select: {
+          due_date: true,
+          total_due: true,
+          principal_paid: true,
+          interest_paid: true,
+          loans: {
+            select: {
+              loan_no: true,
+              members: { select: { full_name: true } },
+            },
+          },
+        },
+        orderBy: { due_date: "asc" },
+        take: 15,
+      }),
+    ])
+
+    const nplAmount = nplSchedules.reduce((sum, s) => {
+      const outstanding =
+        Number(s.total_due) - Number(s.principal_paid) - Number(s.interest_paid) - Number(s.penalty_paid || 0)
+      return sum + Math.max(0, outstanding)
+    }, 0)
+    const nplRatio = totalPinjamanBeredar > 0
+      ? Math.round((nplAmount / totalPinjamanBeredar) * 10000) / 100
+      : 0
+
+    const dueSoon = dueSoonSchedules.map((s) => ({
+      member_name: s.loans.members?.full_name ?? "-",
+      loan_no:     s.loans.loan_no,
+      due_date:    (s.due_date as Date).toLocaleDateString("id-ID"),
+      amount_due:  Math.max(
+        0,
+        Number(s.total_due) - Number(s.principal_paid) - Number(s.interest_paid)
+      ),
+    }))
+
+    // ─── 3. MEMBERSHIP STATS ───────────────────────────────────────────────────
+    const [memberCounts, memberGrowthRaw] = await Promise.all([
+      prisma.member.groupBy({
+        by: ["status"],
+        _count: { id: true },
+      }),
+      // Anggota baru per bulan (12 bulan terakhir)
+      prisma.$queryRaw<{ month: string; new_members: number }[]>`
+        SELECT
+          DATE_FORMAT(created_at, '%Y-%m') AS month,
+          COUNT(*) AS new_members
+        FROM member
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month ASC
+      `,
+    ])
+
+    const statusMap = Object.fromEntries(
+      memberCounts.map((g) => [g.status, g._count.id])
+    )
+    const membershipStats: MembershipStats = {
+      total:    memberCounts.reduce((s, g) => s + g._count.id, 0),
+      active:   statusMap["active"]   || 0,
+      inactive: (statusMap["inactive"] || 0) + (statusMap["suspended"] || 0),
+      growthByMonth: (memberGrowthRaw as any[]).map((r) => ({
+        month:       String(r.month),
+        new_members: Number(r.new_members),
+      })),
+    }
+
+    // ─── 4. CASH FLOW MONTHLY (12 bulan terakhir) ─────────────────────────────
+    const cashFlowRaw = await prisma.$queryRaw<
+      { month: string; pemasukan: number; pengeluaran: number }[]
+    >`
+      SELECT
+        DATE_FORMAT(bulan, '%Y-%m') AS month,
+        SUM(pemasukan)              AS pemasukan,
+        SUM(pengeluaran)            AS pengeluaran
+      FROM (
+        -- Angsuran masuk (loan payments)
+        SELECT DATE_FORMAT(paid_at, '%Y-%01-01') AS bulan,
+               SUM(principal_paid + interest_paid + COALESCE(penalty_paid, 0)) AS pemasukan,
+               0 AS pengeluaran
+        FROM loan_schedules
+        WHERE paid_at IS NOT NULL
+          AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(paid_at, '%Y-%m')
+
+        UNION ALL
+
+        -- Simpanan masuk
+        SELECT DATE_FORMAT(transaction_at, '%Y-%01-01') AS bulan,
+               SUM(amount) AS pemasukan,
+               0 AS pengeluaran
+        FROM saving_transactions
+        WHERE type = 'deposit'
+          AND transaction_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(transaction_at, '%Y-%m')
+
+        UNION ALL
+
+        -- Penjualan toko (kas masuk)
+        SELECT DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%01-01') AS bulan,
+               SUM(grand_total) AS pemasukan,
+               0 AS pengeluaran
+        FROM orders
+        WHERE payment_status = 'paid'
+          AND payment_method != 'paylater'
+          AND COALESCE(paid_at, ordered_at) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m')
+
+        UNION ALL
+
+        -- Pencairan pinjaman (kas keluar)
+        SELECT DATE_FORMAT(disbursed_at, '%Y-%01-01') AS bulan,
+               0 AS pemasukan,
+               SUM(principal) AS pengeluaran
+        FROM loans
+        WHERE disbursed_at IS NOT NULL
+          AND disbursed_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(disbursed_at, '%Y-%m')
+      ) t
+      GROUP BY DATE_FORMAT(bulan, '%Y-%m')
+      ORDER BY month ASC
+    `
+
+    const cashFlowMonthly: CashFlowPoint[] = (cashFlowRaw as any[]).map((r) => ({
+      label:       String(r.month),
+      pemasukan:   Number(r.pemasukan  || 0),
+      pengeluaran: Number(r.pengeluaran || 0),
+    }))
+
+    return {
+      financialOverview: {
+        totalKasBank,
+        totalSimpanan,
+        totalPinjamanBeredar,
+        estimasiSHU,
+      },
+      loanHealth: {
+        nplAmount,
+        nplRatio,
+        pendingApprovals,
+        dueSoon,
+      },
+      membershipStats,
+      cashFlowMonthly,
+      generatedAt: now.toISOString(),
+    }
+  } catch (error) {
+    console.error("[getExecutiveDashboardData] Error:", error)
+    return emptyData
+  }
+}
