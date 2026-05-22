@@ -436,7 +436,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis tickFormatter={(v) => `${fmtShort(v)}`} tick={{ fontSize: 10 }} />
                     <Tooltip
-                      formatter={(v, name) => [fmt(Number(v)), name === "pemasukan" ? "Pemasukan" : "Pengeluaran"]}
+                      formatter={(v, name) => [fmt(Number(v)), name]}
                     />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
                     <Area
