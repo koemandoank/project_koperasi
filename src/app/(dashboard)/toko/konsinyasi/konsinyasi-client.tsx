@@ -22,12 +22,12 @@ interface Item {
   supplier_id: number;
   supplier_name: string;
   qty_received: number;
-  qty_sold: number;
-  qty_unbilled: number;
+  qty_sold: number;     // terjual di POS (real-time dari stok aktual)
+  qty_billed: number;  // sudah dibuatkan tagihan ke supplier
+  qty_unbilled: number; // terjual tapi belum ditagih
   qty_returned: number;
   qty_remaining: number;
   unit_price: number;
-  margin_pct: number;
   status: string;
   return_reason: string | null;
   return_date: string | null;
@@ -38,11 +38,12 @@ interface Payable {
   id: number;
   supplier_id: number;
   supplier_name: string;
+  product_name: string;
   period_start: string;
   period_end: string;
   total_qty_sold: number;
+  unit_price: number;
   total_revenue: number;
-  margin_amount: number;
   payable_amount: number;
   status: string;
   settlements: any[];
