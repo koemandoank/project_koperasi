@@ -2,6 +2,14 @@
 
 import { prisma } from "@/lib/db/prisma"
 
+/**
+ * Mengambil statistik keuangan global koperasi untuk dashboard utama.
+ * Seluruh kalkulasi diambil dari database riil tanpa hardcoded value.
+ *
+ * @param {"weekly" | "monthly" | "yearly"} period Rentang waktu laporan
+ * @returns {Promise<object>} Ringkasan finansial koperasi
+ * @throws {Error} Mengembalikan objek nol jika terjadi error database
+ */
 export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "yearly") {
   try {
     const now = new Date()
@@ -16,26 +24,42 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       startDate = new Date(now.getFullYear(), 0, 1)
     }
 
-    // 1. Total Transaksi (Count of all orders + loan applications)
+    // 1. Total Transaksi (Count of all orders excluding cancelled)
     const orderCount = await prisma.orders.count({
       where: {
         ordered_at: { gte: startDate },
         order_status: { notIn: ["cancelled"] }
       }
     })
-    
-    // 2. Keuntungan Toko (Rough estimate: 15% of Sales for demo if COGS is complex, or real calculation)
-    const salesTotal = await prisma.orders.aggregate({
-      _sum: { grand_total: true },
+
+    // 2. Keuntungan Toko — Dihitung dari HPP riil per order_items (no hardcoded margin)
+    const soldItems = await prisma.order_items.findMany({
       where: {
-        ordered_at: { gte: startDate },
-        payment_status: "paid"
+        orders: {
+          ordered_at: { gte: startDate },
+          payment_status: "paid",
+        }
+      },
+      select: {
+        qty: true,
+        subtotal: true,
+        products: {
+          select: { purchase_price: true }
+        }
       }
     })
-    const totalSales = Number(salesTotal._sum.grand_total || 0)
-    const keuntunganToko = totalSales * 0.15 // Assuming 15% margin for demo
 
-    // 3. Laba Simpan Pinjam (Total Interest Paid)
+    let totalSales = 0
+    let totalCogs  = 0
+    for (const item of soldItems) {
+      const revenue = Number(item.subtotal ?? 0)
+      const cogs    = Number(item.products?.purchase_price ?? 0) * item.qty
+      totalSales   += revenue
+      totalCogs    += cogs
+    }
+    const keuntunganToko = totalSales - totalCogs
+
+    // 3. Laba Simpan Pinjam (Total Bunga + Denda yang Terbayar)
     const spInterest = await prisma.loan_schedules.aggregate({
       _sum: { interest_paid: true, penalty_paid: true },
       where: {
@@ -44,7 +68,7 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
     })
     const keuntunganSP = Number(spInterest._sum.interest_paid || 0) + Number(spInterest._sum.penalty_paid || 0)
 
-    // 4. Keuntungan SHU (Laba Bersih Koperasi = Keuntungan Toko + Keuntungan SP - Pengeluaran Operasional)
+    // 4. Pengeluaran Operasional dari COA beban yang sudah diposting
     const expenses = await prisma.journal_lines.aggregate({
       _sum: { debit: true, credit: true },
       where: {
@@ -53,10 +77,11 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       }
     })
     const pengeluaranOperasional = Number(expenses._sum.debit || 0) - Number(expenses._sum.credit || 0)
+
+    // 5. SHU Berjalan = Keuntungan Toko + Keuntungan SP - Pengeluaran Operasional
     const keuntunganSHU = keuntunganToko + keuntunganSP - pengeluaranOperasional
 
-    // 5. Saldo Kas Koperasi (Total Assets)
-    // Assets are usually debit-balanced
+    // 6. Saldo Kas dari Jurnal COA Aset (all-time, bukan hanya periode)
     const assetAccounts = await prisma.chart_of_accounts.findMany({
       where: { type: "asset" }
     })
@@ -65,59 +90,43 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       _sum: { debit: true, credit: true },
       where: {
         account_id: { in: assetAccountIds },
-        journal_entries: { is_posted: true } // all time for balance
+        journal_entries: { is_posted: true }
       }
     })
     let saldoKas = Number(assetLines._sum.debit || 0) - Number(assetLines._sum.credit || 0)
 
+    // Fallback akuntansi jika COA belum dikonfigurasi: hitung dari sub-ledger operasional
     if (saldoKas === 0) {
-      // Fallback: hitung dari tabel operasional agar tidak 0
-      const savingsDeposit = await prisma.saving_transactions.aggregate({
-        _sum: { amount: true },
-        where: { type: "deposit" }
-      });
-      const savingsWithdraw = await prisma.saving_transactions.aggregate({
-        _sum: { amount: true },
-        where: { type: "withdraw" }
-      });
-      const netSavings = Number(savingsDeposit._sum.amount || 0) - Number(savingsWithdraw._sum.amount || 0);
+      const [savingsDeposit, savingsWithdraw, loanDisbursedAll, loanRepaid, salesAll] =
+        await Promise.all([
+          prisma.saving_transactions.aggregate({ _sum: { amount: true }, where: { type: "deposit" } }),
+          prisma.saving_transactions.aggregate({ _sum: { amount: true }, where: { type: "withdraw" } }),
+          prisma.loans.aggregate({ _sum: { principal: true } }),
+          prisma.loan_schedules.aggregate({
+            _sum: { principal_paid: true, interest_paid: true, penalty_paid: true }
+          }),
+          prisma.orders.aggregate({ _sum: { grand_total: true }, where: { payment_status: "paid" } }),
+        ])
 
-      const loanDisbursed = await prisma.loans.aggregate({
-        _sum: { principal: true }
-      });
-      const totalDisbursed = Number(loanDisbursed._sum.principal || 0);
+      const netSavings    = Number(savingsDeposit._sum.amount || 0) - Number(savingsWithdraw._sum.amount || 0)
+      const totalDisbursed = Number(loanDisbursedAll._sum.principal || 0)
+      const totalRepaid   = Number(loanRepaid._sum.principal_paid || 0)
+                          + Number(loanRepaid._sum.interest_paid || 0)
+                          + Number(loanRepaid._sum.penalty_paid || 0)
+      const totalSalesAll = Number(salesAll._sum.grand_total || 0)
 
-      const loanRepaid = await prisma.loan_schedules.aggregate({
-        _sum: {
-          principal_paid: true,
-          interest_paid: true,
-          penalty_paid: true
-        }
-      });
-      const totalRepaid = 
-        Number(loanRepaid._sum.principal_paid || 0) +
-        Number(loanRepaid._sum.interest_paid || 0) +
-        Number(loanRepaid._sum.penalty_paid || 0);
-
-      const sales = await prisma.orders.aggregate({
-        _sum: { grand_total: true },
-        where: { payment_status: "paid" }
-      });
-      const totalSales = Number(sales._sum.grand_total || 0);
-
-      // Modal awal asumsi 150.000.000 (agar kas selalu positif dan realistis)
-      const modalAwal = 150000000;
-      saldoKas = modalAwal + netSavings + totalRepaid + totalSales - totalDisbursed;
+      // Tidak ada magic number — saldo dihitung murni dari aliran kas operasional
+      saldoKas = netSavings + totalRepaid + totalSalesAll - totalDisbursed
     }
 
-    // 6. Pengeluaran Toko (Stock Inbound / Purchases - estimated from stock_movements)
+    // 7. Pengeluaran Toko (Nilai HPP barang masuk dari stock_movements type='in')
     const stockInbound = await prisma.stock_movements.findMany({
       where: {
         type: { in: ["in"] },
         created_at: { gte: startDate }
       },
       include: {
-        products: true
+        products: { select: { purchase_price: true } }
       }
     })
     let pengeluaranToko = 0
@@ -125,7 +134,7 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       pengeluaranToko += movement.qty * Number(movement.products.purchase_price || 0)
     })
 
-    // 7. Pengeluaran Simpan Pinjam (Loan Disbursements)
+    // 8. Pengeluaran Simpan Pinjam (Realisasi Pencairan Pinjaman)
     const loanDisbursed = await prisma.loans.aggregate({
       _sum: { principal: true },
       where: {
@@ -146,7 +155,7 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       pengeluaranSP
     }
   } catch (error) {
-    console.error("Error fetching global financial stats:", error)
+    console.error("[getGlobalFinancialStats] Error fetching global financial stats:", error)
     return {
       keuntunganSHU: 0,
       totalTransaksi: 0,

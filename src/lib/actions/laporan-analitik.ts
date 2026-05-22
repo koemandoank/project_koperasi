@@ -114,20 +114,24 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         orderBy: { stock: 'desc' },
       }),
 
-      // 5. Daily series per date — COALESCE handles paylater (paid_at = NULL)
-      prisma.$queryRaw<{ date: string; omzet: number }[]>`
+      // 5. Daily series per date — HPP riil dihitung via JOIN ke order_items + products
+      //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
+      prisma.$queryRaw<{ date: string; omzet: number; cogs: number }[]>`
         SELECT 
-          DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-%d') as \`date\`,
-          SUM(grand_total) as omzet
-        FROM orders
-        WHERE payment_status = 'paid'
-          AND COALESCE(paid_at, ordered_at) >= ${start}
-          AND COALESCE(paid_at, ordered_at) <= ${end}
-        GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-%d')
+          DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS \`date\`,
+          SUM(o.grand_total)                                           AS omzet,
+          SUM(oi.qty * p.purchase_price)                               AS cogs
+        FROM orders o
+        INNER JOIN order_items oi ON oi.order_id = o.id
+        INNER JOIN products    p  ON p.id = oi.product_id
+        WHERE o.payment_status = 'paid'
+          AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
+          AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
+        GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
         ORDER BY \`date\`
       `,
 
-      // 6. Fetch ALL sold items to compute exact COGS (no limit)
+      // 6. Fetch ALL sold items to compute exact COGS summary (no limit)
       prisma.order_items.findMany({
         where: { orders: orderWhere },
         select: {
@@ -177,11 +181,11 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
     const profit  = omzet - cogs
     const txCount = revAgg._count
 
-    const avgHppPerRevenue = omzet > 0 ? cogs / omzet : 0
+    // dailySeries menggunakan HPP riil per hari dari SQL JOIN (bukan estimasi rasio)
     const dailySeries = (dailyRaw as any[]).map(row => ({
       date:  String(row.date),
       omzet: Number(row.omzet),
-      cogs:  Math.round(Number(row.omzet) * avgHppPerRevenue),
+      cogs:  Number(row.cogs ?? 0),
     }))
 
     return {

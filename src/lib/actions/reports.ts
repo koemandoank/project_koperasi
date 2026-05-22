@@ -23,6 +23,8 @@ export interface DeductionDetail {
   reference: string
   installment_no: string | number
   amount: number
+  /** true = angka proyeksi (belum ada transaksi riil di DB); false/undefined = data historis nyata */
+  is_projected?: boolean
 }
 
 export interface MemberDeductionRow {
@@ -384,9 +386,9 @@ export async function getMonthlyDeductionReport(
       const pastActualAmount = swTransactionsMap.get(pastKey) || 0
       const pastCount = swTransactionsCountMap.get(pastKey) || 0
 
-      const projectedAmount = monthlyAmount * projectedMonths
-      const totalAmount = pastActualAmount + projectedAmount
-      const totalMonthsCount = pastCount + projectedMonths
+      const projectedAmount  = monthlyAmount * projectedMonths
+      const totalAmount       = pastActualAmount + projectedAmount
+      const totalMonthsCount  = pastCount + projectedMonths
 
       if (totalAmount <= 0) continue
 
@@ -398,16 +400,32 @@ export async function getMonthlyDeductionReport(
         saving.members.units?.name ?? "-"
       )
 
-      row.details.push({
-        category: "simpanan_wajib",
-        label: `Simpanan Wajib — ${saving.saving_types.name} (${totalMonthsCount} bln)`,
-        reference: saving.saving_types.code,
-        installment_no: "-",
-        amount: totalAmount,
-      })
+      // Baris historis (data riil dari DB)
+      if (pastActualAmount > 0) {
+        row.details.push({
+          category: "simpanan_wajib",
+          label: `Simpanan Wajib — ${saving.saving_types.name} (${pastCount} bln realisasi)`,
+          reference: saving.saving_types.code,
+          installment_no: "-",
+          amount: pastActualAmount,
+          is_projected: false,
+        })
+      }
+
+      // Baris proyeksi (bulan berjalan belum ada transaksi riil)
+      if (projectedAmount > 0) {
+        row.details.push({
+          category: "simpanan_wajib",
+          label: `Simpanan Wajib — ${saving.saving_types.name} (${projectedMonths} bln proyeksi)`,
+          reference: saving.saving_types.code,
+          installment_no: "-",
+          amount: projectedAmount,
+          is_projected: true,
+        })
+      }
 
       row.total_simpanan_wajib += totalAmount
-      row.total_deduction += totalAmount
+      row.total_deduction      += totalAmount
     }
 
     // ── 6. SIMPANAN SUKARELA SALARY CUT (opsi tambahan) ──────────────────────
