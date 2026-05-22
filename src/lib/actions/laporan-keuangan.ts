@@ -4,11 +4,38 @@ import { prisma } from "@/lib/db/prisma"
 import { NeracaReport, LabaRugiReport, CoaSummaryItem } from "@/lib/types/laporan-keuangan.types"
 
 /**
+ * Helper: Menghitung saldo satu akun COA.
+ * 
+ * @param {bigint} coaId ID Akun COA
+ * @param {string} normalBalance Jenis saldo normal ("debit" | "credit")
+ * @param {Date} endDate Batas tanggal penutupan
+ * @returns {Promise<number>} Saldo terhitung
+ */
+async function getCoaBalance(coaId: bigint, normalBalance: string, endDate: Date): Promise<number> {
+  try {
+    const journalLinesSum = await prisma.journal_lines.aggregate({
+      where: {
+        account_id: coaId,
+        journal_entries: { is_posted: true, entry_date: { lte: endDate } },
+      },
+      _sum: { debit: true, credit: true },
+    });
+
+    const debit = Number(journalLinesSum._sum.debit ?? 0);
+    const credit = Number(journalLinesSum._sum.credit ?? 0);
+    return normalBalance === "debit" ? debit - credit : credit - debit;
+  } catch (error) {
+    console.error(`Error in getCoaBalance for COA ${coaId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Mengambil saldo COA berdasarkan tipe akun.
  * 
  * @param {string} type Tipe akun ('asset', 'liability', 'equity', 'revenue', 'expense')
  * @param {Date} endDate Batas tanggal penutupan
- * @returns {Promise<CoaSummaryItem[]>}
+ * @returns {Promise<CoaSummaryItem[]>} Daftar saldo akun COA
  */
 async function getBalancesByType(
   type: "asset" | "liability" | "equity" | "revenue" | "expense", 
@@ -21,32 +48,8 @@ async function getBalancesByType(
     });
 
     const result: CoaSummaryItem[] = [];
-
     for (const coa of coas) {
-      const journalLinesSum = await prisma.journal_lines.aggregate({
-        where: {
-          account_id: coa.id,
-          journal_entries: {
-            is_posted: true,
-            entry_date: { lte: endDate },
-          },
-        },
-        _sum: {
-          debit: true,
-          credit: true,
-        },
-      });
-
-      const debit = Number(journalLinesSum._sum.debit ?? 0);
-      const credit = Number(journalLinesSum._sum.credit ?? 0);
-      
-      let balance = 0;
-      if (coa.normal_balance === "debit") {
-        balance = debit - credit;
-      } else {
-        balance = credit - debit;
-      }
-
+      const balance = await getCoaBalance(coa.id, coa.normal_balance, endDate);
       result.push({
         id: coa.id.toString(),
         code: coa.code,
@@ -54,7 +57,6 @@ async function getBalancesByType(
         balance,
       });
     }
-
     return result;
   } catch (error) {
     console.error(`Error in getBalancesByType for ${type}:`, error);
@@ -67,34 +69,22 @@ async function getBalancesByType(
  * 
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
- * @returns {Promise<number>}
+ * @returns {Promise<number>} Total omzet
  */
 async function calculateStoreRevenueForPeriod(startDate: Date, endDate: Date): Promise<number> {
-  const aggregate = await prisma.orders.aggregate({
-    where: {
-      payment_status: "paid",
-      paid_at: { gte: startDate, lte: endDate },
-    },
-    _sum: { grand_total: true },
-  });
-  return Number(aggregate._sum.grand_total ?? 0);
-}
-
-/**
- * Helper: Menghitung total bunga pinjaman periode tertentu.
- * 
- * @param {Date} startDate Tanggal awal
- * @param {Date} endDate Tanggal akhir
- * @returns {Promise<number>}
- */
-async function calculateLoanInterestForPeriod(startDate: Date, endDate: Date): Promise<number> {
-  const aggregate = await prisma.loan_payments.aggregate({
-    where: {
-      paid_at: { gte: startDate, lte: endDate },
-    },
-    _sum: { interest_portion: true },
-  });
-  return Number(aggregate._sum.interest_portion ?? 0);
+  try {
+    const aggregate = await prisma.orders.aggregate({
+      where: {
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      _sum: { grand_total: true },
+    });
+    return Number(aggregate._sum.grand_total ?? 0);
+  } catch (error) {
+    console.error("Error in calculateStoreRevenueForPeriod:", error);
+    throw error;
+  }
 }
 
 /**
@@ -102,16 +92,39 @@ async function calculateLoanInterestForPeriod(startDate: Date, endDate: Date): P
  * 
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
- * @returns {Promise<number>}
+ * @returns {Promise<number>} Total denda
  */
 async function calculateLoanPenaltyForPeriod(startDate: Date, endDate: Date): Promise<number> {
-  const aggregate = await prisma.loan_payments.aggregate({
-    where: {
-      paid_at: { gte: startDate, lte: endDate },
-    },
-    _sum: { penalty_amount: true },
-  });
-  return Number(aggregate._sum.penalty_amount ?? 0);
+  try {
+    const aggregate = await prisma.loan_payments.aggregate({
+      where: { paid_at: { gte: startDate, lte: endDate } },
+      _sum: { penalty_amount: true },
+    });
+    return Number(aggregate._sum.penalty_amount ?? 0);
+  } catch (error) {
+    console.error("Error in calculateLoanPenaltyForPeriod:", error);
+    throw error;
+  }
+}
+
+/**
+ * Helper: Menghitung total bunga pinjaman periode tertentu.
+ * 
+ * @param {Date} startDate Tanggal awal
+ * @param {Date} endDate Tanggal akhir
+ * @returns {Promise<number>} Total bunga
+ */
+async function calculateLoanInterestForPeriod(startDate: Date, endDate: Date): Promise<number> {
+  try {
+    const aggregate = await prisma.loan_payments.aggregate({
+      where: { paid_at: { gte: startDate, lte: endDate } },
+      _sum: { interest_portion: true },
+    });
+    return Number(aggregate._sum.interest_portion ?? 0);
+  } catch (error) {
+    console.error("Error in calculateLoanInterestForPeriod:", error);
+    throw error;
+  }
 }
 
 /**
@@ -119,25 +132,25 @@ async function calculateLoanPenaltyForPeriod(startDate: Date, endDate: Date): Pr
  * 
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
- * @returns {Promise<number>}
+ * @returns {Promise<number>} Total pendapatan jurnal umum
  */
 async function calculateJournalRevenueForPeriod(startDate: Date, endDate: Date): Promise<number> {
-  const aggregate = await prisma.journal_lines.aggregate({
-    where: {
-      journal_entries: {
-        is_posted: true,
-        entry_date: { gte: startDate, lte: endDate },
+  try {
+    const aggregate = await prisma.journal_lines.aggregate({
+      where: {
+        journal_entries: {
+          is_posted: true,
+          entry_date: { gte: startDate, lte: endDate },
+        },
+        chart_of_accounts: { type: "revenue" },
       },
-      chart_of_accounts: {
-        type: "revenue",
-      },
-    },
-    _sum: {
-      debit: true,
-      credit: true,
-    },
-  });
-  return Number(aggregate._sum.credit ?? 0) - Number(aggregate._sum.debit ?? 0);
+      _sum: { debit: true, credit: true },
+    });
+    return Number(aggregate._sum.credit ?? 0) - Number(aggregate._sum.debit ?? 0);
+  } catch (error) {
+    console.error("Error in calculateJournalRevenueForPeriod:", error);
+    throw error;
+  }
 }
 
 /**
@@ -145,32 +158,33 @@ async function calculateJournalRevenueForPeriod(startDate: Date, endDate: Date):
  * 
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
- * @returns {Promise<number>}
+ * @returns {Promise<number>} Total HPP toko
  */
 async function calculateStoreCogsForPeriod(startDate: Date, endDate: Date): Promise<number> {
-  const paidOrders = await prisma.orders.findMany({
-    where: {
-      payment_status: "paid",
-      paid_at: { gte: startDate, lte: endDate },
-    },
-    include: {
-      order_items: {
-        include: {
-          products: {
-            select: { purchase_price: true },
-          },
+  try {
+    const paidOrders = await prisma.orders.findMany({
+      where: {
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      include: {
+        order_items: {
+          include: { products: { select: { purchase_price: true } } },
         },
       },
-    },
-  });
+    });
 
-  let totalCogs = 0;
-  for (const order of paidOrders) {
-    for (const item of order.order_items) {
-      totalCogs += item.qty * Number(item.products?.purchase_price ?? 0);
+    let totalCogs = 0;
+    for (const order of paidOrders) {
+      for (const item of order.order_items) {
+        totalCogs += item.qty * Number(item.products?.purchase_price ?? 0);
+      }
     }
+    return totalCogs;
+  } catch (error) {
+    console.error("Error in calculateStoreCogsForPeriod:", error);
+    throw error;
   }
-  return totalCogs;
 }
 
 /**
@@ -178,88 +192,67 @@ async function calculateStoreCogsForPeriod(startDate: Date, endDate: Date): Prom
  * 
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
- * @returns {Promise<CoaSummaryItem[]>}
+ * @returns {Promise<CoaSummaryItem[]>} Daftar beban operasional
  */
 async function calculateOperationalExpensesForPeriod(startDate: Date, endDate: Date): Promise<CoaSummaryItem[]> {
-  const coas = await prisma.chart_of_accounts.findMany({
-    where: { is_active: true, type: "expense" },
-    orderBy: { code: "asc" },
-  });
-
-  const result: CoaSummaryItem[] = [];
-  for (const coa of coas) {
-    const aggregate = await prisma.journal_lines.aggregate({
-      where: {
-        account_id: coa.id,
-        journal_entries: {
-          is_posted: true,
-          entry_date: { gte: startDate, lte: endDate },
-        },
-      },
-      _sum: { debit: true, credit: true },
+  try {
+    const coas = await prisma.chart_of_accounts.findMany({
+      where: { is_active: true, type: "expense" },
+      orderBy: { code: "asc" },
     });
 
-    const balance = Number(aggregate._sum.debit ?? 0) - Number(aggregate._sum.credit ?? 0);
-    if (balance !== 0) {
-      result.push({
-        id: coa.id.toString(),
-        code: coa.code,
-        name: coa.name,
-        balance,
+    const result: CoaSummaryItem[] = [];
+    for (const coa of coas) {
+      const aggregate = await prisma.journal_lines.aggregate({
+        where: {
+          account_id: coa.id,
+          journal_entries: { is_posted: true, entry_date: { gte: startDate, lte: endDate } },
+        },
+        _sum: { debit: true, credit: true },
       });
+
+      const balance = Number(aggregate._sum.debit ?? 0) - Number(aggregate._sum.credit ?? 0);
+      if (balance !== 0) {
+        result.push({ id: coa.id.toString(), code: coa.code, name: coa.name, balance });
+      }
     }
+    return result;
+  } catch (error) {
+    console.error("Error in calculateOperationalExpensesForPeriod:", error);
+    throw error;
   }
-  return result;
 }
 
 /**
  * Mengambil Laporan Laba Rugi (Perhitungan Hasil Usaha) Koperasi.
  * 
  * @param {number} year Tahun Laporan
- * @returns {Promise<LabaRugiReport>}
+ * @returns {Promise<LabaRugiReport>} Laporan laba rugi terhitung
  */
 export async function getLabaRugi(year: number): Promise<LabaRugiReport> {
   try {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59);
 
-    // 1. Pendapatan
     const storeRevenue = await calculateStoreRevenueForPeriod(startDate, endDate);
     const loanInterestRevenue = await calculateLoanInterestForPeriod(startDate, endDate);
     const loanPenaltyRevenue = await calculateLoanPenaltyForPeriod(startDate, endDate);
     const otherRevenue = await calculateJournalRevenueForPeriod(startDate, endDate);
     const totalRevenue = storeRevenue + loanInterestRevenue + loanPenaltyRevenue + otherRevenue;
 
-    // 2. HPP
     const storeCogs = await calculateStoreCogsForPeriod(startDate, endDate);
-    const totalCogs = storeCogs;
+    const grossProfit = totalRevenue - storeCogs;
 
-    const grossProfit = totalRevenue - totalCogs;
-
-    // 3. Beban Operasional
     const operationalExpenses = await calculateOperationalExpensesForPeriod(startDate, endDate);
     const totalExpenses = operationalExpenses.reduce((sum, item) => sum + item.balance, 0);
-
     const netShu = grossProfit - totalExpenses;
 
     return {
       year,
-      revenue: {
-        storeRevenue,
-        loanInterestRevenue,
-        loanPenaltyRevenue,
-        otherRevenue,
-        totalRevenue,
-      },
-      cogs: {
-        storeCogs,
-        totalCogs,
-      },
+      revenue: { storeRevenue, loanInterestRevenue, loanPenaltyRevenue, otherRevenue, totalRevenue },
+      cogs: { storeCogs, totalCogs: storeCogs },
       grossProfit,
-      expenses: {
-        operationalExpenses,
-        totalExpenses,
-      },
+      expenses: { operationalExpenses, totalExpenses },
       netShu,
     };
   } catch (error) {
@@ -269,78 +262,92 @@ export async function getLabaRugi(year: number): Promise<LabaRugiReport> {
 }
 
 /**
+ * Helper: Mengelompokkan dan menjumlahkan data Aset.
+ * 
+ * @param {CoaSummaryItem[]} coasAsset Daftar saldo akun aset
+ */
+function extractAssets(coasAsset: CoaSummaryItem[]) {
+  const fixedAssets = coasAsset.filter(
+    (item) => item.code.startsWith("12") || /tetap|peralatan|kendaraan|akumulasi|gedung|tanah/i.test(item.name)
+  );
+  const currentAssets = coasAsset.filter((item) => !fixedAssets.includes(item));
+  const totalCurrentAssets = currentAssets.reduce((sum, item) => sum + item.balance, 0);
+  const totalFixedAssets = fixedAssets.reduce((sum, item) => sum + item.balance, 0);
+  return {
+    currentAssets,
+    fixedAssets,
+    totalCurrentAssets,
+    totalFixedAssets,
+    totalAssets: totalCurrentAssets + totalFixedAssets,
+  };
+}
+
+/**
+ * Helper: Mengelompokkan dan menjumlahkan data Kewajiban.
+ * 
+ * @param {CoaSummaryItem[]} coasLiability Daftar saldo akun kewajiban
+ */
+function extractLiabilities(coasLiability: CoaSummaryItem[]) {
+  const longTermLiabilities = coasLiability.filter(
+    (item) => item.code.startsWith("22") || /panjang|bank/i.test(item.name)
+  );
+  const currentLiabilities = coasLiability.filter((item) => !longTermLiabilities.includes(item));
+  const totalCurrentLiabilities = currentLiabilities.reduce((sum, item) => sum + item.balance, 0);
+  const totalLongTermLiabilities = longTermLiabilities.reduce((sum, item) => sum + item.balance, 0);
+  return {
+    currentLiabilities,
+    longTermLiabilities,
+    totalCurrentLiabilities,
+    totalLongTermLiabilities,
+    totalLiabilities: totalCurrentLiabilities + totalLongTermLiabilities,
+  };
+}
+
+/**
+ * Helper: Mengelompokkan dan menjumlahkan data Ekuitas.
+ * 
+ * @param {CoaSummaryItem[]} coasEquity Daftar saldo akun ekuitas
+ * @param {number} currentShu SHU berjalan tahun buku
+ */
+function extractEquity(coasEquity: CoaSummaryItem[], currentShu: number) {
+  const memberSavings = coasEquity.filter(
+    (item) => item.code.startsWith("31") || /simpanan pokok|simpanan wajib/i.test(item.name)
+  );
+  const reservesAndOthers = coasEquity.filter((item) => !memberSavings.includes(item));
+  const totalMemberSavings = memberSavings.reduce((sum, item) => sum + item.balance, 0);
+  const totalReserves = reservesAndOthers.reduce((sum, item) => sum + item.balance, 0);
+  return {
+    memberSavings,
+    reservesAndOthers,
+    currentShu,
+    totalEquity: totalMemberSavings + totalReserves + currentShu,
+  };
+}
+
+/**
  * Mengambil Laporan Neraca Koperasi.
  * 
  * @param {number} year Tahun Laporan Neraca (31 Desember)
- * @returns {Promise<NeracaReport>}
+ * @returns {Promise<NeracaReport>} Laporan neraca terhitung
  */
 export async function getNeraca(year: number): Promise<NeracaReport> {
   try {
     const endDate = new Date(year, 11, 31, 23, 59, 59);
 
-    // 1. Klasifikasi Aset (Lancar & Tetap)
-    const coasAsset = await getBalancesByType("asset", endDate);
-    const fixedAssets = coasAsset.filter(
-      (item) => item.code.startsWith("12") || /tetap|peralatan|kendaraan|akumulasi|gedung|tanah/i.test(item.name)
-    );
-    const currentAssets = coasAsset.filter((item) => !fixedAssets.includes(item));
+    const assets = extractAssets(await getBalancesByType("asset", endDate));
+    const liabilities = extractLiabilities(await getBalancesByType("liability", endDate));
 
-    const totalCurrentAssets = currentAssets.reduce((sum, item) => sum + item.balance, 0);
-    const totalFixedAssets = fixedAssets.reduce((sum, item) => sum + item.balance, 0);
-    const totalAssets = totalCurrentAssets + totalFixedAssets;
-
-    // 2. Klasifikasi Kewajiban (Jangka Pendek & Jangka Panjang)
-    const coasLiability = await getBalancesByType("liability", endDate);
-    const longTermLiabilities = coasLiability.filter(
-      (item) => item.code.startsWith("22") || /panjang|bank/i.test(item.name)
-    );
-    const currentLiabilities = coasLiability.filter((item) => !longTermLiabilities.includes(item));
-
-    const totalCurrentLiabilities = currentLiabilities.reduce((sum, item) => sum + item.balance, 0);
-    const totalLongTermLiabilities = longTermLiabilities.reduce((sum, item) => sum + item.balance, 0);
-    const totalLiabilities = totalCurrentLiabilities + totalLongTermLiabilities;
-
-    // 3. Klasifikasi Ekuitas (Simpanan Anggota & Cadangan)
-    const coasEquity = await getBalancesByType("equity", endDate);
-    const memberSavings = coasEquity.filter(
-      (item) => item.code.startsWith("31") || /simpanan pokok|simpanan wajib/i.test(item.name)
-    );
-    const reservesAndOthers = coasEquity.filter((item) => !memberSavings.includes(item));
-
-    const totalMemberSavings = memberSavings.reduce((sum, item) => sum + item.balance, 0);
-    const totalReserves = reservesAndOthers.reduce((sum, item) => sum + item.balance, 0);
-
-    // SHU tahun berjalan (dari perhitungan PHU)
     const labaRugi = await getLabaRugi(year);
-    const currentShu = labaRugi.netShu;
+    const equity = extractEquity(await getBalancesByType("equity", endDate), labaRugi.netShu);
 
-    const totalEquity = totalMemberSavings + totalReserves + currentShu;
-    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-
-    const variance = Number((totalAssets - totalLiabilitiesAndEquity).toFixed(2));
+    const totalLiabilitiesAndEquity = liabilities.totalLiabilities + equity.totalEquity;
+    const variance = Number((assets.totalAssets - totalLiabilitiesAndEquity).toFixed(2));
 
     return {
       year,
-      assets: {
-        currentAssets,
-        fixedAssets,
-        totalCurrentAssets,
-        totalFixedAssets,
-        totalAssets,
-      },
-      liabilities: {
-        currentLiabilities,
-        longTermLiabilities,
-        totalCurrentLiabilities,
-        totalLongTermLiabilities,
-        totalLiabilities,
-      },
-      equity: {
-        memberSavings,
-        reservesAndOthers,
-        currentShu,
-        totalEquity,
-      },
+      assets,
+      liabilities,
+      equity,
       totalLiabilitiesAndEquity,
       variance,
     };
