@@ -87,6 +87,7 @@ export interface MonitoringStockRow {
   stockAkhir: number
   stockOpname: number | null
   qtyRetur: number
+  penyesuaian: number
 }
 
 export async function getMonitoringStockReport(params: {
@@ -186,6 +187,7 @@ export async function getMonitoringStockReport(params: {
 
       let pembelianQty = 0
       let qtyReturQty = 0
+      let adjustmentQty = 0
       let m1Qty = 0
       let m2Qty = 0
       let m3Qty = 0
@@ -201,6 +203,8 @@ export async function getMonitoringStockReport(params: {
           pembelianQty += qty
         } else if (m.type === 'return') {
           qtyReturQty += qty
+        } else if (m.type === 'adjustment') {
+          adjustmentQty += qty
         } else if (m.type === 'out') {
           if (day <= 7) m1Qty += qty
           else if (day <= 14) m2Qty += qty
@@ -225,6 +229,7 @@ export async function getMonitoringStockReport(params: {
       const stockAkhir = stockAkhirQty * purchasePrice
       const stockOpname = stockOpnameQty !== null ? stockOpnameQty * purchasePrice : null
       const qtyRetur = qtyReturQty * purchasePrice
+      const penyesuaian = adjustmentQty * purchasePrice
 
       return {
         productId: pid,
@@ -241,6 +246,7 @@ export async function getMonitoringStockReport(params: {
         stockAkhir,
         stockOpname,
         qtyRetur,
+        penyesuaian,
       }
     })
 

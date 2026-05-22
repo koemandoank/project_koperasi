@@ -19,11 +19,23 @@ type ProductRow = {
   qtyRequested: number;
 };
 
+type ProductOption = {
+  id: number;
+  name: string;
+  sku: string;
+  stock: number;
+  purchase_price: number;
+  price: number;
+  unit_measure: string;
+};
+
 export function TransferStockPanel({
   locations,
+  products = [],
   defaultFromLocationId,
 }: {
   locations: LocationOption[];
+  products?: ProductOption[];
   defaultFromLocationId?: number;
 }) {
   const [fromLocationId, setFromLocationId] = useState<string>(
@@ -146,15 +158,33 @@ export function TransferStockPanel({
           {rows.map((r, idx) => (
             <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-3 md:gap-3 md:items-end">
               <div className="space-y-1">
-                <Label className="font-semibold text-xs md:text-sm">ID Produk</Label>
-                <Input
+                <Label className="font-semibold text-xs md:text-sm">Pilih Produk</Label>
+                <select
+                  className="w-full h-12 border rounded-xl px-3 bg-background text-base"
                   value={r.productId}
-                  onChange={(e) =>
-                    setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, productId: e.target.value } : x)))
-                  }
-                  placeholder="cth: 123"
-                  className="h-12 text-base font-mono"
-                />
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const prod = products.find(p => String(p.id) === selectedId);
+                    setRows((prev) =>
+                      prev.map((x, i) =>
+                        i === idx
+                          ? {
+                              ...x,
+                              productId: selectedId,
+                              qtyRequested: prod ? prod.stock : 1,
+                            }
+                          : x
+                      )
+                    );
+                  }}
+                >
+                  <option value="">-- Pilih Produk --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku}) - Stok: {p.stock} {p.unit_measure}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-1">
                 <Label className="font-semibold text-xs md:text-sm">Jumlah (Qty)</Label>

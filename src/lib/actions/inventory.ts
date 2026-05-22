@@ -440,20 +440,132 @@ export async function approveStockOpname(opnameId: bigint) {
   try {
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
+    const userId = BigInt(session.user.id)
 
-    const updated = await prisma.stock_opname.update({
-      where: { id: opnameId },
-      data: {
-        status: 'approved',
-        approved_by: BigInt(session.user.id),
-        approved_at: new Date(),
-      },
-      include: {
-        opname_details: true,
-      },
+    // Execute in a transaction to ensure all stock changes and movements are reconciled atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Update the stock opname status to approved
+      const updated = await tx.stock_opname.update({
+        where: { id: opnameId },
+        data: {
+          status: 'approved',
+          approved_by: userId,
+          approved_at: new Date(),
+        },
+        include: {
+          opname_details: true,
+        },
+      })
+
+      // Fetch warehouse location name if location_id exists
+      let locationName = ''
+      if (updated.location_id) {
+        const loc = await tx.warehouse_locations.findUnique({
+          where: { id: updated.location_id },
+          select: { location_name: true },
+        })
+        if (loc) {
+          locationName = loc.location_name
+        }
+      }
+
+      // 2. Loop through all details to reconcile stock
+      for (const detail of updated.opname_details) {
+        const pid = detail.product_id
+        const qtyPhysical = detail.qty_physical
+        let adjustment = 0
+        let globalStockBefore = 0
+        let globalStockAfter = 0
+
+        if (updated.location_id) {
+          // Get the current stock balance at this location
+          const existingBalance = await tx.stock_balances.findUnique({
+            where: {
+              product_id_location_id: {
+                product_id: pid,
+                location_id: updated.location_id,
+              },
+            },
+          })
+
+          const localStockBefore = existingBalance ? existingBalance.qty_on_hand : 0
+          adjustment = qtyPhysical - localStockBefore
+
+          // Update stock balance at the location
+          await tx.stock_balances.upsert({
+            where: {
+              product_id_location_id: {
+                product_id: pid,
+                location_id: updated.location_id,
+              },
+            },
+            update: {
+              qty_on_hand: qtyPhysical,
+              qty_available: qtyPhysical - (existingBalance ? existingBalance.qty_reserved : 0),
+              updated_at: new Date(),
+            },
+            create: {
+              product_id: pid,
+              location_id: updated.location_id,
+              qty_on_hand: qtyPhysical,
+              qty_reserved: 0,
+              qty_available: qtyPhysical,
+              updated_at: new Date(),
+            },
+          })
+
+          // Update global product stock
+          const product = await tx.products.findUnique({
+            where: { id: pid },
+            select: { stock: true },
+          })
+          globalStockBefore = product ? product.stock : 0
+          globalStockAfter = globalStockBefore + adjustment
+
+          await tx.products.update({
+            where: { id: pid },
+            data: { stock: globalStockAfter },
+          })
+
+        } else {
+          // No location specified: update global product stock directly
+          const product = await tx.products.findUnique({
+            where: { id: pid },
+            select: { stock: true },
+          })
+          globalStockBefore = product ? product.stock : 0
+          globalStockAfter = qtyPhysical
+          adjustment = qtyPhysical - globalStockBefore
+
+          await tx.products.update({
+            where: { id: pid },
+            data: { stock: globalStockAfter },
+          })
+        }
+
+        // 3. Log stock movement for the reconciliation
+        await tx.stock_movements.create({
+          data: {
+            product_id: pid,
+            type: 'adjustment',
+            qty: adjustment,
+            stock_before: globalStockBefore,
+            stock_after: globalStockAfter,
+            reference: updated.opname_no,
+            note: updated.location_id
+              ? `Stock opname adjustment. Lokasi: ${locationName || 'Unknown'}`
+              : 'Stock opname adjustment. (Global)',
+            created_by: userId,
+            created_at: new Date(),
+          },
+        })
+      }
+
+      return updated
     })
 
     revalidatePath('/dashboard/toko')
+    revalidatePath('/toko/inventaris')
 
     await logAudit({
       action: 'APPROVE',
@@ -462,13 +574,21 @@ export async function approveStockOpname(opnameId: bigint) {
       oldValues: { status: 'draft' },
       newValues: {
         status: 'approved',
-        opname_no: (updated as any).opname_no,
-        detail_count: (updated as any).opname_details?.length ?? 0,
+        opname_no: result.opname_no,
+        detail_count: result.opname_details?.length ?? 0,
       },
     })
 
-    return { success: true, data: updated }
+    return {
+      success: true,
+      data: {
+        id: Number(result.id),
+        status: result.status,
+        opname_no: result.opname_no,
+      },
+    }
   } catch (error) {
+    console.error('[inventory] Error approving stock opname:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to approve opname',

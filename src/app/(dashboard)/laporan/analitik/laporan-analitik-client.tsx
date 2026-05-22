@@ -289,6 +289,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         item.totPenjualan > 0 || 
         item.stockAkhir > 0 || 
         item.qtyRetur > 0 || 
+        Math.abs(item.penyesuaian || 0) > 0 ||
         (item.stockOpname !== null && item.stockOpname > 0)
       )
     }
@@ -1104,7 +1105,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       const wsStock = wb.addWorksheet('Monitoring Stocks')
       wsStock.views = [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
 
-      const colWidthsStock = [5, 14, 32, 14, 14, 12, 12, 12, 12, 12, 14, 14, 14, 14]
+      const colWidthsStock = [5, 14, 32, 14, 14, 12, 12, 12, 12, 12, 14, 14, 14, 14, 14]
       colWidthsStock.forEach((w, i) => {
         wsStock.getColumn(i + 1).width = w
       })
@@ -1119,13 +1120,13 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       const stockHeaders = [
         'NO', 'KODE BRG', 'NAMA BARANG', 'STOCK AWAL (Rp)', 'PEMBELIAN (Rp)',
         'PENJUALAN M1 (Rp)', 'PENJUALAN M2 (Rp)', 'PENJUALAN M3 (Rp)', 'PENJUALAN M4 (Rp)', 'PENJUALAN M5 (Rp)',
-        'TOT PENJUALAN (Rp)', 'STOCK AKHIR (Rp)', 'STOCK OPNAME (Rp)', 'RETUR (Rp)'
+        'TOT PENJUALAN (Rp)', 'STOCK AKHIR (Rp)', 'PENYESUAIAN (Rp)', 'STOCK OPNAME (Rp)', 'RETUR (Rp)'
       ]
 
       let tStockAwal = 0, tPembelian = 0
       let tM1 = 0, tM2 = 0, tM3 = 0, tM4 = 0, tM5 = 0
       let tTotPenjualan = 0, tStockAkhir = 0
-      let tStockOpname = 0, tQtyRetur = 0
+      let tStockOpname = 0, tQtyRetur = 0, tPenyesuaian = 0
 
       stocks.forEach(item => {
         tStockAwal += item.stockAwal
@@ -1139,6 +1140,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         tStockAkhir += item.stockAkhir
         tStockOpname += item.stockOpname || 0
         tQtyRetur += item.qtyRetur
+        tPenyesuaian += item.penyesuaian || 0
       })
 
       // Merged A4:C4 for Periode info matching the UI bar
@@ -1156,8 +1158,8 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
       }
 
-      // Merged D4:N4 for Totals matching the UI bar
-      wsStock.mergeCells('D4:N4')
+      // Merged D4:O4 for Totals matching the UI bar
+      wsStock.mergeCells('D4:O4')
       const rightCellStock = wsStock.getCell('D4')
       rightCellStock.value = `TOTAL STOCK AWAL: Rp ${tStockAwal.toLocaleString('id-ID')}   TOTAL PEMBELIAN: Rp ${tPembelian.toLocaleString('id-ID')}   TOTAL PENJUALAN: Rp ${tTotPenjualan.toLocaleString('id-ID')}   TOTAL RETUR: Rp ${tQtyRetur.toLocaleString('id-ID')}`
       rightCellStock.font = { bold: true, color: { argb: WHITE }, size: 9 }
@@ -1165,7 +1167,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       rightCellStock.alignment = { horizontal: 'right', vertical: 'middle' }
       rightCellStock.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
 
-      for (let colNum = 5; colNum <= 14; colNum++) {
+      for (let colNum = 5; colNum <= 15; colNum++) {
         const c = wsStock.getCell(4, colNum)
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
         c.border = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} }
@@ -1195,6 +1197,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           item.m5 || '-',
           item.totPenjualan || '-',
           item.stockAkhir,
+          item.penyesuaian,
           item.stockOpname !== null ? item.stockOpname : '-',
           item.qtyRetur || '-'
         ]
@@ -1225,6 +1228,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         tStockAwal, tPembelian,
         tM1, tM2, tM3, tM4, tM5,
         tTotPenjualan, tStockAkhir,
+        tPenyesuaian,
         tStockOpname || '-', tQtyRetur
       ])
       const rowNumStock = stockTotRow.number
@@ -2761,6 +2765,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               <th className="px-2 py-1 border border-indigo-950 whitespace-nowrap" colSpan={5}>PENJUALAN</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>TOT PENJUALAN</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AKHIR</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-bold text-teal-200" rowSpan={2}>PENYESUAIAN</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-bold text-amber-200" rowSpan={2}>STOCK OPNAME</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>RETUR</th>
                             </tr>
@@ -2787,6 +2792,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                                 <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m5 > 0 ? formatRp(item.m5) : '-'}</td>
                                 <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-blue-700 dark:text-blue-400">{item.totPenjualan > 0 ? formatRp(item.totPenjualan) : '-'}</td>
                                 <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold text-slate-800 dark:text-slate-200">{formatRp(item.stockAkhir)}</td>
+                                <td className={`px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold ${item.penyesuaian < 0 ? 'text-red-650 dark:text-red-400' : item.penyesuaian > 0 ? 'text-green-700 dark:text-green-455 font-bold' : 'text-slate-400 dark:text-slate-500'}`}>{item.penyesuaian !== 0 ? (item.penyesuaian > 0 ? '+' : '') + formatRp(item.penyesuaian) : '-'}</td>
                                 <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20">{item.stockOpname !== null ? formatRp(item.stockOpname) : '-'}</td>
                                 <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-red-650 dark:text-red-400">{item.qtyRetur > 0 ? formatRp(item.qtyRetur) : '-'}</td>
                               </tr>
@@ -2802,6 +2808,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m5,0))}</td>
                               <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.totPenjualan,0))}</td>
                               <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAkhir,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.penyesuaian,0))}</td>
                               <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0))}</td>
                               <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.qtyRetur,0))}</td>
                             </tr>
@@ -2877,12 +2884,16 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
                             <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5">
                               <div>
-                                <span className="text-[10px] text-slate-400">Stock Opname: </span>
-                                <span className="font-bold text-amber-600">{item.stockOpname !== null ? item.stockOpname : '-'}</span>
+                                <span className="text-[10px] text-slate-400">Opname: </span>
+                                <span className="font-bold text-amber-600">{item.stockOpname !== null ? formatRp(item.stockOpname) : '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400">Adj: </span>
+                                <span className={`font-bold ${item.penyesuaian < 0 ? 'text-red-600' : item.penyesuaian > 0 ? 'text-green-600' : 'text-slate-400'}`}>{item.penyesuaian !== 0 ? (item.penyesuaian > 0 ? '+' : '') + formatRp(item.penyesuaian) : '-'}</span>
                               </div>
                               <div>
                                 <span className="text-[10px] text-slate-400">Retur: </span>
-                                <span className="font-bold text-red-600">{item.qtyRetur > 0 ? item.qtyRetur : '-'}</span>
+                                <span className="font-bold text-red-600">{item.qtyRetur > 0 ? formatRp(item.qtyRetur) : '-'}</span>
                               </div>
                             </div>
                           </div>

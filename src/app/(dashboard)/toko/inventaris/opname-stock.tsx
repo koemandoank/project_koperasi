@@ -20,7 +20,34 @@ type OpnameProductRow = {
   notes: string;
 };
 
-export function OpnameStockPanel({ locations }: { locations: LocationOption[] }) {
+type ProductOption = {
+  id: number;
+  name: string;
+  sku: string;
+  stock: number;
+  purchase_price: number;
+  price: number;
+  unit_measure: string;
+};
+
+type BalanceOption = {
+  id: number;
+  product_id: number;
+  location_id: number;
+  qty_on_hand: number;
+  qty_reserved: number;
+  updated_at: string | null;
+};
+
+export function OpnameStockPanel({
+  locations,
+  products = [],
+  balances = [],
+}: {
+  locations: LocationOption[];
+  products?: ProductOption[];
+  balances?: BalanceOption[];
+}) {
   const [locationId, setLocationId] = useState<string>(String(locations[0]?.id ?? ""));
 
   const [opnameDate, setOpnameDate] = useState<string>(() => {
@@ -32,6 +59,45 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
   const [rows, setRows] = useState<OpnameProductRow[]>([
     { productId: "", qtySystem: 0, qtyPhysical: 0, notes: "" },
   ]);
+
+  const handleLocationChange = (newLocationId: string) => {
+    setLocationId(newLocationId);
+    const lid = Number(newLocationId);
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!r.productId) return r;
+        const pid = Number(r.productId);
+        const bal = balances.find((b) => b.product_id === pid && b.location_id === lid);
+        const prod = products.find((p) => p.id === pid);
+        const qtySystem = bal ? bal.qty_on_hand : (prod ? prod.stock : 0);
+        return {
+          ...r,
+          qtySystem,
+          qtyPhysical: qtySystem, // Reset physical stock to system stock
+        };
+      })
+    );
+  };
+
+  const handleProductChange = (idx: number, selectedId: string) => {
+    const pid = Number(selectedId);
+    const lid = Number(locationId);
+    const bal = balances.find((b) => b.product_id === pid && b.location_id === lid);
+    const prod = products.find((p) => p.id === pid);
+    const qtySystem = bal ? bal.qty_on_hand : (prod ? prod.stock : 0);
+    setRows((prev) =>
+      prev.map((x, i) =>
+        i === idx
+          ? {
+              ...x,
+              productId: selectedId,
+              qtySystem,
+              qtyPhysical: qtySystem, // Pre-fill physical stock with system stock
+            }
+          : x
+      )
+    );
+  };
 
   const canCreate = useMemo(() => {
     const lid = Number(locationId);
@@ -94,7 +160,7 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
           <select
             className="w-full h-12 border rounded-xl px-3 bg-background text-base"
             value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
+            onChange={(e) => handleLocationChange(e.target.value)}
           >
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
@@ -137,15 +203,19 @@ export function OpnameStockPanel({ locations }: { locations: LocationOption[] })
           {rows.map((r, idx) => (
             <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-4 md:gap-3 md:items-end">
               <div className="space-y-1">
-                <Label className="font-semibold text-xs md:text-sm">ID Produk</Label>
-                <Input
+                <Label className="font-semibold text-xs md:text-sm">Pilih Produk</Label>
+                <select
+                  className="w-full h-12 border rounded-xl px-3 bg-background text-base"
                   value={r.productId}
-                  onChange={(e) =>
-                    setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, productId: e.target.value } : x)))
-                  }
-                  placeholder="cth: 123"
-                  className="h-12 text-base font-mono"
-                />
+                  onChange={(e) => handleProductChange(idx, e.target.value)}
+                >
+                  <option value="">-- Pilih Produk --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-1">
                 <Label className="font-semibold text-xs md:text-sm">Stok Sistem</Label>
