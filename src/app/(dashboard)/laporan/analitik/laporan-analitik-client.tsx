@@ -32,6 +32,23 @@ const PAYMENT_LABELS: Record<string, string> = {
   saving_deduct: 'Potong Simpanan', transfer: 'Transfer', all: 'Semua',
 }
 
+const MONTH_OPTIONS = [
+  { label: 'Januari', value: '1' },
+  { label: 'Februari', value: '2' },
+  { label: 'Maret', value: '3' },
+  { label: 'April', value: '4' },
+  { label: 'Mei', value: '5' },
+  { label: 'Juni', value: '6' },
+  { label: 'Juli', value: '7' },
+  { label: 'Agustus', value: '8' },
+  { label: 'September', value: '9' },
+  { label: 'Oktober', value: '10' },
+  { label: 'November', value: '11' },
+  { label: 'Desember', value: '12' },
+]
+
+const YEAR_OPTIONS = ['2024', '2025', '2026', '2027', '2028']
+
 const PRESETS = [
   { label: 'Hari Ini',   days: 0 },
   { label: '7 Hari',     days: 7 },
@@ -45,7 +62,10 @@ function getPresetDates(days: number): { start: string; end: string } {
   const fmt = (d: Date) => d.toISOString().split('T')[0]
   if (days === 0) return { start: fmt(today), end: fmt(today) }
   if (days === -1) {
-    return { start: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), end: fmt(today) }
+    return {
+      start: fmt(new Date(today.getFullYear(), today.getMonth(), 1)),
+      end: fmt(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+    }
   }
   if (days === -2) {
     return { start: fmt(new Date(today.getFullYear(), 0, 1)), end: fmt(today) }
@@ -77,7 +97,9 @@ function parseTanggal(s: string): Date {
 export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: ReportTemplateConfig }) {
   const now = new Date()
   const [startDate, setStartDate]     = useState(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-  const [endDate, setEndDate]         = useState(now.toISOString().split('T')[0])
+  const [endDate, setEndDate]         = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0])
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1))
+  const [selectedYear, setSelectedYear]   = useState<string>(String(now.getFullYear()))
   const [payMethod, setPayMethod]     = useState('all')
   const [data, setData]               = useState<AnalyticsResult | null>(null)
   const [detailRows, setDetailRows]   = useState<TransaksiKasirRow[]>([])
@@ -109,6 +131,31 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
   const applyPreset = (days: number) => {
     const { start, end } = getPresetDates(days)
     setStartDate(start); setEndDate(end)
+    
+    // Sinkronkan ke dropdown bulan & tahun berdasarkan start date
+    const d = new Date(start)
+    setSelectedMonth(String(d.getMonth() + 1))
+    setSelectedYear(String(d.getFullYear()))
+  }
+
+  /**
+   * Mengatur rentang tanggal (startDate & endDate) berdasarkan bulan dan tahun terpilih.
+   * 
+   * @param {string} month - Bulan terpilih (1-12)
+   * @param {string} year - Tahun terpilih (e.g. '2026')
+   */
+  const handleMonthYearChange = (month: string, year: string) => {
+    setSelectedMonth(month)
+    setSelectedYear(year)
+    const m = parseInt(month, 10) - 1
+    const y = parseInt(year, 10)
+    
+    const fmt = (d: Date) => d.toISOString().split('T')[0]
+    const firstDay = new Date(y, m, 1)
+    const lastDay = new Date(y, m + 1, 0)
+    
+    setStartDate(fmt(firstDay))
+    setEndDate(fmt(lastDay))
   }
 
   const handleSearch = () => {
@@ -911,17 +958,25 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
         const simpSukarela = item.total_simpanan_salary_cut
         const pUang = item.total_pinjaman_uang
+        const admPU = item.total_pinjaman_uang_interest ?? 0
+        const bTrsf = item.total_pinjaman_uang_transfer ?? 0
         const pKhusus = item.total_pinjaman_kilat
+        const admPKhs = item.total_pinjaman_kilat_interest ?? 0
         const pBarang = item.total_pinjaman_barang
+        const admPBrg = item.total_pinjaman_barang_interest ?? 0
         const kreditSbk = item.total_paylater
-        const total = simpPokok + simpWajib + simpSukarela + pUang + pKhusus + pBarang + kreditSbk
+        const total = simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
 
         tSimpPokok += simpPokok
         tSimpWajib += simpWajib
         tSimpSukarela += simpSukarela
         tPUang += pUang
+        tAdmPU += admPU
+        tBTrsf += bTrsf
         tPKhusus += pKhusus
+        tAdmPKhs += admPKhs
         tPBarang += pBarang
+        tAdmPBrg += admPBrg
         tKreditSbk += kreditSbk
         tTotal += total
       })
@@ -972,12 +1027,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
         const simpSukarela = item.total_simpanan_salary_cut
         const pUang = item.total_pinjaman_uang
-        const admPU = 0
-        const bTrsf = 0
+        const admPU = item.total_pinjaman_uang_interest ?? 0
+        const bTrsf = item.total_pinjaman_uang_transfer ?? 0
         const pKhusus = item.total_pinjaman_kilat
-        const admPKhs = 0
+        const admPKhs = item.total_pinjaman_kilat_interest ?? 0
         const pBarang = item.total_pinjaman_barang
-        const admPBrg = 0
+        const admPBrg = item.total_pinjaman_barang_interest ?? 0
         const kreditSbk = item.total_paylater
         const total = simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
 
@@ -1056,15 +1111,15 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
       wsStock.getCell('A1').value = 'PT. SULFINDO ADIUSAHA'
       wsStock.getCell('A1').font = { bold: true, size: 12 }
-      wsStock.getCell('A2').value = 'MONITORING STOCKS (STOCK OPNAME)'
+      wsStock.getCell('A2').value = 'MONITORING FINANCIAL STOCKS (STOCK OPNAME)'
       wsStock.getCell('A2').font = { bold: true, size: 13 }
-      wsStock.getCell('A3').value = `PERIODE: ${startDate} S/D ${endDate}`
+      wsStock.getCell('A3').value = `PERIODE: ${startDate} S/D ${endDate} (Dalam Rupiah)`
       wsStock.getCell('A3').font = { bold: true }
 
       const stockHeaders = [
-        'NO', 'KODE BRG', 'NAMA BARANG', 'STOCK AWAL', 'PEMBELIAN',
-        'PENJUALAN M1', 'PENJUALAN M2', 'PENJUALAN M3', 'PENJUALAN M4', 'PENJUALAN M5',
-        'TOT PENJUALAN', 'STOCK AKHIR', 'STOCK OPNAME', 'QTY RETUR'
+        'NO', 'KODE BRG', 'NAMA BARANG', 'STOCK AWAL (Rp)', 'PEMBELIAN (Rp)',
+        'PENJUALAN M1 (Rp)', 'PENJUALAN M2 (Rp)', 'PENJUALAN M3 (Rp)', 'PENJUALAN M4 (Rp)', 'PENJUALAN M5 (Rp)',
+        'TOT PENJUALAN (Rp)', 'STOCK AKHIR (Rp)', 'STOCK OPNAME (Rp)', 'RETUR (Rp)'
       ]
 
       let tStockAwal = 0, tPembelian = 0
@@ -1089,7 +1144,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       // Merged A4:C4 for Periode info matching the UI bar
       wsStock.mergeCells('A4:C4')
       const leftCellStock = wsStock.getCell('A4')
-      leftCellStock.value = `PERIODE: ${startDate} S/D ${endDate}`
+      leftCellStock.value = `PERIODE: ${startDate} S/D ${endDate} (Dalam Rupiah)`
       leftCellStock.font = { bold: true, color: { argb: WHITE }, size: 9 }
       leftCellStock.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
       leftCellStock.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
@@ -1104,7 +1159,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       // Merged D4:N4 for Totals matching the UI bar
       wsStock.mergeCells('D4:N4')
       const rightCellStock = wsStock.getCell('D4')
-      rightCellStock.value = `TOTAL STOCK AWAL: ${tStockAwal.toLocaleString('id-ID')}   TOTAL PEMBELIAN: ${tPembelian.toLocaleString('id-ID')}   TOTAL PENJUALAN: ${tTotPenjualan.toLocaleString('id-ID')}   TOTAL RETUR: ${tQtyRetur.toLocaleString('id-ID')}`
+      rightCellStock.value = `TOTAL STOCK AWAL: Rp ${tStockAwal.toLocaleString('id-ID')}   TOTAL PEMBELIAN: Rp ${tPembelian.toLocaleString('id-ID')}   TOTAL PENJUALAN: Rp ${tTotPenjualan.toLocaleString('id-ID')}   TOTAL RETUR: Rp ${tQtyRetur.toLocaleString('id-ID')}`
       rightCellStock.font = { bold: true, color: { argb: WHITE }, size: 9 }
       rightCellStock.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } }
       rightCellStock.alignment = { horizontal: 'right', vertical: 'middle' }
@@ -1159,7 +1214,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           } else {
             c.alignment = { horizontal: 'right', vertical: 'middle' }
             if (typeof c.value === 'number') {
-              c.numFmt = '#,##0'
+              c.numFmt = '"Rp"#,##0'
             }
           }
         })
@@ -1181,7 +1236,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         
         if (colNum >= 4) {
           c.alignment = { horizontal: 'right', vertical: 'middle' }
-          if (c.value !== '-') c.numFmt = '#,##0'
+          if (typeof c.value === 'number') c.numFmt = '"Rp"#,##0'
         } else {
           c.alignment = { horizontal: 'center', vertical: 'middle' }
         }
@@ -1656,12 +1711,26 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">TANGGAL MULAI</Label>
-                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl" />
+                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">PILIHAN BULAN</Label>
+                  <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
+                    <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MONTH_OPTIONS.map(m => (
+                        <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">TANGGAL AKHIR</Label>
-                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl" />
+                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">PILIHAN TAHUN</Label>
+                  <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
+                    <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {YEAR_OPTIONS.map(y => (
+                        <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">METODE PEMBAYARAN</Label>
@@ -2022,12 +2091,26 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">PILIHAN BULAN</Label>
+                        <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {MONTH_OPTIONS.map(m => (
+                              <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">PILIHAN TAHUN</Label>
+                        <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {YEAR_OPTIONS.map(y => (
+                              <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">METODE PEMBAYARAN</Label>
@@ -2097,7 +2180,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                       <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-emerald-850 text-white font-bold">
+                            <tr className="bg-emerald-800 text-white font-bold">
                               <th className="px-2 py-2.5 text-center border border-emerald-900 whitespace-nowrap">NO</th>
                               <th className="px-2 py-2.5 text-left border border-emerald-900 whitespace-nowrap">NIK</th>
                               <th className="px-2 py-2.5 text-left border border-emerald-900 whitespace-nowrap">NAMA</th>
@@ -2234,12 +2317,26 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">PILIHAN BULAN</Label>
+                        <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {MONTH_OPTIONS.map(m => (
+                              <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">PILIHAN TAHUN</Label>
+                        <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {YEAR_OPTIONS.map(y => (
+                              <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs font-semibold text-slate-650 dark:text-slate-400">METODE PEMBAYARAN</Label>
@@ -2309,7 +2406,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                       <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-red-850 text-white font-bold text-center">
+                            <tr className="bg-red-800 text-white font-bold text-center">
                               <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>NO</th>
                               <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>NIK</th>
                               <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap text-left" rowSpan={2}>NAMA</th>
@@ -2343,12 +2440,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
                               const simpSukarela = item.total_simpanan_salary_cut
                               const pUang = item.total_pinjaman_uang
-                              const admPU = 0
-                              const bTrsf = 0
+                              const admPU = item.total_pinjaman_uang_interest ?? 0
+                              const bTrsf = item.total_pinjaman_uang_transfer ?? 0
                               const pKhusus = item.total_pinjaman_kilat
-                              const admPKhs = 0
+                              const admPKhs = item.total_pinjaman_kilat_interest ?? 0
                               const pBarang = item.total_pinjaman_barang
-                              const admPBrg = 0
+                              const admPBrg = item.total_pinjaman_barang_interest ?? 0
                               const kreditSbk = item.total_paylater
                               const total = simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
 
@@ -2362,13 +2459,13 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{simpPokok > 0 ? simpPokok.toLocaleString('id-ID') : '-'}</td>
                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">{simpWajib > 0 ? simpWajib.toLocaleString('id-ID') : '-'}</td>
                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-405">{simpSukarela > 0 ? simpSukarela.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-blue-700 dark:text-blue-400">{pUang > 0 ? pUang.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-indigo-700 dark:text-indigo-400">{pKhusus > 0 ? pKhusus.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-amber-700 dark:text-amber-400">{pBarang > 0 ? pBarang.toLocaleString('id-ID') : '-'}</td>
-                                  <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600">-</td>
+                                                                     <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-blue-700 dark:text-blue-400">{pUang > 0 ? pUang.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-slate-600 dark:text-slate-400">{admPU > 0 ? admPU.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-slate-600 dark:text-slate-400">{bTrsf > 0 ? bTrsf.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-indigo-700 dark:text-indigo-400">{pKhusus > 0 ? pKhusus.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-slate-600 dark:text-slate-400">{admPKhs > 0 ? admPKhs.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-amber-700 dark:text-amber-400">{pBarang > 0 ? pBarang.toLocaleString('id-ID') : '-'}</td>
+                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-slate-600 dark:text-slate-400">{admPBrg > 0 ? admPBrg.toLocaleString('id-ID') : '-'}</td>
                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-emerald-700 dark:text-emerald-400">{kreditSbk > 0 ? kreditSbk.toLocaleString('id-ID') : '-'}</td>
                                   <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-red-700 dark:text-red-400">{total > 0 ? total.toLocaleString('id-ID') : '-'}</td>
                                 </tr>
@@ -2388,29 +2485,41 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_uang, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
-                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                                                            <td className="px-2 py-2.5 text-right border border-red-950">
+                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_uang_interest ?? 0), 0).toLocaleString('id-ID')}
+                              </td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
+                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_uang_transfer ?? 0), 0).toLocaleString('id-ID')}
+                              </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_kilat, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
+                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_kilat_interest ?? 0), 0).toLocaleString('id-ID')}
+                              </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_barang, 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-2 py-2.5 text-right border border-red-950">-</td>
+                              <td className="px-2 py-2.5 text-right border border-red-950">
+                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_barang_interest ?? 0), 0).toLocaleString('id-ID')}
+                              </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
                                 {filteredDeductions.reduce((s, item) => s + item.total_paylater, 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => {
+                                                                {filteredDeductions.reduce((s, item) => {
                                   const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
                                   const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
                                   const simpSukarela = item.total_simpanan_salary_cut
                                   const pUang = item.total_pinjaman_uang
+                                  const admPU = item.total_pinjaman_uang_interest ?? 0
+                                  const bTrsf = item.total_pinjaman_uang_transfer ?? 0
                                   const pKhusus = item.total_pinjaman_kilat
+                                  const admPKhs = item.total_pinjaman_kilat_interest ?? 0
                                   const pBarang = item.total_pinjaman_barang
+                                  const admPBrg = item.total_pinjaman_barang_interest ?? 0
                                   const kreditSbk = item.total_paylater
-                                  return s + simpPokok + simpWajib + simpSukarela + pUang + pKhusus + pBarang + kreditSbk
+                                  return s + simpPokok + simpWajib + simpSukarela + pUang + admPU + bTrsf + pKhusus + admPKhs + pBarang + admPBrg + kreditSbk
                                 }, 0).toLocaleString('id-ID')}
                               </td>
                             </tr>
@@ -2554,12 +2663,26 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">TANGGAL MULAI</Label>
-                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">PILIHAN BULAN</Label>
+                        <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {MONTH_OPTIONS.map(m => (
+                              <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">TANGGAL AKHIR</Label>
-                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 text-base rounded-xl bg-white dark:bg-slate-900" />
+                        <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">PILIHAN TAHUN</Label>
+                        <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
+                          <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {YEAR_OPTIONS.map(y => (
+                              <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs font-semibold text-slate-655 dark:text-slate-400">METODE PEMBAYARAN</Label>
@@ -2621,7 +2744,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   ) : filteredStocks.length > 0 ? (
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-indigo-800 text-white text-xs font-bold rounded-t-2xl">
-                        <span>PERIODE: {startDate} S/D {endDate}</span>
+                        <span>PERIODE: {startDate} S/D {endDate} (Semua Nilai dalam Rupiah / Rp)</span>
                         <span className="sm:ml-auto">TOTAL PRODUK TAMPIL: {filteredStocks.length}</span>
                       </div>
                       
@@ -2629,7 +2752,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                       <div className="hidden md:block overflow-x-auto border border-t-0 rounded-b-2xl border-slate-200 dark:border-slate-800">
                         <table className="w-full text-xs border-collapse">
                           <thead>
-                            <tr className="bg-indigo-850 text-white font-bold text-center">
+                            <tr className="bg-indigo-800 text-white font-bold text-center">
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>NO</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-mono" rowSpan={2}>KODE BRG</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap text-left" rowSpan={2}>NAMA BARANG</th>
@@ -2639,7 +2762,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>TOT PENJUALAN</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>STOCK AKHIR</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-bold text-amber-200" rowSpan={2}>STOCK OPNAME</th>
-                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>QTY RETUR</th>
+                              <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>RETUR</th>
                             </tr>
                             <tr className="bg-indigo-900 text-white text-[10px] font-bold">
                               <th className="px-1 py-1 border border-indigo-950">M1</th>
@@ -2655,32 +2778,32 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                                 <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
                                 <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono text-gray-600 dark:text-gray-400">{item.sku}</td>
                                 <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-medium whitespace-nowrap">{item.name}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold">{item.stockAwal.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-green-700 dark:text-green-450 font-medium">{item.pembelian > 0 ? item.pembelian.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m1 > 0 ? item.m1.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m2 > 0 ? item.m2.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m3 > 0 ? item.m3.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m4 > 0 ? item.m4.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m5 > 0 ? item.m5.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-blue-700 dark:text-blue-400">{item.totPenjualan > 0 ? item.totPenjualan.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold text-slate-800 dark:text-slate-200">{item.stockAkhir.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-amber-850 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20">{item.stockOpname !== null ? item.stockOpname.toLocaleString('id-ID') : '-'}</td>
-                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-red-650 dark:text-red-400">{item.qtyRetur > 0 ? item.qtyRetur.toLocaleString('id-ID') : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold">{formatRp(item.stockAwal)}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-green-700 dark:text-green-455 font-medium">{item.pembelian > 0 ? formatRp(item.pembelian) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m1 > 0 ? formatRp(item.m1) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m2 > 0 ? formatRp(item.m2) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m3 > 0 ? formatRp(item.m3) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m4 > 0 ? formatRp(item.m4) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800">{item.m5 > 0 ? formatRp(item.m5) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-medium text-blue-700 dark:text-blue-400">{item.totPenjualan > 0 ? formatRp(item.totPenjualan) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-semibold text-slate-800 dark:text-slate-200">{formatRp(item.stockAkhir)}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 font-bold text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20">{item.stockOpname !== null ? formatRp(item.stockOpname) : '-'}</td>
+                                <td className="px-2 py-1.5 text-right border border-gray-200 dark:border-gray-800 text-red-650 dark:text-red-400">{item.qtyRetur > 0 ? formatRp(item.qtyRetur) : '-'}</td>
                               </tr>
                             ))}
                             <tr className="bg-indigo-800 text-white font-bold text-right">
                               <td colSpan={3} className="px-3 py-2.5 text-center border border-indigo-950">TOTAL</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m1,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m2,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m3,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m4,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.m5,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.stockAkhir,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{filteredStocks.reduce((s,r)=>s+r.qtyRetur,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAwal,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.pembelian,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m1,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m2,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m3,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m4,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m5,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.totPenjualan,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAkhir,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.qtyRetur,0))}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -2690,19 +2813,19 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                       <div className="block md:hidden space-y-3 mt-2">
                         {/* Summary Sticky Card */}
                         <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl space-y-3 shadow-md">
-                          <p className="text-xs font-bold text-slate-400 uppercase">AKUMULASI ALUR STOK</p>
+                          <p className="text-xs font-bold text-slate-400 uppercase">AKUMULASI ALUR KEUANGAN STOK</p>
                           <div className="grid grid-cols-3 gap-2 text-center text-xs">
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Stok Awal</p>
-                              <p className="font-bold text-slate-100">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</p>
+                              <p className="font-bold text-slate-100">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAwal,0))}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Pembelian</p>
-                              <p className="font-bold text-green-400">+{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</p>
+                              <p className="font-bold text-green-400">+{formatRp(filteredStocks.reduce((s,r)=>s+r.pembelian,0))}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Penjualan</p>
-                              <p className="font-bold text-blue-400">-{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</p>
+                              <p className="font-bold text-blue-400 font-bold">-{formatRp(filteredStocks.reduce((s,r)=>s+r.totPenjualan,0))}</p>
                             </div>
                           </div>
                         </div>
@@ -2720,19 +2843,19 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             <div className="grid grid-cols-4 gap-2 text-center text-xs">
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
                                 <span className="text-[9px] text-slate-400 block">Stok Awal</span>
-                                <span className="font-bold text-slate-800 dark:text-slate-200">{item.stockAwal}</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-200">{formatRp(item.stockAwal)}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Beli (+)</span>
-                                <span className="font-bold text-green-600">+{item.pembelian}</span>
+                                <span className="text-[9px] text-slate-455 block">Beli (+)</span>
+                                <span className="font-bold text-green-600">+{formatRp(item.pembelian)}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Jual (-)</span>
-                                <span className="font-bold text-blue-600">-{item.totPenjualan}</span>
+                                <span className="text-[9px] text-slate-455 block">Jual (-)</span>
+                                <span className="font-bold text-blue-600">-{formatRp(item.totPenjualan)}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Stok Akhir</span>
-                                <span className="font-extrabold text-slate-900 dark:text-white">{item.stockAkhir}</span>
+                                <span className="text-[9px] text-slate-455 block">Stok Akhir</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white">{formatRp(item.stockAkhir)}</span>
                               </div>
                             </div>
 
@@ -2782,7 +2905,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           {data.slowMoving.length > 0 && (
             <Card className="border-orange-200 dark:border-orange-950/40 rounded-2xl overflow-hidden shadow-sm">
               <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/10">
-                <CardTitle className="text-base flex items-center gap-2 text-orange-850 dark:text-orange-400 font-bold">
+                <CardTitle className="text-base flex items-center gap-2 text-orange-800 dark:text-orange-400 font-bold">
                   <AlertTriangle className="h-4.5 w-4.5 text-orange-600 dark:text-orange-400 animate-pulse" />
                   Barang Slow Moving (belum terjual pada periode ini)
                 </CardTitle>

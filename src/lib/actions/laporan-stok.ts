@@ -105,6 +105,8 @@ export async function getMonitoringStockReport(params: {
         sku: true,
         name: true,
         stock: true,
+        purchase_price: true,
+        price: true,
       },
       orderBy: { name: 'asc' },
     })
@@ -163,30 +165,32 @@ export async function getMonitoringStockReport(params: {
     const reportRows: MonitoringStockRow[] = products.map(p => {
       const pid = Number(p.id)
       const pMovements = prodMovementsMap.get(pid) || []
+      const purchasePrice = Number(p.purchase_price || 0)
+      const sellingPrice = Number(p.price || 0)
 
       // Calculate Stock Awal:
       // If there are movements in the range, the stock_before of the first movement
       // is the stock at the start. Otherwise, it is the current stock.
-      let stockAwal = p.stock
+      let stockAwalQty = p.stock
       if (pMovements.length > 0) {
-        stockAwal = pMovements[0].stock_before
+        stockAwalQty = pMovements[0].stock_before
       }
 
       // Calculate Stock Akhir:
       // If there are movements in the range, the stock_after of the last movement
       // is the stock at the end. Otherwise, it is equal to stockAwal.
-      let stockAkhir = stockAwal
+      let stockAkhirQty = stockAwalQty
       if (pMovements.length > 0) {
-        stockAkhir = pMovements[pMovements.length - 1].stock_after
+        stockAkhirQty = pMovements[pMovements.length - 1].stock_after
       }
 
-      let pembelian = 0
-      let qtyRetur = 0
-      let m1 = 0
-      let m2 = 0
-      let m3 = 0
-      let m4 = 0
-      let m5 = 0
+      let pembelianQty = 0
+      let qtyReturQty = 0
+      let m1Qty = 0
+      let m2Qty = 0
+      let m3Qty = 0
+      let m4Qty = 0
+      let m5Qty = 0
 
       pMovements.forEach(m => {
         const qty = m.qty
@@ -194,20 +198,33 @@ export async function getMonitoringStockReport(params: {
         const day = date.getDate()
 
         if (m.type === 'in') {
-          pembelian += qty
+          pembelianQty += qty
         } else if (m.type === 'return') {
-          qtyRetur += qty
+          qtyReturQty += qty
         } else if (m.type === 'out') {
-          if (day <= 7) m1 += qty
-          else if (day <= 14) m2 += qty
-          else if (day <= 21) m3 += qty
-          else if (day <= 28) m4 += qty
-          else m5 += qty
+          if (day <= 7) m1Qty += qty
+          else if (day <= 14) m2Qty += qty
+          else if (day <= 21) m3Qty += qty
+          else if (day <= 28) m4Qty += qty
+          else m5Qty += qty
         }
       })
 
-      const totPenjualan = m1 + m2 + m3 + m4 + m5
-      const stockOpname = opnameMap.get(pid) ?? null
+      const totPenjualanQty = m1Qty + m2Qty + m3Qty + m4Qty + m5Qty
+      const stockOpnameQty = opnameMap.get(pid) ?? null
+
+      // Convert quantities to financial values
+      const stockAwal = stockAwalQty * purchasePrice
+      const pembelian = pembelianQty * purchasePrice
+      const m1 = m1Qty * sellingPrice
+      const m2 = m2Qty * sellingPrice
+      const m3 = m3Qty * sellingPrice
+      const m4 = m4Qty * sellingPrice
+      const m5 = m5Qty * sellingPrice
+      const totPenjualan = totPenjualanQty * sellingPrice
+      const stockAkhir = stockAkhirQty * purchasePrice
+      const stockOpname = stockOpnameQty !== null ? stockOpnameQty * purchasePrice : null
+      const qtyRetur = qtyReturQty * purchasePrice
 
       return {
         productId: pid,

@@ -85,6 +85,19 @@ export async function processPosCheckout(data: {
       // Paylater limit is checked dynamically above, no separate field is updated here.
       // Validate stock atomically before committing the order
       for (const item of data.cart) {
+        // Fetch current stock before updates for logging card
+        const product = await tx.products.findUnique({
+          where: { id: BigInt(item.id) }
+        });
+        if (!product) {
+          throw new Error(`Produk ${item.name} tidak ditemukan.`);
+        }
+
+        const stockBefore = product.stock;
+        if (stockBefore < item.qty) {
+          throw new Error(`Stok untuk produk ${item.name} tidak mencukupi.`);
+        }
+
         const updated = await tx.products.updateMany({
           where: {
             id: BigInt(item.id),
@@ -93,10 +106,27 @@ export async function processPosCheckout(data: {
           data: {
             stock: { decrement: item.qty }
           }
-        })
+        });
         if (updated.count === 0) {
-          throw new Error(`Stok untuk produk ${item.name} tidak mencukupi atau barang tidak ditemukan.`)
+          throw new Error(`Stok untuk produk ${item.name} tidak mencukupi atau barang tidak ditemukan.`);
         }
+
+        const stockAfter = stockBefore - item.qty;
+
+        // Log the stock movement as 'out'
+        await tx.stock_movements.create({
+          data: {
+            product_id:   BigInt(item.id),
+            type:         "out",
+            qty:          item.qty,
+            stock_before: stockBefore,
+            stock_after:  stockAfter,
+            reference:    orderNo,
+            note:         "Penjualan POS",
+            created_by:   cashierId,
+            created_at:   new Date(),
+          }
+        });
       }
 
       // Create Order

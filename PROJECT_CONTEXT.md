@@ -68,3 +68,7 @@ Berikut adalah struktur data inti yang digunakan dalam sistem Koperasi Sulfindo:
 - **Fix (Promotions Data Resilience)**:
   - Mendaftarkan model `Promotion` secara resmi ke dalam `prisma/schema.prisma` agar terintegrasi penuh dalam siklus migrasi database dan tidak terhapus (dropped) saat `npx prisma db push`.
   - Menambahkan kueri raw SQL DDL `CREATE TABLE IF NOT EXISTS promotions` di awal berkas `prisma/seed.ts` sebagai proteksi ganda (idempotensi) agar database reset dapat langsung merekonstruksi tabel promosi secara otomatis sebelum pengisian data.
+- **Feature & Fix (Monitoring Stocks Financial & Seeding)**:
+  - Mengubah penyajian data tab "Monitoring Stocks" di Laporan Analitik `/laporan/analitik` dari format QTY barang menjadi nominal Rupiah (laporan keuangan), mengalikan mutasi pergerakan dengan `purchase_price` (untuk masuk/stok awal/stok akhir/retur/opname) dan `price` (untuk penjualan keluar).
+  - Melakukan formatting Rupiah (`formatRp`) pada desktop UI tabel, mobile card feed view, dan ekspor berkas Excel/PDF terpadu secara premium dan konsisten.
+  - Menulis dan mengeksekusi script seeder data demo pergerakan stok untuk bulan berjalan (Mei 2026), termasuk transaksi Pembelian (`type: 'in'`), Laporan Stock Opname berstatus `approved`, serta transaksi Retur Supplier (`type: 'return'`) sehingga kolom PEMBELIAN, STOCK OPNAME, dan RETUR tidak lagi kosong dan terisi dengan data riil yang realistis.

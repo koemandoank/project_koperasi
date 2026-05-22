@@ -375,6 +375,7 @@ export async function receiveGoodsFromPO(
               reference:    grNo,
               note:         `Penerimaan barang dari PO. GR: ${grNo}`,
               created_by:   userId,
+              created_at:   today,
             },
           })
         }
@@ -393,6 +394,7 @@ export async function receiveGoodsFromPO(
               reference:    grNo,
               note:         `Retur ke supplier. Alasan: ${item.rejectReason ?? 'Barang cacat/rusak'}. GR: ${grNo}`,
               created_by:   userId,
+              created_at:   today,
             },
           })
         }
