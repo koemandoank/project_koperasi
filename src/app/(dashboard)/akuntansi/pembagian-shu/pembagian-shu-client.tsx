@@ -32,6 +32,14 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
 
   const formatPercent = (val: number) => `${(val * 100).toFixed(2)}%`
 
+  const getAlokasiPercent = (key: 'cadangan' | 'jasa_anggota' | 'pengurus' | 'ketua' | 'pegawai' | 'pendidikan' | 'sosial_pembangunan'): number => {
+    return report?.config?.alokasi?.[key] ?? 0;
+  }
+
+  const formatAlokasiPercent = (key: 'cadangan' | 'jasa_anggota' | 'pengurus' | 'ketua' | 'pegawai' | 'pendidikan' | 'sosial_pembangunan'): string => {
+    return `${getAlokasiPercent(key).toFixed(2)}%`;
+  }
+
   const handleYearChange = async (selectedYear: string | null) => {
     if (!selectedYear) return
     setYear(selectedYear)
@@ -96,16 +104,21 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
       doc.setFont("helvetica", "bold")
       doc.text("A. RINGKASAN ALOKASI MAKRO KOPERASI", 14, startY)
 
+      const alokasiJasaAnggota = report.config?.alokasi?.jasa_anggota ?? 50;
+      const bobotModal = report.config?.jasa_anggota_bobot?.modal ?? 40;
+      const bobotUsaha = report.config?.jasa_anggota_bobot?.usaha ?? 60;
+
       const macroRows = [
         ["Total SHU RAT Bersih", formatCurrency(report.totalNetIncome), "100.00%"],
-        ["Cadangan Koperasi (Wajib)", formatCurrency(report.cadanganTotal), "20.00%"],
-        ["Honorarium Pengurus", formatCurrency(report.pengurusTotal), "5.00%"],
-        ["Kesejahteraan Pegawai", formatCurrency(report.pegawaiTotal), "5.00%"],
-        ["Dana Pendidikan", formatCurrency(report.pendidikanTotal), "5.00%"],
-        ["Dana Pembangunan & Sosial", formatCurrency(report.sosialTotal), "10.00%"],
-        ["Total Jasa Anggota (Modal & Usaha)", formatCurrency(report.jasaAnggotaTotal), "55.00%"],
-        ["  - Porsi Jasa Modal Anggota (40%)", formatCurrency(report.jasaModalTotal), "22.00%"],
-        ["  - Porsi Jasa Usaha Anggota (60%)", formatCurrency(report.jasaUsahaTotal), "33.00%"]
+        ["Cadangan Koperasi (Wajib)", formatCurrency(report.cadanganTotal), formatAlokasiPercent("cadangan")],
+        ["Honorarium Ketua Koperasi", formatCurrency(report.ketuaTotal ?? 0), formatAlokasiPercent("ketua")],
+        ["Honorarium Pengurus", formatCurrency(report.pengurusTotal), formatAlokasiPercent("pengurus")],
+        ["Kesejahteraan Pegawai", formatCurrency(report.pegawaiTotal), formatAlokasiPercent("pegawai")],
+        ["Dana Pendidikan", formatCurrency(report.pendidikanTotal), formatAlokasiPercent("pendidikan")],
+        ["Dana Pembangunan & Sosial", formatCurrency(report.sosialTotal), formatAlokasiPercent("sosial_pembangunan")],
+        ["Total Jasa Anggota (Modal & Usaha)", formatCurrency(report.jasaAnggotaTotal), formatAlokasiPercent("jasa_anggota")],
+        [`  - Porsi Jasa Modal Anggota (${bobotModal.toFixed(2)}%)`, formatCurrency(report.jasaModalTotal), `${(alokasiJasaAnggota * bobotModal / 100).toFixed(2)}%`],
+        [`  - Porsi Jasa Usaha Anggota (${bobotUsaha.toFixed(2)}%)`, formatCurrency(report.jasaUsahaTotal), `${(alokasiJasaAnggota * bobotUsaha / 100).toFixed(2)}%`]
       ]
 
       autoTable(doc, {
@@ -245,15 +258,20 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
         currentRow++
       }
 
+      const alokasiJasaAnggota = report.config?.alokasi?.jasa_anggota ?? 50;
+      const bobotModal = report.config?.jasa_anggota_bobot?.modal ?? 40;
+      const bobotUsaha = report.config?.jasa_anggota_bobot?.usaha ?? 60;
+
       addSummaryRow("Total SHU RAT Bersih", report.totalNetIncome, "100.00%", true)
-      addSummaryRow("Cadangan Koperasi (Wajib 20%)", report.cadanganTotal, "20.00%")
-      addSummaryRow("Honorarium Pengurus (5%)", report.pengurusTotal, "5.00%")
-      addSummaryRow("Kesejahteraan Pegawai (5%)", report.pegawaiTotal, "5.00%")
-      addSummaryRow("Dana Pendidikan (5%)", report.pendidikanTotal, "5.00%")
-      addSummaryRow("Dana Pembangunan & Sosial (10%)", report.sosialTotal, "10.00%")
-      addSummaryRow("Total Jasa Anggota (Modal & Usaha 55%)", report.jasaAnggotaTotal, "55.00%", true)
-      addSummaryRow("  - Porsi Jasa Modal Anggota (40%)", report.jasaModalTotal, "22.00%")
-      addSummaryRow("  - Porsi Jasa Usaha Anggota (60%)", report.jasaUsahaTotal, "33.00%")
+      addSummaryRow(`Cadangan Koperasi (Wajib ${formatAlokasiPercent("cadangan")})`, report.cadanganTotal, formatAlokasiPercent("cadangan"))
+      addSummaryRow(`Honorarium Ketua Koperasi (${formatAlokasiPercent("ketua")})`, report.ketuaTotal ?? 0, formatAlokasiPercent("ketua"))
+      addSummaryRow(`Honorarium Pengurus (${formatAlokasiPercent("pengurus")})`, report.pengurusTotal, formatAlokasiPercent("pengurus"))
+      addSummaryRow(`Kesejahteraan Pegawai (${formatAlokasiPercent("pegawai")})`, report.pegawaiTotal, formatAlokasiPercent("pegawai"))
+      addSummaryRow(`Dana Pendidikan (${formatAlokasiPercent("pendidikan")})`, report.pendidikanTotal, formatAlokasiPercent("pendidikan"))
+      addSummaryRow(`Dana Pembangunan & Sosial (${formatAlokasiPercent("sosial_pembangunan")})`, report.sosialTotal, formatAlokasiPercent("sosial_pembangunan"))
+      addSummaryRow(`Total Jasa Anggota (Modal & Usaha ${formatAlokasiPercent("jasa_anggota")})`, report.jasaAnggotaTotal, formatAlokasiPercent("jasa_anggota"), true)
+      addSummaryRow(`  - Porsi Jasa Modal Anggota (${bobotModal.toFixed(2)}%)`, report.jasaModalTotal, `${(alokasiJasaAnggota * bobotModal / 100).toFixed(2)}%`)
+      addSummaryRow(`  - Porsi Jasa Usaha Anggota (${bobotUsaha.toFixed(2)}%)`, report.jasaUsahaTotal, `${(alokasiJasaAnggota * bobotUsaha / 100).toFixed(2)}%`)
 
       currentRow += 2
 
@@ -440,7 +458,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
             <Card className="border-0 shadow-sm rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20">
               <CardContent className="p-5 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">JASA ANGGOTA (55%)</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">JASA ANGGOTA ({formatAlokasiPercent("jasa_anggota")})</span>
                   <Users className="h-5 w-5 text-emerald-500" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{formatCurrency(report.jasaAnggotaTotal)}</p>
@@ -451,7 +469,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
             <Card className="border-0 shadow-sm rounded-2xl bg-amber-50/50 dark:bg-amber-950/20">
               <CardContent className="p-5 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">JASA MODAL (40%)</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">JASA MODAL ({(report.config?.jasa_anggota_bobot?.modal ?? 40)}%)</span>
                   <ShieldCheck className="h-5 w-5 text-amber-500" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{formatCurrency(report.jasaModalTotal)}</p>
@@ -462,7 +480,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
             <Card className="border-0 shadow-sm rounded-2xl bg-cyan-50/50 dark:bg-cyan-950/20">
               <CardContent className="p-5 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">JASA USAHA (60%)</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">JASA USAHA ({(report.config?.jasa_anggota_bobot?.usaha ?? 60)}%)</span>
                   <Percent className="h-5 w-5 text-cyan-500" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{formatCurrency(report.jasaUsahaTotal)}</p>
@@ -478,25 +496,29 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
               <CardDescription>Dana Cadangan dihitung wajib min 20% sesuai peraturan perundangan.</CardDescription>
             </CardHeader>
             <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 text-xs">
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                  <span className="text-slate-400 block mb-1">Cadangan Koperasi (20%)</span>
+                  <span className="text-slate-400 block mb-1">Cadangan Koperasi ({formatAlokasiPercent("cadangan")})</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.cadanganTotal)}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                  <span className="text-slate-400 block mb-1">Honor Pengurus (5%)</span>
+                  <span className="text-slate-400 block mb-1">Honor Ketua ({formatAlokasiPercent("ketua")})</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.ketuaTotal ?? 0)}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                  <span className="text-slate-400 block mb-1">Honor Pengurus ({formatAlokasiPercent("pengurus")})</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.pengurusTotal)}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                  <span className="text-slate-400 block mb-1">Kesejahteraan Pegawai (5%)</span>
+                  <span className="text-slate-400 block mb-1">Kesejahteraan Pegawai ({formatAlokasiPercent("pegawai")})</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.pegawaiTotal)}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                  <span className="text-slate-400 block mb-1">Dana Pendidikan (5%)</span>
+                  <span className="text-slate-400 block mb-1">Dana Pendidikan ({formatAlokasiPercent("pendidikan")})</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.pendidikanTotal)}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl col-span-2 sm:col-span-1">
-                  <span className="text-slate-400 block mb-1">Sosial & Pembangunan (10%)</span>
+                  <span className="text-slate-400 block mb-1">Sosial & Pembangunan ({formatAlokasiPercent("sosial_pembangunan")})</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(report.sosialTotal)}</span>
                 </div>
               </div>

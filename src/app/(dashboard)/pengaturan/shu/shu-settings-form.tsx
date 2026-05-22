@@ -25,12 +25,13 @@ const ALOKASI_META: Record<keyof AlokasiFeksi, { label: string; law: string; min
   cadangan:          { label: "Dana Cadangan",              law: "Ps.45 ayat (2a)", min: 20 },
   jasa_anggota:      { label: "Total Jasa Anggota",         law: "Ps.45 ayat (2b)" },
   pengurus:          { label: "Honorarium Pengurus & Pengawas", law: "Ps.45 ayat (2c)" },
+  ketua:             { label: "Honorarium Ketua Koperasi",  law: "Ps.45 ayat (2c-k)" },
   pegawai:           { label: "Tunjangan Karyawan/Pegawai", law: "Ps.45 ayat (2d)" },
   pendidikan:        { label: "Dana Pendidikan Koperasi",   law: "Ps.45 ayat (2e)" },
   sosial_pembangunan:{ label: "Dana Sosial & Pembangunan Daerah", law: "Ps.45 ayat (2f-g)" },
 };
 
-const PIE_COLORS = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-purple-500","bg-pink-500","bg-amber-500"];
+const PIE_COLORS = ["bg-blue-500", "bg-indigo-500", "bg-violet-500", "bg-purple-500", "bg-fuchsia-500", "bg-pink-500", "bg-amber-500"];
 
 function TotalBar({ current, label }: { current: number; label: string }) {
   const valid = Math.abs(current - 100) < 0.01;

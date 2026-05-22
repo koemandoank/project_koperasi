@@ -29,6 +29,7 @@ export interface ShuProjectionReport {
   jasaUsahaTotal: number;
   cadanganTotal: number;
   pengurusTotal: number;
+  ketuaTotal?: number;
   pegawaiTotal: number;
   pendidikanTotal: number;
   sosialTotal: number;
@@ -38,6 +39,7 @@ export interface ShuProjectionReport {
   totalBungaSeluruh: number;
   totalBelanjaSeluruh: number;
   members: MemberShuProjection[];
+  config?: ShuConfig;
 }
 
 /**
@@ -157,6 +159,7 @@ function calculateMacroAllocations(totalShu: number, config: ShuConfig) {
     jasaAnggotaTotal: (p.jasa_anggota / 100) * totalShu,
     cadanganTotal: (p.cadangan / 100) * totalShu,
     pengurusTotal: (p.pengurus / 100) * totalShu,
+    ketuaTotal: (p.ketua / 100) * totalShu,
     pegawaiTotal: (p.pegawai / 100) * totalShu,
     pendidikanTotal: (p.pendidikan / 100) * totalShu,
     sosialTotal: (p.sosial_pembangunan / 100) * totalShu,
@@ -290,6 +293,7 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
       jasaUsahaTotal,
       cadanganTotal: macros.cadanganTotal,
       pengurusTotal: macros.pengurusTotal,
+      ketuaTotal: macros.ketuaTotal,
       pegawaiTotal: macros.pegawaiTotal,
       pendidikanTotal: macros.pendidikanTotal,
       sosialTotal: macros.sosialTotal,
@@ -299,6 +303,7 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
       totalBungaSeluruh,
       totalBelanjaSeluruh,
       members,
+      config,
     };
   } catch (error) {
     console.error("Error in getSHUProjection:", error);

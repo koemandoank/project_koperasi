@@ -87,7 +87,13 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
 
     // 2. Penambahan Simpanan Pokok (setoran anggota baru/lama)
     const typePOKOK = await prisma.saving_types.findFirst({
-      where: { code: { contains: "POKOK" } },
+      where: {
+        OR: [
+          { code: "SP" },
+          { code: { contains: "POKOK" } },
+          { name: { contains: "Pokok" } }
+        ]
+      },
     })
     let simpananPokok = 0
     if (typePOKOK) {
@@ -104,7 +110,13 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
 
     // 3. Penambahan Simpanan Wajib (setoran bulanan)
     const typeWAJIB = await prisma.saving_types.findFirst({
-      where: { code: { contains: "WAJIB" } },
+      where: {
+        OR: [
+          { code: "SW" },
+          { code: { contains: "WAJIB" } },
+          { name: { contains: "Wajib" } }
+        ]
+      },
     })
     let simpananWajib = 0
     if (typeWAJIB) {

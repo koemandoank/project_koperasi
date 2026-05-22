@@ -268,8 +268,24 @@ async function getPendanaan(startDate: Date, endDate: Date): Promise<ArusKasPend
   try {
     // Ambil tipe simpanan POKOK dan WAJIB
     const [typePOKOK, typeWAJIB] = await Promise.all([
-      prisma.saving_types.findFirst({ where: { code: { contains: "POKOK" } } }),
-      prisma.saving_types.findFirst({ where: { code: { contains: "WAJIB" } } }),
+      prisma.saving_types.findFirst({
+        where: {
+          OR: [
+            { code: "SP" },
+            { code: { contains: "POKOK" } },
+            { name: { contains: "Pokok" } }
+          ]
+        }
+      }),
+      prisma.saving_types.findFirst({
+        where: {
+          OR: [
+            { code: "SW" },
+            { code: { contains: "WAJIB" } },
+            { name: { contains: "Wajib" } }
+          ]
+        }
+      }),
     ])
 
     // Penerimaan simpanan pokok

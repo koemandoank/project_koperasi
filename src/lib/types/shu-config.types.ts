@@ -11,6 +11,8 @@ export type AlokasiFeksi = {
   jasa_anggota: number;
   /** Honorarium Pengurus & Pengawas */
   pengurus: number;
+  /** Honorarium Ketua Koperasi */
+  ketua: number;
   /** Tunjangan Karyawan/Pegawai */
   pegawai: number;
   /** Dana Pendidikan Koperasi */
@@ -58,6 +60,7 @@ export const ShuConfigSchema = z.object({
     cadangan: z.number().min(0).max(100),
     jasa_anggota: z.number().min(0).max(100),
     pengurus: z.number().min(0).max(100),
+    ketua: z.number().min(0).max(100),
     pegawai: z.number().min(0).max(100),
     pendidikan: z.number().min(0).max(100),
     sosial_pembangunan: z.number().min(0).max(100),
@@ -88,8 +91,9 @@ export type ShuConfig = z.infer<typeof ShuConfigSchema>;
 export const DEFAULT_SHU_CONFIG: ShuConfig = {
   alokasi: {
     cadangan: 20,
-    jasa_anggota: 55,
+    jasa_anggota: 50,
     pengurus: 5,
+    ketua: 5,
     pegawai: 5,
     pendidikan: 5,
     sosial_pembangunan: 10,
@@ -162,8 +166,9 @@ export function migrateLegacyShuConfig(raw: Record<string, unknown>): ShuConfig 
     return {
       alokasi: {
         cadangan: old.cadangan ?? 20,
-        jasa_anggota: jasaTotal > 0 ? jasaTotal : 55,
+        jasa_anggota: jasaTotal > 0 ? jasaTotal : 50,
         pengurus: old.pengurus ?? 5,
+        ketua: old.ketua ?? 5,
         pegawai: old.pegawai ?? 5,
         pendidikan: old.pendidikan ?? 5,
         sosial_pembangunan: (old.sosial ?? 0) + (old.pembangunan_daerah ?? 0) || 10,
@@ -178,8 +183,17 @@ export function migrateLegacyShuConfig(raw: Record<string, unknown>): ShuConfig 
   }
 
   // Format baru — merge dengan default untuk backward safety
+  const rawAlokasi = (raw.alokasi ?? {}) as Record<string, unknown>;
   return {
-    alokasi: { ...DEFAULT_SHU_CONFIG.alokasi, ...(raw.alokasi as AlokasiFeksi ?? {}) },
+    alokasi: {
+      cadangan: typeof rawAlokasi.cadangan === "number" ? rawAlokasi.cadangan : DEFAULT_SHU_CONFIG.alokasi.cadangan,
+      jasa_anggota: typeof rawAlokasi.jasa_anggota === "number" ? rawAlokasi.jasa_anggota : DEFAULT_SHU_CONFIG.alokasi.jasa_anggota,
+      pengurus: typeof rawAlokasi.pengurus === "number" ? rawAlokasi.pengurus : DEFAULT_SHU_CONFIG.alokasi.pengurus,
+      ketua: typeof rawAlokasi.ketua === "number" ? rawAlokasi.ketua : DEFAULT_SHU_CONFIG.alokasi.ketua,
+      pegawai: typeof rawAlokasi.pegawai === "number" ? rawAlokasi.pegawai : DEFAULT_SHU_CONFIG.alokasi.pegawai,
+      pendidikan: typeof rawAlokasi.pendidikan === "number" ? rawAlokasi.pendidikan : DEFAULT_SHU_CONFIG.alokasi.pendidikan,
+      sosial_pembangunan: typeof rawAlokasi.sosial_pembangunan === "number" ? rawAlokasi.sosial_pembangunan : DEFAULT_SHU_CONFIG.alokasi.sosial_pembangunan,
+    },
     jasa_anggota_bobot: { ...DEFAULT_SHU_CONFIG.jasa_anggota_bobot, ...(raw.jasa_anggota_bobot as JasaAnggotaBobot ?? {}) },
     bobot_unit: { ...DEFAULT_SHU_CONFIG.bobot_unit, ...(raw.bobot_unit as BobotUnit ?? {}) },
     formula_jasa_modal: { ...DEFAULT_SHU_CONFIG.formula_jasa_modal, ...(raw.formula_jasa_modal as FormulaJasaModal ?? {}) },
