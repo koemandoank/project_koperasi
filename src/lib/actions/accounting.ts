@@ -27,9 +27,150 @@ export async function getMonthlyClosures() {
 }
 
 /**
- * Lakukan tutup buku untuk bulan/tahun tertentu.
- * Revenue  = SUM(grand_total) dari orders yang lunas pada periode tsb.
- * Expense  = SUM(credit) dari journal_lines dengan sumber "adjustment" / expense pada periode tsb.
+ * Menghitung total omzet toko (POS/Online yang paid) plus bunga & denda pinjaman pada periode tertentu.
+ * 
+ * @param {Date} startDate Tanggal mulai periode
+ * @param {Date} endDate Tanggal akhir periode
+ * @returns {Promise<number>} Total pendapatan operasional riil
+ */
+async function calculateOperationalRevenue(startDate: Date, endDate: Date): Promise<number> {
+  try {
+    const ordersSum = await prisma.orders.aggregate({
+      where: {
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      _sum: { grand_total: true },
+    });
+
+    const loanPaymentsSum = await prisma.loan_payments.aggregate({
+      where: {
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      _sum: {
+        interest_portion: true,
+        penalty_amount: true,
+      },
+    });
+
+    return Number(ordersSum._sum.grand_total ?? 0) +
+           Number(loanPaymentsSum._sum.interest_portion ?? 0) +
+           Number(loanPaymentsSum._sum.penalty_amount ?? 0);
+  } catch (error) {
+    console.error("Error in calculateOperationalRevenue:", error);
+    throw error;
+  }
+}
+
+/**
+ * Menghitung total pendapatan dari Chart of Accounts (COA) tipe 'revenue' pada jurnal umum.
+ * 
+ * @param {Date} startDate Tanggal mulai periode
+ * @param {Date} endDate Tanggal akhir periode
+ * @returns {Promise<number>} Total pendapatan dari jurnal umum (Kredit - Debet)
+ */
+async function calculateJournalRevenue(startDate: Date, endDate: Date): Promise<number> {
+  try {
+    const journalSum = await prisma.journal_lines.aggregate({
+      where: {
+        journal_entries: {
+          is_posted: true,
+          entry_date: { gte: startDate, lte: endDate },
+        },
+        chart_of_accounts: {
+          type: "revenue",
+        },
+      },
+      _sum: {
+        debit: true,
+        credit: true,
+      },
+    });
+
+    return Number(journalSum._sum.credit ?? 0) - Number(journalSum._sum.debit ?? 0);
+  } catch (error) {
+    console.error("Error in calculateJournalRevenue:", error);
+    throw error;
+  }
+}
+
+/**
+ * Menghitung Harga Pokok Penjualan (HPP / COGS) riil dari produk terjual lunas pada periode tertentu.
+ * 
+ * @param {Date} startDate Tanggal mulai periode
+ * @param {Date} endDate Tanggal akhir periode
+ * @returns {Promise<number>} Total HPP toko
+ */
+async function calculateStoreCogs(startDate: Date, endDate: Date): Promise<number> {
+  try {
+    const paidOrders = await prisma.orders.findMany({
+      where: {
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      include: {
+        order_items: {
+          include: {
+            products: {
+              select: { purchase_price: true },
+            },
+          },
+        },
+      },
+    });
+
+    let totalCogs = 0;
+    for (const order of paidOrders) {
+      for (const item of order.order_items) {
+        const purchasePrice = Number(item.products?.purchase_price ?? 0);
+        totalCogs += item.qty * purchasePrice;
+      }
+    }
+    return totalCogs;
+  } catch (error) {
+    console.error("Error in calculateStoreCogs:", error);
+    throw error;
+  }
+}
+
+/**
+ * Menghitung total beban operasional riil dari Chart of Accounts (COA) tipe 'expense' pada jurnal umum.
+ * 
+ * @param {Date} startDate Tanggal mulai periode
+ * @param {Date} endDate Tanggal akhir periode
+ * @returns {Promise<number>} Total beban operasional (Debet - Kredit)
+ */
+async function calculateJournalExpenses(startDate: Date, endDate: Date): Promise<number> {
+  try {
+    const journalSum = await prisma.journal_lines.aggregate({
+      where: {
+        journal_entries: {
+          is_posted: true,
+          entry_date: { gte: startDate, lte: endDate },
+        },
+        chart_of_accounts: {
+          type: "expense",
+        },
+      },
+      _sum: {
+        debit: true,
+        credit: true,
+      },
+    });
+
+    return Number(journalSum._sum.debit ?? 0) - Number(journalSum._sum.credit ?? 0);
+  } catch (error) {
+    console.error("Error in calculateJournalExpenses:", error);
+    throw error;
+  }
+}
+
+/**
+ * Lakukan tutup buku untuk bulan/tahun tertentu dengan formula akuntansi standar koperasi.
+ * 
+ * @param {number} month Bulan penutupan (1-12)
+ * @param {number} year Tahun penutupan
+ * @returns {Promise<{ success: boolean; error?: string }>} Hasil eksekusi penutupan
  */
 export async function performMonthlyClosing(month: number, year: number) {
   try {
@@ -51,27 +192,17 @@ export async function performMonthlyClosing(month: number, year: number) {
     }
 
     const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day 23:59:59
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Hari terakhir 23:59:59
 
-    // Revenue: total omzet POS + online yang sudah lunas bulan ini
-    const revenueResult = await prisma.orders.aggregate({
-      where: {
-        payment_status: "paid",
-        paid_at: { gte: startDate, lte: endDate },
-      },
-      _sum: { grand_total: true },
-    });
-    const totalRevenue = Number(revenueResult._sum.grand_total ?? 0);
+    // 1. Pendapatan (Revenue)
+    const opRevenue = await calculateOperationalRevenue(startDate, endDate);
+    const journalRevenue = await calculateJournalRevenue(startDate, endDate);
+    const totalRevenue = opRevenue + journalRevenue;
 
-    // Expense: SUM cicilan pinjaman yang dibayar pada bulan ini (principal_portion)
-    const expenseResult = await prisma.loan_payments.aggregate({
-      where: {
-        paid_at: { gte: startDate, lte: endDate },
-      },
-      _sum: { interest_portion: true },
-    });
-    // Expense diambil dari bunga yang dibayarkan (cost of funds) sebagai proxy biaya
-    const totalExpense = Number(expenseResult._sum.interest_portion ?? 0);
+    // 2. Beban / Biaya (Expense)
+    const storeCogs = await calculateStoreCogs(startDate, endDate);
+    const journalExpense = await calculateJournalExpenses(startDate, endDate);
+    const totalExpense = storeCogs + journalExpense;
 
     const netIncome = totalRevenue - totalExpense;
 
@@ -98,7 +229,7 @@ export async function performMonthlyClosing(month: number, year: number) {
         total_revenue: totalRevenue,
         total_expense: totalExpense,
         net_income: netIncome,
-        note: "Tutup buku bulanan dilakukan",
+        note: "Tutup buku bulanan dilakukan dengan logika HPP dan bunga pinjaman yang benar",
       },
     });
 
