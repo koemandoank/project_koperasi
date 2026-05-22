@@ -55,3 +55,13 @@ Berikut adalah struktur data inti yang digunakan dalam sistem Koperasi Sulfindo:
 ### C. Modul Transaksi Retail & Konsinyasi
 - Penjualan kasir POS terintegrasi metode pembayaran potong simpanan atau tunai.
 - Penerimaan barang konsinyasi supplier dengan manajemen status penerimaan yang aman dari bug zero-date dan enum-crashes.
+
+---
+
+## 4. Technical Changelog (Changelog Teknis)
+- **Fix (RAT & Loan Aggregation)**:
+  - Mengalihkan seluruh query agregasi bunga pinjaman dan denda dari tabel `loan_payments` (yang kosong) ke tabel `loan_schedules` dengan status `paid`.
+  - Mengubah `getMemberActivityInterestPaid` pada `src/lib/actions/shu-calculation.ts` agar mengagregasi partisipasi bunga anggota dari `loan_schedules`.
+  - Mengubah `calculateLoanInterestForPeriod` & `calculateLoanPenaltyForPeriod` pada `src/lib/actions/laporan-keuangan.ts` agar menyajikan pendapatan operasional bunga & denda secara riil dari tabel `loan_schedules`.
+  - Mengubah `calculateOperationalRevenue` pada `src/lib/actions/accounting.ts` agar menutup buku bulanan dengan basis data operasional bunga & denda yang seimbang.
+  - Memperbarui logic pencatatan kasir manual `recordLoanPayment` pada `src/lib/actions/loan-payments.ts` agar sinkron menulis pokok, bunga, dan denda terbayar ke dalam `loan_schedules`.
