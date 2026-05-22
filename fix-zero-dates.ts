@@ -41,6 +41,15 @@ async function main() {
   console.log(`- updated_at (< 1970): ${directUpdate} rows`)
   console.log(`- created_at (< 1970): ${directUpdateCreated} rows`)
 
+  // Fix empty/invalid status values in consignment_items
+  const affectedStatus = await prisma.$executeRawUnsafe(
+    `UPDATE consignment_items SET status = 'active' WHERE status = '' OR status IS NULL OR status NOT IN ('active', 'returned', 'settled', 'closed')`
+  ).catch(err => {
+    console.error('Error updating status in consignment_items:', err)
+    return 0
+  })
+  console.log(`- status (empty/invalid): ${affectedStatus} rows`)
+
   // Also check consignment_payables just in case
   const payablesUpdateCreated = await prisma.$executeRawUnsafe(
     `UPDATE consignment_payables SET created_at = NULL WHERE created_at < '1970-01-02 00:00:00'`
