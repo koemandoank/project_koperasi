@@ -9,14 +9,16 @@ import { logAudit } from "@/lib/actions/log-audit"
  * Catat pembayaran cicilan pinjaman secara manual.
  * Dipanggil oleh kasir/pengurus saat anggota membayar cicilan tunai/transfer.
  *
- * @param loanId       - ID pinjaman aktif
- * @param scheduleId   - ID jadwal cicilan yang dibayar (opsional, jika tidak diketahui = null)
- * @param amountPaid   - Total uang yang dibayar
- * @param paymentMethod - Metode pembayaran: cash | salary_cut | saving_deduct | transfer
- * @param reference    - Nomor referensi / bukti transfer (opsional)
- * @param penaltyAmount - Denda keterlambatan (default 0)
- * @param note         - Catatan tambahan (opsional)
- * @returns { success, data } | { success: false, error }
+ * @param {Object} params - Objek parameter transaksi pembayaran
+ * @param {number} params.loanId - ID pinjaman aktif
+ * @param {number} [params.scheduleId] - ID jadwal cicilan yang dibayar
+ * @param {number} params.amountPaid - Total uang yang dibayar
+ * @param {"cash" | "salary_cut" | "saving_deduct" | "transfer"} params.paymentMethod - Metode pembayaran
+ * @param {string} [params.reference] - Nomor referensi / bukti transfer (opsional)
+ * @param {number} [params.penaltyAmount] - Denda keterlambatan (default 0)
+ * @param {string} [params.note] - Catatan tambahan (opsional)
+ * @returns {Promise<{ success: boolean, data?: any, error?: string }>} Status sukses beserta data transaksi atau pesan error
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan transaksi database
  */
 export async function recordLoanPayment({
   loanId,
@@ -102,7 +104,13 @@ export async function recordLoanPayment({
       ...(scheduleId
         ? [prisma.loan_schedules.update({
             where: { id: BigInt(scheduleId) },
-            data: { status: "paid", paid_at: new Date() },
+            data: {
+              status: "paid",
+              paid_at: new Date(),
+              principal_paid: Math.max(0, principalPortion),
+              interest_paid: Math.max(0, interestPortion),
+              penalty_paid: penaltyAmount,
+            },
           })]
         : []),
     ])

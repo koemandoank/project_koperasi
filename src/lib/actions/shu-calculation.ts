@@ -99,17 +99,19 @@ async function getMemberSavingsForShu(memberId: bigint, komponen: string[]): Pro
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
  * @returns {Promise<number>} Total bunga dibayar
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan query database
  */
 async function getMemberActivityInterestPaid(memberId: bigint, startDate: Date, endDate: Date): Promise<number> {
   try {
-    const aggregate = await prisma.loan_payments.aggregate({
+    const aggregate = await prisma.loan_schedules.aggregate({
       where: {
         loans: { member_id: memberId },
+        status: "paid",
         paid_at: { gte: startDate, lte: endDate },
       },
-      _sum: { interest_portion: true },
+      _sum: { interest_paid: true },
     });
-    return Number(aggregate._sum.interest_portion ?? 0);
+    return Number(aggregate._sum.interest_paid ?? 0);
   } catch (error) {
     console.error(`Error in getMemberActivityInterestPaid for member ${memberId}:`, error);
     throw error;

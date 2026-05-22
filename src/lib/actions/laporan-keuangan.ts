@@ -93,14 +93,18 @@ async function calculateStoreRevenueForPeriod(startDate: Date, endDate: Date): P
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
  * @returns {Promise<number>} Total denda
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan query database
  */
 async function calculateLoanPenaltyForPeriod(startDate: Date, endDate: Date): Promise<number> {
   try {
-    const aggregate = await prisma.loan_payments.aggregate({
-      where: { paid_at: { gte: startDate, lte: endDate } },
-      _sum: { penalty_amount: true },
+    const aggregate = await prisma.loan_schedules.aggregate({
+      where: {
+        status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      _sum: { penalty_paid: true },
     });
-    return Number(aggregate._sum.penalty_amount ?? 0);
+    return Number(aggregate._sum.penalty_paid ?? 0);
   } catch (error) {
     console.error("Error in calculateLoanPenaltyForPeriod:", error);
     throw error;
@@ -113,14 +117,18 @@ async function calculateLoanPenaltyForPeriod(startDate: Date, endDate: Date): Pr
  * @param {Date} startDate Tanggal awal
  * @param {Date} endDate Tanggal akhir
  * @returns {Promise<number>} Total bunga
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan query database
  */
 async function calculateLoanInterestForPeriod(startDate: Date, endDate: Date): Promise<number> {
   try {
-    const aggregate = await prisma.loan_payments.aggregate({
-      where: { paid_at: { gte: startDate, lte: endDate } },
-      _sum: { interest_portion: true },
+    const aggregate = await prisma.loan_schedules.aggregate({
+      where: {
+        status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
+      },
+      _sum: { interest_paid: true },
     });
-    return Number(aggregate._sum.interest_portion ?? 0);
+    return Number(aggregate._sum.interest_paid ?? 0);
   } catch (error) {
     console.error("Error in calculateLoanInterestForPeriod:", error);
     throw error;

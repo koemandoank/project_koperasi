@@ -32,6 +32,7 @@ export async function getMonthlyClosures() {
  * @param {Date} startDate Tanggal mulai periode
  * @param {Date} endDate Tanggal akhir periode
  * @returns {Promise<number>} Total pendapatan operasional riil
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan query database
  */
 async function calculateOperationalRevenue(startDate: Date, endDate: Date): Promise<number> {
   try {
@@ -43,19 +44,20 @@ async function calculateOperationalRevenue(startDate: Date, endDate: Date): Prom
       _sum: { grand_total: true },
     });
 
-    const loanPaymentsSum = await prisma.loan_payments.aggregate({
+    const loanSchedulesSum = await prisma.loan_schedules.aggregate({
       where: {
+        status: "paid",
         paid_at: { gte: startDate, lte: endDate },
       },
       _sum: {
-        interest_portion: true,
-        penalty_amount: true,
+        interest_paid: true,
+        penalty_paid: true,
       },
     });
 
     return Number(ordersSum._sum.grand_total ?? 0) +
-           Number(loanPaymentsSum._sum.interest_portion ?? 0) +
-           Number(loanPaymentsSum._sum.penalty_amount ?? 0);
+           Number(loanSchedulesSum._sum.interest_paid ?? 0) +
+           Number(loanSchedulesSum._sum.penalty_paid ?? 0);
   } catch (error) {
     console.error("Error in calculateOperationalRevenue:", error);
     throw error;
