@@ -44,10 +44,13 @@ const ROUTE_MAP: Array<{
   { match: "/akuntansi/aset-tetap",                label: "Aset Tetap",                 Icon: Landmark,        color: "text-stone-600" },
   { match: "/akuntansi/buku-besar",                label: "Buku Besar",                 Icon: BookOpen,        color: "text-cyan-600" },
   { match: "/akuntansi/tutup-buku",                label: "Tutup Buku",                 Icon: Lock,            color: "text-red-700" },
+  { match: "/akuntansi/laporan-keuangan",          label: "Laporan Keuangan RAT",       Icon: FileText,        color: "text-blue-600" },
+  { match: "/akuntansi/pembagian-shu",             label: "Penyaluran SHU RAT",         Icon: Coins,           color: "text-green-600" },
   { match: "/keuangan",                            label: "Keuangan",                   Icon: Coins,           color: "text-emerald-600" },
   { match: "/pengaturan/shu",                      label: "SHU & Distribusi",           Icon: TrendingUp,      color: "text-green-600" },
 
   // Laporan
+  { match: "/laporan/partisipasi-anggota",         label: "Partisipasi Anggota RAT",    Icon: Users,           color: "text-indigo-600" },
   { match: "/laporan/analitik",                    label: "Laporan Keuangan",           Icon: TrendingUp,      color: "text-green-600" },
   { match: "/laporan/harian",                      label: "Laporan Harian",             Icon: FileText,        color: "text-slate-600" },
   { match: "/laporan/po-konsinyasi",               label: "Laporan PO & Konsinyasi",    Icon: FileText,        color: "text-slate-600" },

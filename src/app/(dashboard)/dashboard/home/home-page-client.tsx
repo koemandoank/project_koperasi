@@ -260,6 +260,9 @@ function MenuGridPengurus({ role }: { role: string }) {
     "/keuangan":                    ["superadmin", "admin", "pengurus", "kasir"],
     "/akuntansi/anggaran":          ["superadmin", "admin", "pengurus", "kasir"],
     "/akuntansi/aset-tetap":        ["superadmin", "admin", "pengurus", "kasir"],
+    "/akuntansi/pembagian-shu":     ["superadmin", "admin", "pengurus"],
+    "/akuntansi/laporan-keuangan":  ["superadmin", "admin", "pengurus"],
+    "/laporan/partisipasi-anggota": ["superadmin", "admin", "pengurus"],
     "/akuntansi/buku-besar":        ["superadmin", "admin"],
     "/akuntansi/tutup-buku":        ["superadmin", "admin"],
     "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
@@ -286,10 +289,10 @@ function MenuGridPengurus({ role }: { role: string }) {
       items: [
         { href: "/akuntansi/transaksi",   icon: <ArrowLeftRight className="h-6 w-6 text-white" />, label: "Transaksi" },
         { href: "/keuangan",              icon: <Coins className="h-6 w-6 text-white" />,          label: "Keuangan" },
-        { href: "/laporan/analitik",      icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "Laporan Keu." },
         { href: "/akuntansi/anggaran",    icon: <Calculator className="h-6 w-6 text-white" />,     label: "Anggaran" },
-        { href: "/pengaturan/shu",        icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "SHU & Dist." },
         { href: "/akuntansi/aset-tetap",  icon: <Landmark className="h-6 w-6 text-white" />,       label: "Aset Tetap" },
+        { href: "/akuntansi/pembagian-shu", icon: <Coins className="h-6 w-6 text-white" />,        label: "Penyaluran SHU" },
+        { href: "/pengaturan/shu",        icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "SHU & Dist." },
       ],
     },
     {
@@ -309,6 +312,9 @@ function MenuGridPengurus({ role }: { role: string }) {
       title: "Laporan & Akuntansi",
       color: "from-emerald-500 to-teal-600",
       items: [
+        { href: "/akuntansi/laporan-keuangan", icon: <FileText className="h-6 w-6 text-white" />, label: "Lap. Keu RAT" },
+        { href: "/laporan/partisipasi-anggota", icon: <Users className="h-6 w-6 text-white" />,    label: "Partisipasi RAT" },
+        { href: "/laporan/analitik",      icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "Analitik" },
         { href: "/laporan/harian",         icon: <FileText className="h-6 w-6 text-white" />,   label: "Laporan Harian" },
         { href: "/laporan/po-konsinyasi",  icon: <ScrollText className="h-6 w-6 text-white" />, label: "Lap. PO" },
         { href: "/laporan/stok",           icon: <History className="h-6 w-6 text-white" />,    label: "Riwayat Stok" },
