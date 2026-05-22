@@ -44,31 +44,16 @@ export type ExecutiveDashboardData = {
   generatedAt:        string            // ISO timestamp
 }
 
-// ─── Main Action ──────────────────────────────────────────────────────────────
+// ─── Sub-services (Single Responsibility) ──────────────────────────────────────
 
 /**
- * Mengambil semua data dashboard eksekutif pengurus koperasi dari database riil.
- * Mencakup: Ringkasan Finansial, Kesehatan Kredit, Statistik Anggota, dan Arus Kas.
+ * Mengambil ringkasan data finansial koperasi (Kas/Bank, Simpanan, Outstanding Pinjaman, Estimasi SHU).
  *
- * @returns {Promise<ExecutiveDashboardData>} Data dashboard komprehensif
- * @throws {Error} Mengembalikan data kosong jika terjadi error database
+ * @param {Date} yearStart - Awal tahun berjalan (1 Januari)
+ * @returns {Promise<FinancialOverview>} Data ringkasan keuangan
  */
-export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardData> {
-  const emptyData: ExecutiveDashboardData = {
-    financialOverview:  { totalKasBank: 0, totalSimpanan: 0, totalPinjamanBeredar: 0, estimasiSHU: 0 },
-    loanHealth:         { nplAmount: 0, nplRatio: 0, pendingApprovals: 0, dueSoon: [] },
-    membershipStats:    { total: 0, active: 0, inactive: 0, growthByMonth: [] },
-    cashFlowMonthly:    [],
-    generatedAt:        new Date().toISOString(),
-  }
-
+async function getFinancialOverview(yearStart: Date): Promise<FinancialOverview> {
   try {
-    const now        = new Date()
-    const yearStart  = new Date(now.getFullYear(), 0, 1)
-    const next7Days  = new Date(now)
-    next7Days.setDate(now.getDate() + 7)
-
-    // ─── 1. FINANCIAL OVERVIEW ─────────────────────────────────────────────────
     const [
       assetAccounts,
       totalSimpananAgg,
@@ -77,22 +62,15 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
       ytdHppItems,
       ytdExpenses,
     ] = await Promise.all([
-      // 1a. Kas & Bank dari COA aset
       prisma.chart_of_accounts.findMany({ where: { type: "asset" } }),
-
-      // 1b. Total simpanan anggota (saldo berjalan)
       prisma.saving_transactions.groupBy({
         by: ["type"],
         _sum: { amount: true },
       }),
-
-      // 1c. Outstanding pinjaman aktif
       prisma.loans.aggregate({
         _sum: { outstanding_principal: true },
         where: { status: "active" },
       }),
-
-      // 1d. Pendapatan YTD (kredit jurnal tipe revenue)
       prisma.journal_lines.aggregate({
         _sum: { credit: true, debit: true },
         where: {
@@ -100,14 +78,10 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
           journal_entries: { is_posted: true, entry_date: { gte: yearStart } },
         },
       }),
-
-      // 1e. HPP YTD dari seluruh item terjual (bukan estimasi)
       prisma.order_items.findMany({
         where: { orders: { payment_status: "paid", ordered_at: { gte: yearStart } } },
         select: { qty: true, products: { select: { purchase_price: true } } },
       }),
-
-      // 1f. Beban operasional YTD
       prisma.journal_lines.aggregate({
         _sum: { debit: true, credit: true },
         where: {
@@ -117,7 +91,6 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
       }),
     ])
 
-    // Hitung Total Kas & Bank dari jurnal COA aset
     const assetIds = assetAccounts.map((a) => a.id)
     const assetLines = await prisma.journal_lines.aggregate({
       _sum: { debit: true, credit: true },
@@ -128,7 +101,6 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
       Number(assetLines._sum.debit || 0) - Number(assetLines._sum.credit || 0)
     )
 
-    // Hitung Total Simpanan (deposit - withdraw - salary_cut negatif)
     const simpananMap = Object.fromEntries(
       totalSimpananAgg.map((g) => [g.type, Number(g._sum.amount || 0)])
     )
@@ -139,7 +111,6 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
 
     const totalPinjamanBeredar = Number(activeLoansAgg._sum.outstanding_principal || 0)
 
-    // Estimasi SHU YTD = Pendapatan Toko (Omzet - HPP) + Pendapatan SP - Beban
     const omzetYtd = await prisma.orders.aggregate({
       _sum: { grand_total: true },
       where: { payment_status: "paid", ordered_at: { gte: yearStart } },
@@ -153,9 +124,33 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
     const bebanYtd = Number(ytdExpenses._sum.debit || 0) - Number(ytdExpenses._sum.credit || 0)
     const estimasiSHU = labaKotor + pendapatanSPYtd - bebanYtd
 
-    // ─── 2. LOAN HEALTH ────────────────────────────────────────────────────────
+    return {
+      totalKasBank,
+      totalSimpanan,
+      totalPinjamanBeredar,
+      estimasiSHU,
+    }
+  } catch (error) {
+    console.error("[getFinancialOverview] Error:", error)
+    throw error
+  }
+}
+
+/**
+ * Mengambil data kesehatan kredit/pinjaman koperasi (NPL, Pending Approval, Jatuh Tempo).
+ *
+ * @param {Date} now - Waktu sekarang
+ * @param {Date} next7Days - Waktu 7 hari ke depan
+ * @param {number} totalPinjamanBeredar - Total pinjaman beredar sebagai pembagi rasio NPL
+ * @returns {Promise<LoanHealth>} Data kesehatan pinjaman
+ */
+async function getLoanHealth(
+  now: Date,
+  next7Days: Date,
+  totalPinjamanBeredar: number
+): Promise<LoanHealth> {
+  try {
     const [nplSchedules, pendingApprovals, dueSoonSchedules] = await Promise.all([
-      // 2a. NPL: angsuran telat/belum bayar melewati jatuh tempo
       prisma.loan_schedules.findMany({
         where: {
           due_date: { lt: now },
@@ -168,13 +163,9 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
           penalty_paid: true,
         },
       }),
-
-      // 2b. Pengajuan pinjaman menunggu approval
       prisma.loan_applications.count({
         where: { status: { in: ["pending", "under_review"] } },
       }),
-
-      // 2c. Angsuran jatuh tempo 7 hari ke depan
       prisma.loan_schedules.findMany({
         where: {
           due_date: { gte: now, lte: next7Days },
@@ -216,18 +207,35 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
       ),
     }))
 
-    // ─── 3. MEMBERSHIP STATS ───────────────────────────────────────────────────
+    return {
+      nplAmount,
+      nplRatio,
+      pendingApprovals,
+      dueSoon,
+    }
+  } catch (error) {
+    console.error("[getLoanHealth] Error:", error)
+    throw error
+  }
+}
+
+/**
+ * Mengambil statistik anggota koperasi (Total, Aktif, Inaktif, dan Pertumbuhan Bulanan).
+ *
+ * @returns {Promise<MembershipStats>} Data statistik anggota
+ */
+async function getMembershipStats(): Promise<MembershipStats> {
+  try {
     const [memberCounts, memberGrowthRaw] = await Promise.all([
       prisma.member.groupBy({
         by: ["status"],
         _count: { id: true },
       }),
-      // Anggota baru per bulan (12 bulan terakhir)
       prisma.$queryRaw<{ month: string; new_members: number }[]>`
         SELECT
           DATE_FORMAT(created_at, '%Y-%m') AS month,
           COUNT(*) AS new_members
-        FROM member
+        FROM members
         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
         GROUP BY DATE_FORMAT(created_at, '%Y-%m')
         ORDER BY month ASC
@@ -247,7 +255,20 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
       })),
     }
 
-    // ─── 4. CASH FLOW MONTHLY (12 bulan terakhir) ─────────────────────────────
+    return membershipStats
+  } catch (error) {
+    console.error("[getMembershipStats] Error:", error)
+    throw error
+  }
+}
+
+/**
+ * Mengambil data arus kas masuk vs keluar 12 bulan terakhir.
+ *
+ * @returns {Promise<CashFlowPoint[]>} Deret data arus kas bulanan
+ */
+async function getCashFlowMonthly(): Promise<CashFlowPoint[]> {
+  try {
     const cashFlowRaw = await prisma.$queryRaw<
       { month: string; pemasukan: number; pengeluaran: number }[]
     >`
@@ -256,72 +277,91 @@ export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardDat
         SUM(pemasukan)              AS pemasukan,
         SUM(pengeluaran)            AS pengeluaran
       FROM (
-        -- Angsuran masuk (loan payments)
-        SELECT DATE_FORMAT(paid_at, '%Y-%01-01') AS bulan,
+        SELECT DATE_FORMAT(paid_at, '%Y-%m-01') AS bulan,
                SUM(principal_paid + interest_paid + COALESCE(penalty_paid, 0)) AS pemasukan,
                0 AS pengeluaran
         FROM loan_schedules
         WHERE paid_at IS NOT NULL
           AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(paid_at, '%Y-%m')
+        GROUP BY DATE_FORMAT(paid_at, '%Y-%m-01')
 
         UNION ALL
 
-        -- Simpanan masuk
-        SELECT DATE_FORMAT(transaction_at, '%Y-%01-01') AS bulan,
+        SELECT DATE_FORMAT(transaction_at, '%Y-%m-01') AS bulan,
                SUM(amount) AS pemasukan,
                0 AS pengeluaran
         FROM saving_transactions
         WHERE type = 'deposit'
           AND transaction_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(transaction_at, '%Y-%m')
+        GROUP BY DATE_FORMAT(transaction_at, '%Y-%m-01')
 
         UNION ALL
 
-        -- Penjualan toko (kas masuk)
-        SELECT DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%01-01') AS bulan,
+        SELECT DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-01') AS bulan,
                SUM(grand_total) AS pemasukan,
                0 AS pengeluaran
         FROM orders
         WHERE payment_status = 'paid'
           AND payment_method != 'paylater'
           AND COALESCE(paid_at, ordered_at) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m')
+        GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-01')
 
         UNION ALL
 
-        -- Pencairan pinjaman (kas keluar)
-        SELECT DATE_FORMAT(disbursed_at, '%Y-%01-01') AS bulan,
+        SELECT DATE_FORMAT(disbursed_at, '%Y-%m-01') AS bulan,
                0 AS pemasukan,
                SUM(principal) AS pengeluaran
         FROM loans
         WHERE disbursed_at IS NOT NULL
           AND disbursed_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(disbursed_at, '%Y-%m')
+        GROUP BY DATE_FORMAT(disbursed_at, '%Y-%m-01')
       ) t
       GROUP BY DATE_FORMAT(bulan, '%Y-%m')
       ORDER BY month ASC
     `
 
-    const cashFlowMonthly: CashFlowPoint[] = (cashFlowRaw as any[]).map((r) => ({
+    return (cashFlowRaw as any[]).map((r) => ({
       label:       String(r.month),
       pemasukan:   Number(r.pemasukan  || 0),
       pengeluaran: Number(r.pengeluaran || 0),
     }))
+  } catch (error) {
+    console.error("[getCashFlowMonthly] Error:", error)
+    throw error
+  }
+}
+
+// ─── Main Action ──────────────────────────────────────────────────────────────
+
+/**
+ * Mengambil semua data dashboard eksekutif pengurus koperasi dari database riil.
+ * Mencakup: Ringkasan Finansial, Kesehatan Kredit, Statistik Anggota, dan Arus Kas.
+ *
+ * @returns {Promise<ExecutiveDashboardData>} Data dashboard komprehensif
+ */
+export async function getExecutiveDashboardData(): Promise<ExecutiveDashboardData> {
+  const emptyData: ExecutiveDashboardData = {
+    financialOverview:  { totalKasBank: 0, totalSimpanan: 0, totalPinjamanBeredar: 0, estimasiSHU: 0 },
+    loanHealth:         { nplAmount: 0, nplRatio: 0, pendingApprovals: 0, dueSoon: [] },
+    membershipStats:    { total: 0, active: 0, inactive: 0, growthByMonth: [] },
+    cashFlowMonthly:    [],
+    generatedAt:        new Date().toISOString(),
+  }
+
+  try {
+    const now        = new Date()
+    const yearStart  = new Date(now.getFullYear(), 0, 1)
+    const next7Days  = new Date(now)
+    next7Days.setDate(now.getDate() + 7)
+
+    const financialOverview = await getFinancialOverview(yearStart)
+    const loanHealth = await getLoanHealth(now, next7Days, financialOverview.totalPinjamanBeredar)
+    const membershipStats = await getMembershipStats()
+    const cashFlowMonthly = await getCashFlowMonthly()
 
     return {
-      financialOverview: {
-        totalKasBank,
-        totalSimpanan,
-        totalPinjamanBeredar,
-        estimasiSHU,
-      },
-      loanHealth: {
-        nplAmount,
-        nplRatio,
-        pendingApprovals,
-        dueSoon,
-      },
+      financialOverview,
+      loanHealth,
       membershipStats,
       cashFlowMonthly,
       generatedAt: now.toISOString(),

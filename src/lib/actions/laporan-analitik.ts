@@ -114,21 +114,36 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         orderBy: { stock: 'desc' },
       }),
 
-      // 5. Daily series per date — HPP riil dihitung via JOIN ke order_items + products
+      // 5. Daily series per date — HPP riil dihitung via LEFT JOIN subquery untuk mencegah inflasi omzet
       //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
       prisma.$queryRaw<{ date: string; omzet: number; cogs: number }[]>`
         SELECT 
-          DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS \`date\`,
-          SUM(o.grand_total)                                           AS omzet,
-          SUM(oi.qty * p.purchase_price)                               AS cogs
-        FROM orders o
-        INNER JOIN order_items oi ON oi.order_id = o.id
-        INNER JOIN products    p  ON p.id = oi.product_id
-        WHERE o.payment_status = 'paid'
-          AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
-          AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
-        GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
-        ORDER BY \`date\`
+          \`do\`.date,
+          \`do\`.omzet,
+          COALESCE(\`dc\`.cogs, 0) AS cogs
+        FROM (
+          SELECT 
+            DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS date,
+            SUM(o.grand_total) AS omzet
+          FROM orders o
+          WHERE o.payment_status = 'paid'
+            AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
+            AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
+          GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
+        ) \`do\`
+        LEFT JOIN (
+          SELECT 
+            DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS date,
+            SUM(oi.qty * p.purchase_price) AS cogs
+          FROM orders o
+          INNER JOIN order_items oi ON oi.order_id = o.id
+          INNER JOIN products p ON p.id = oi.product_id
+          WHERE o.payment_status = 'paid'
+            AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
+            AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
+          GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
+        ) \`dc\` ON \`do\`.date = \`dc\`.date
+        ORDER BY \`do\`.date
       `,
 
       // 6. Fetch ALL sold items to compute exact COGS summary (no limit)
