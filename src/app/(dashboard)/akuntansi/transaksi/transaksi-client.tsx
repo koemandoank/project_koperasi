@@ -77,6 +77,7 @@ export function TransaksiClient({
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false)
   const [addModalType, setAddModalType] = useState<"category" | "bank">("category")
   const [addModalName, setAddModalName] = useState<string>("")
+  const [addModalNumber, setAddModalNumber] = useState<string>("")
   const [addModalLoading, setAddModalLoading] = useState<boolean>(false)
 
   // ─────────────────────────────────────────────
@@ -152,6 +153,7 @@ export function TransaksiClient({
   const openAddModal = (modalType: "category" | "bank") => {
     setAddModalType(modalType)
     setAddModalName("")
+    setAddModalNumber("")
     setIsAddModalOpen(true)
   }
 
@@ -164,7 +166,11 @@ export function TransaksiClient({
         ? "asset" 
         : (type === "pengeluaran" ? "expense" : "revenue")
       
-      const res = await createAdditionalAccount(addModalName.trim(), accountType)
+      const finalName = addModalType === "bank" && addModalNumber.trim()
+        ? `${addModalName.trim()} (No. ${addModalNumber.trim()})`
+        : addModalName.trim()
+      
+      const res = await createAdditionalAccount(finalName, accountType)
       
       if (res.success && res.data) {
         toast.success(`${addModalType === "category" ? "Kategori" : "Rekening"} baru berhasil dibuat!`)
@@ -586,12 +592,27 @@ export function TransaksiClient({
                 placeholder={
                   addModalType === "category" 
                     ? (type === "pengeluaran" ? "Misal: Biaya Seragam Karyawan" : "Misal: Pendapatan Sponsor") 
-                    : "Misal: Bank Mandiri (Koperasi)"
+                    : "Misal: Bank Mandiri"
                 }
                 className="h-12 rounded-xl text-base border-slate-200/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 autoFocus
               />
             </div>
+
+            {addModalType === "bank" && (
+              <div className="space-y-1.5 transition-all duration-200">
+                <label className="text-xs font-bold text-slate-450 dark:text-slate-350 uppercase tracking-wider">
+                  Nomor Rekening
+                </label>
+                <Input
+                  type="text"
+                  value={addModalNumber}
+                  onChange={(e) => setAddModalNumber(e.target.value)}
+                  placeholder="Misal: 102000123456"
+                  className="h-12 rounded-xl text-base border-slate-200/80 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex flex-row justify-end gap-3 mt-4">

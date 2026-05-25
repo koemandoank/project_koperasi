@@ -12,11 +12,12 @@ export const revalidate = 0 // Disable cache for this page so stats and lists ar
 export default async function TransaksiPage({
   searchParams
 }: {
-  searchParams: { [key: string]: string | undefined }
+  searchParams: Promise<{ [key: string]: string | undefined }>
 }) {
-  const typeParam = searchParams?.type === "pemasukan" ? "pemasukan" : "pengeluaran"
-  const amountParam = searchParams?.amount ? Number(searchParams.amount) : 0
-  const notesParam = searchParams?.notes || ""
+  const resolvedParams = await searchParams
+  const typeParam = resolvedParams?.type === "pemasukan" ? "pemasukan" : "pengeluaran"
+  const amountParam = resolvedParams?.amount ? Math.round(Number(resolvedParams.amount)) : 0
+  const notesParam = resolvedParams?.notes || ""
   
   const optionsRes = await getTransactionFormOptions()
   const statsRes = await getTodayTransactionStats()
