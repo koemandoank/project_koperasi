@@ -172,7 +172,7 @@ export async function getGeneralLedgerNotifications(): Promise<NotificationItem[
         type: "info",
         message: `${todayPaidSchedules} angsuran pinjaman dibayar hari ini — pastikan jurnal penerimaan kas sudah tercatat.`,
         detail: "Verifikasi pencatatan debit Kas dan kredit Piutang Pinjaman sudah sesuai.",
-        actionLink: "/akuntansi/buku-besar"
+        actionLink: "/akuntansi/transaksi"
       })
     }
 
