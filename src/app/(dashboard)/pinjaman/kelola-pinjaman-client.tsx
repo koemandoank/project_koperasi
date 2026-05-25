@@ -15,9 +15,17 @@ import { recordLoanPayment } from "@/lib/actions/loan-payments"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 const formatRp = (v: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v)
+
+const formatDueDate = (dateStr: string | null) => {
+  if (!dateStr) return "-"
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+}
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   active: { label: "Aktif", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-450 border-emerald-200" },
@@ -377,6 +385,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                   <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-right">Plafon</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-right">Sisa Pokok</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-right">Angsuran/Bln</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-center">Jatuh Tempo</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-center">Status</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 text-center pr-6">Aksi</TableHead>
                 </TableRow>
@@ -384,7 +393,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
               <TableBody>
                 {filteredLoans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-10 text-slate-400 dark:text-slate-500">
+                    <TableCell colSpan={10} className="text-center py-10 text-slate-400 dark:text-slate-500">
                       Tidak ada data pinjaman anggota.
                     </TableCell>
                   </TableRow>
@@ -420,6 +429,26 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                         <TableCell className="py-4 text-right font-medium">{formatRp(l.principal)}</TableCell>
                         <TableCell className="py-4 text-right font-bold text-rose-600 dark:text-rose-400">{formatRp(l.outstanding)}</TableCell>
                         <TableCell className="py-4 text-right font-medium text-slate-700 dark:text-slate-350">{formatRp(l.monthly_installment)}</TableCell>
+                        <TableCell className="py-4 text-center">
+                          {(() => {
+                            const nextUnpaid = l.schedules.find((s) => s.status !== "paid")
+                            const nextDueDate = nextUnpaid ? nextUnpaid.due_date : null
+                            return nextDueDate ? (
+                              <span
+                                className={cn(
+                                  "text-xs font-semibold px-2.5 py-1 rounded-md border inline-block whitespace-nowrap",
+                                  l.status === "overdue"
+                                    ? "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450"
+                                    : "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-slate-300"
+                                )}
+                              >
+                                {formatDueDate(nextDueDate)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 dark:text-slate-600 font-mono">-</span>
+                            )
+                          })()}
+                        </TableCell>
                         <TableCell className="py-4 text-center">
                           <Badge className={`${STATUS_MAP[l.status]?.cls} border px-2.5 py-0.5 rounded-full text-xs font-semibold`}>
                             {STATUS_MAP[l.status]?.label || l.status}
