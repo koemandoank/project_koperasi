@@ -15,6 +15,9 @@ export default async function TransaksiPage({
   searchParams: { [key: string]: string | undefined }
 }) {
   const typeParam = searchParams?.type === "pemasukan" ? "pemasukan" : "pengeluaran"
+  const amountParam = searchParams?.amount ? Number(searchParams.amount) : 0
+  const notesParam = searchParams?.notes || ""
+  
   const optionsRes = await getTransactionFormOptions()
   const statsRes = await getTodayTransactionStats()
   const recentRes = await getRecentTransactions(10)
@@ -37,6 +40,8 @@ export default async function TransaksiPage({
         initialStats={statsRes.stats || { pemasukanHariIni: 0, pengeluaranHariIni: 0 }}
         initialRecentTransactions={recentRes.entries || []}
         defaultType={typeParam}
+        defaultAmount={amountParam}
+        defaultNotes={notesParam}
       />
     </div>
   )

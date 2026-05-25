@@ -168,11 +168,22 @@ export async function getGeneralLedgerNotifications(): Promise<NotificationItem[
       }
     })
     if (todayPaidSchedules > 0) {
+      const todayPayments = await prisma.loan_payments.aggregate({
+        where: {
+          paid_at: { gte: todayStart, lte: todayEnd }
+        },
+        _sum: {
+          amount_paid: true
+        }
+      })
+      const todayAmountPaid = Number(todayPayments._sum.amount_paid || 0)
+      const dateStr = todayStart.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+      
       notifications.push({
         type: "info",
         message: `${todayPaidSchedules} angsuran pinjaman dibayar hari ini — pastikan jurnal penerimaan kas sudah tercatat.`,
         detail: "Verifikasi pencatatan debit Kas dan kredit Piutang Pinjaman sudah sesuai.",
-        actionLink: "/akuntansi/transaksi?type=pemasukan"
+        actionLink: `/akuntansi/transaksi?type=pemasukan&amount=${todayAmountPaid}&notes=Penerimaan Kas - Angsuran Pinjaman Tanggal ${dateStr}`
       })
     }
 

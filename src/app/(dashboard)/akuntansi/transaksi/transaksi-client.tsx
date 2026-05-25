@@ -30,6 +30,8 @@ interface TransaksiClientProps {
   initialStats: TransactionStats
   initialRecentTransactions: RecentTransactionItem[]
   defaultType?: "pemasukan" | "pengeluaran"
+  defaultAmount?: number
+  defaultNotes?: string
 }
 
 /**
@@ -45,7 +47,9 @@ export function TransaksiClient({
   initialCategoriesIncome,
   initialStats,
   initialRecentTransactions,
-  defaultType = "pengeluaran"
+  defaultType = "pengeluaran",
+  defaultAmount = 0,
+  defaultNotes = ""
 }: TransaksiClientProps) {
   const router = useRouter()
 
@@ -53,11 +57,11 @@ export function TransaksiClient({
   // State Management
   // ─────────────────────────────────────────────
   const [type, setType] = useState<"pemasukan" | "pengeluaran">(defaultType)
-  const [amount, setAmount] = useState<number>(0)
+  const [amount, setAmount] = useState<number>(defaultAmount)
   const [accountId, setAccountId] = useState<string>("")
   const [categoryId, setCategoryId] = useState<string>("")
   const [date, setDate] = useState<string>(() => new Date().toISOString().split("T")[0])
-  const [notes, setNotes] = useState<string>("")
+  const [notes, setNotes] = useState<string>(defaultNotes)
   
   const [loading, setLoading] = useState<boolean>(false)
   const [refreshing, setRefreshing] = useState<boolean>(false)
