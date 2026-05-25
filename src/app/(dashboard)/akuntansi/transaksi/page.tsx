@@ -9,7 +9,12 @@ export const revalidate = 0 // Disable cache for this page so stats and lists ar
  * Mengambil data awal secara server-side (opsi form COA, transaksi terkini, statistik hari ini)
  * dan mengirimkannya ke client component untuk rendering interaktif.
  */
-export default async function TransaksiPage() {
+export default async function TransaksiPage({
+  searchParams
+}: {
+  searchParams: { [key: string]: string | undefined }
+}) {
+  const typeParam = searchParams?.type === "pemasukan" ? "pemasukan" : "pengeluaran"
   const optionsRes = await getTransactionFormOptions()
   const statsRes = await getTodayTransactionStats()
   const recentRes = await getRecentTransactions(10)
@@ -31,6 +36,7 @@ export default async function TransaksiPage() {
         initialCategoriesIncome={optionsRes.categoriesIncome || []}
         initialStats={statsRes.stats || { pemasukanHariIni: 0, pengeluaranHariIni: 0 }}
         initialRecentTransactions={recentRes.entries || []}
+        defaultType={typeParam}
       />
     </div>
   )

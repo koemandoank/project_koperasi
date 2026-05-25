@@ -29,6 +29,7 @@ interface TransaksiClientProps {
   initialCategoriesIncome: ChartOfAccountItem[]
   initialStats: TransactionStats
   initialRecentTransactions: RecentTransactionItem[]
+  defaultType?: "pemasukan" | "pengeluaran"
 }
 
 /**
@@ -43,14 +44,15 @@ export function TransaksiClient({
   initialCategoriesExpense,
   initialCategoriesIncome,
   initialStats,
-  initialRecentTransactions
+  initialRecentTransactions,
+  defaultType = "pengeluaran"
 }: TransaksiClientProps) {
   const router = useRouter()
 
   // ─────────────────────────────────────────────
   // State Management
   // ─────────────────────────────────────────────
-  const [type, setType] = useState<"pemasukan" | "pengeluaran">("pengeluaran")
+  const [type, setType] = useState<"pemasukan" | "pengeluaran">(defaultType)
   const [amount, setAmount] = useState<number>(0)
   const [accountId, setAccountId] = useState<string>("")
   const [categoryId, setCategoryId] = useState<string>("")
