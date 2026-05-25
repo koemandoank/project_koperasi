@@ -156,14 +156,29 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
       Number(loanInterestAgg._sum.interest_paid ?? 0) +
       Number(loanInterestAgg._sum.penalty_paid ?? 0)
 
-    const cogsAgg = await prisma.order_items.aggregate({
+    // Hitung HPP Toko secara historis
+    const paidOrders = await prisma.orders.findMany({
       where: {
-        orders: { payment_status: "paid", paid_at: { gte: startDate, lte: endDate } },
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate },
       },
-      _sum: { subtotal: true },
+      include: {
+        order_items: {
+          select: {
+            qty: true,
+            purchase_price: true,
+          },
+        },
+      },
     })
-    // HPP hanya dari purchase_price * qty — data aktual di sistem
-    const grossProfit = storeRevenue + loanRevenue
+    let storeCogs = 0
+    for (const order of paidOrders) {
+      for (const item of order.order_items) {
+        storeCogs += item.qty * Number(item.purchase_price ?? 0)
+      }
+    }
+
+    const grossProfit = (storeRevenue - storeCogs) + loanRevenue
     const expenseAgg = await prisma.journal_lines.aggregate({
       where: {
         journal_entries: { is_posted: true, entry_date: { gte: startDate, lte: endDate } },

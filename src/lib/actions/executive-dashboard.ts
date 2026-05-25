@@ -125,7 +125,7 @@ async function calculateEstimasiSHU(yearStart: Date): Promise<number> {
       }),
       prisma.order_items.findMany({
         where: { orders: { payment_status: "paid", ordered_at: { gte: yearStart } } },
-        select: { qty: true, products: { select: { purchase_price: true } } },
+        select: { qty: true, purchase_price: true },
       }),
       prisma.journal_lines.aggregate({
         _sum: { debit: true, credit: true },
@@ -137,7 +137,7 @@ async function calculateEstimasiSHU(yearStart: Date): Promise<number> {
       }),
     ]);
 
-    const ytdHpp = ytdHppItems.reduce((s, i) => s + i.qty * Number(i.products?.purchase_price ?? 0), 0);
+    const ytdHpp = ytdHppItems.reduce((s, i) => s + i.qty * Number(i.purchase_price ?? 0), 0);
     const labaKotor = Number(omzetYtd._sum.grand_total || 0) - ytdHpp;
     const pendapatanSP = Number(ytdRev._sum.credit || 0) - Number(ytdRev._sum.debit || 0);
     const bebanYtd = Number(ytdExp._sum.debit || 0) - Number(ytdExp._sum.credit || 0);

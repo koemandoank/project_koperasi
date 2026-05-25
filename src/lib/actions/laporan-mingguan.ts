@@ -83,7 +83,11 @@ export async function getLaporanMingguanData(params: {
       },
       include: {
         order_items: {
-          include: { products: { select: { purchase_price: true } } },
+          select: {
+            qty: true,
+            subtotal: true,
+            purchase_price: true,
+          },
         },
       },
       orderBy: { ordered_at: 'asc' },
@@ -102,7 +106,7 @@ export async function getLaporanMingguanData(params: {
 
       const prev = map.get(dateKey) ?? { hpp: 0, jual: 0 }
       for (const item of order.order_items) {
-        const hpp  = Number((item.products as any)?.purchase_price ?? 0) * item.qty
+        const hpp  = Number(item.purchase_price ?? 0) * item.qty
         const jual = Number(item.subtotal ?? 0)
         prev.hpp  += hpp
         prev.jual += jual

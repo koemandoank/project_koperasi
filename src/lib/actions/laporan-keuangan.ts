@@ -177,7 +177,10 @@ async function calculateStoreCogsForPeriod(startDate: Date, endDate: Date): Prom
       },
       include: {
         order_items: {
-          include: { products: { select: { purchase_price: true } } },
+          select: {
+            qty: true,
+            purchase_price: true,
+          },
         },
       },
     });
@@ -185,7 +188,7 @@ async function calculateStoreCogsForPeriod(startDate: Date, endDate: Date): Prom
     let totalCogs = 0;
     for (const order of paidOrders) {
       for (const item of order.order_items) {
-        totalCogs += item.qty * Number(item.products?.purchase_price ?? 0);
+        totalCogs += item.qty * Number(item.purchase_price ?? 0);
       }
     }
     return totalCogs;

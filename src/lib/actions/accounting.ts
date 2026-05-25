@@ -112,10 +112,9 @@ async function calculateStoreCogs(startDate: Date, endDate: Date): Promise<numbe
       },
       include: {
         order_items: {
-          include: {
-            products: {
-              select: { purchase_price: true },
-            },
+          select: {
+            qty: true,
+            purchase_price: true,
           },
         },
       },
@@ -124,7 +123,7 @@ async function calculateStoreCogs(startDate: Date, endDate: Date): Promise<numbe
     let totalCogs = 0;
     for (const order of paidOrders) {
       for (const item of order.order_items) {
-        const purchasePrice = Number(item.products?.purchase_price ?? 0);
+        const purchasePrice = Number(item.purchase_price ?? 0);
         totalCogs += item.qty * purchasePrice;
       }
     }
