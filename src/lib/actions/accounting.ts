@@ -240,3 +240,167 @@ export async function performMonthlyClosing(month: number, year: number) {
     return { success: false, error: "Gagal memproses tutup buku bulanan." };
   }
 }
+
+/** Status tiap item pengecekan kesiapan tutup buku */
+export type CheckStatus = "ok" | "warning" | "error" | "loading"
+
+export interface ClosingCheckItem {
+  id: string
+  label: string
+  status: CheckStatus
+  detail: string
+  actionLink?: string
+}
+
+/**
+ * Menjalankan 5 pengecekan otomatis kesiapan tutup buku untuk periode tertentu.
+ * Harus dipanggil sebelum `performMonthlyClosing` untuk memastikan data bersih.
+ *
+ * @param {number} month Bulan yang akan ditutup (1–12)
+ * @param {number} year  Tahun yang akan ditutup
+ * @returns {Promise<ClosingCheckItem[]>} Array hasil pengecekan
+ */
+export async function getClosingReadinessCheck(
+  month: number,
+  year: number
+): Promise<ClosingCheckItem[]> {
+  const checks: ClosingCheckItem[] = []
+
+  try {
+    const startDate = new Date(year, month - 1, 1)
+    const endDate = new Date(year, month, 0, 23, 59, 59)
+
+    // ── Cek 1: Periode belum pernah ditutup (duplikasi) ────────────────
+    const existing = await prisma.monthly_closures.findFirst({
+      where: { month, year }
+    })
+    checks.push(
+      existing
+        ? {
+            id: "no_duplicate",
+            label: "Periode belum ditutup sebelumnya",
+            status: "error",
+            detail: `Periode ${month}/${year} sudah pernah ditutup. Tidak bisa diproses ulang.`,
+          }
+        : {
+            id: "no_duplicate",
+            label: "Periode belum ditutup sebelumnya",
+            status: "ok",
+            detail: "Periode ini belum memiliki catatan tutup buku.",
+          }
+    )
+
+    // ── Cek 2: Bulan sebelumnya sudah ditutup (urutan sekuensial) ──────
+    const prevMonth = month === 1 ? 12 : month - 1
+    const prevYear = month === 1 ? year - 1 : year
+    const prevClosed = await prisma.monthly_closures.findFirst({
+      where: { month: prevMonth, year: prevYear }
+    })
+    checks.push(
+      prevClosed || (prevMonth === 12 && prevYear < year - 1)
+        ? {
+            id: "sequential_order",
+            label: "Bulan sebelumnya sudah ditutup",
+            status: "ok",
+            detail: `Tutup buku ${prevMonth}/${prevYear} sudah selesai. Urutan periode valid.`,
+          }
+        : {
+            id: "sequential_order",
+            label: "Bulan sebelumnya sudah ditutup",
+            status: "warning",
+            detail: `Tutup buku ${prevMonth}/${prevYear} belum dilakukan. Dianjurkan menutup secara berurutan.`,
+            actionLink: "/akuntansi/tutup-buku",
+          }
+    )
+
+    // ── Cek 3: Tidak ada jurnal Draft (unposted) ───────────────────────
+    const draftCount = await prisma.journal_entries.count({
+      where: {
+        is_posted: false,
+        entry_date: { gte: startDate, lte: endDate }
+      }
+    })
+    checks.push(
+      draftCount === 0
+        ? {
+            id: "no_draft_journals",
+            label: "Tidak ada jurnal Draft di periode ini",
+            status: "ok",
+            detail: "Semua jurnal pada periode ini sudah diposting ke buku besar.",
+          }
+        : {
+            id: "no_draft_journals",
+            label: "Tidak ada jurnal Draft di periode ini",
+            status: "error",
+            detail: `Terdapat ${draftCount} jurnal berstatus Draft. Posting semua jurnal sebelum tutup buku.`,
+            actionLink: "/akuntansi/buku-besar",
+          }
+    )
+
+    // ── Cek 4: Ada transaksi di periode (tidak menutup bulan kosong) ───
+    const transactionCount = await prisma.journal_entries.count({
+      where: {
+        is_posted: true,
+        entry_date: { gte: startDate, lte: endDate }
+      }
+    })
+    const orderCount = await prisma.orders.count({
+      where: {
+        payment_status: "paid",
+        paid_at: { gte: startDate, lte: endDate }
+      }
+    })
+    const hasActivity = transactionCount > 0 || orderCount > 0
+    checks.push(
+      hasActivity
+        ? {
+            id: "has_activity",
+            label: "Terdapat transaksi pada periode ini",
+            status: "ok",
+            detail: `${transactionCount} jurnal posted + ${orderCount} transaksi toko ditemukan.`,
+          }
+        : {
+            id: "has_activity",
+            label: "Terdapat transaksi pada periode ini",
+            status: "warning",
+            detail: "Tidak ada transaksi tercatat di periode ini. Pastikan data sudah lengkap sebelum menutup.",
+          }
+    )
+
+    // ── Cek 5: Tidak ada pinjaman aktif tanpa jadwal angsuran ──────────
+    const loansWithoutSchedule = await prisma.loans.count({
+      where: {
+        status: "active",
+        loan_schedules: { none: {} }
+      }
+    })
+    checks.push(
+      loansWithoutSchedule === 0
+        ? {
+            id: "loan_schedules_complete",
+            label: "Semua pinjaman aktif memiliki jadwal angsuran",
+            status: "ok",
+            detail: "Tidak ada pinjaman aktif tanpa jadwal angsuran yang dapat menyebabkan kalkulasi pendapatan bunga tidak akurat.",
+          }
+        : {
+            id: "loan_schedules_complete",
+            label: "Semua pinjaman aktif memiliki jadwal angsuran",
+            status: "warning",
+            detail: `${loansWithoutSchedule} pinjaman aktif tidak memiliki jadwal angsuran. Pendapatan bunga mungkin tidak akurat.`,
+            actionLink: "/pinjaman",
+          }
+    )
+
+    return checks
+  } catch (error) {
+    console.error("getClosingReadinessCheck error:", error)
+    return [
+      {
+        id: "system_error",
+        label: "Pengecekan sistem",
+        status: "error",
+        detail: "Gagal menjalankan pengecekan. Cek koneksi database dan coba lagi.",
+      }
+    ]
+  }
+}

@@ -51,8 +51,11 @@ export async function recordLoanPayment({
     })
 
     if (!loan) return { success: false, error: "Pinjaman tidak ditemukan" }
-    if (loan.status !== "active") {
-      return { success: false, error: `Pinjaman sudah berstatus '${loan.status}', tidak dapat menerima pembayaran` }
+
+    /** Status yang diperbolehkan menerima pembayaran cicilan */
+    const PAYABLE_LOAN_STATUSES = ["active", "overdue"] as const
+    if (!(PAYABLE_LOAN_STATUSES as readonly string[]).includes(loan.status)) {
+      return { success: false, error: `Pinjaman berstatus '${loan.status}' tidak dapat menerima pembayaran.` }
     }
 
     // Hitung porsi pokok & bunga dari pembayaran
@@ -82,6 +85,9 @@ export async function recordLoanPayment({
       principalPortion = amountPaid - interestPortion - penaltyAmount
     }
 
+    // Pastikan principalPortion tidak melebihi sisa outstanding agar tidak melanggar check constraint chk_loans_outstanding
+    const safePrincipalPortion = Math.min(outstanding, Math.max(0, principalPortion))
+
     // Generate nomor pembayaran unik
     const count     = await prisma.loan_payments.count()
     const paymentNo = `PAY-${Date.now()}-${String(count + 1).padStart(4, "0")}`
@@ -95,7 +101,7 @@ export async function recordLoanPayment({
           schedule_id:       scheduleId ? BigInt(scheduleId) : null,
           payment_no:        paymentNo,
           amount_paid:       amountPaid,
-          principal_portion: Math.max(0, principalPortion),
+          principal_portion: safePrincipalPortion,
           interest_portion:  Math.max(0, interestPortion),
           penalty_amount:    penaltyAmount,
           payment_method:    paymentMethod as any,
@@ -110,7 +116,7 @@ export async function recordLoanPayment({
       prisma.loans.update({
         where: { id: BigInt(loanId) },
         data: {
-          outstanding_principal: { decrement: Math.max(0, principalPortion) },
+          outstanding_principal: { decrement: safePrincipalPortion },
           total_paid:            { increment: amountPaid },
         },
       }),
@@ -122,7 +128,7 @@ export async function recordLoanPayment({
             data: {
               status: "paid",
               paid_at: new Date(),
-              principal_paid: Math.max(0, principalPortion),
+              principal_paid: safePrincipalPortion,
               interest_paid: Math.max(0, interestPortion),
               penalty_paid: penaltyAmount,
             },
@@ -130,16 +136,27 @@ export async function recordLoanPayment({
         : []),
     ])
 
-    // Cek apakah pinjaman lunas setelah pembayaran ini
+    // Cek status pinjaman setelah pembayaran
     const updatedLoan = await prisma.loans.findUnique({
       where: { id: BigInt(loanId) },
-      select: { outstanding_principal: true },
+      select: { outstanding_principal: true, status: true },
     })
-    if (updatedLoan && Number(updatedLoan.outstanding_principal) <= 0) {
-      await prisma.loans.update({
-        where: { id: BigInt(loanId) },
-        data: { status: "closed" as any },
-      })
+
+    if (updatedLoan) {
+      const remaining = Number(updatedLoan.outstanding_principal)
+      if (remaining <= 0) {
+        // Pinjaman lunas
+        await prisma.loans.update({
+          where: { id: BigInt(loanId) },
+          data: { status: "paid_off" },
+        })
+      } else if (updatedLoan.status === "overdue") {
+        // Bayar cicilan overdue → kembali aktif, belum lunas
+        await prisma.loans.update({
+          where: { id: BigInt(loanId) },
+          data: { status: "active" },
+        })
+      }
     }
 
     await logAudit({
@@ -153,7 +170,7 @@ export async function recordLoanPayment({
         member_name:       loan.members?.full_name ?? null,
         member_nik:        loan.members?.nik ?? null,
         amount_paid:       amountPaid,
-        principal_portion: Math.max(0, principalPortion),
+        principal_portion: safePrincipalPortion,
         interest_portion:  Math.max(0, interestPortion),
         penalty_amount:    penaltyAmount,
         payment_method:    paymentMethod,
@@ -163,13 +180,29 @@ export async function recordLoanPayment({
 
     revalidatePath("/pinjaman")
     revalidatePath("/dashboard")
-    return { success: true, data: payment }
+
+    // Serialize Decimal/BigInt fields agar aman dikirim ke Client Component
+    return {
+      success: true,
+      data: {
+        id:                Number(payment.id),
+        payment_no:        payment.payment_no,
+        amount_paid:       Number(payment.amount_paid),
+        principal_portion: Number(payment.principal_portion),
+        interest_portion:  Number(payment.interest_portion),
+        penalty_amount:    Number(payment.penalty_amount),
+        payment_method:    payment.payment_method,
+        reference:         payment.reference ?? null,
+        note:              payment.note ?? null,
+        paid_at:           payment.paid_at.toISOString(),
+      },
+    }
   } catch (error: any) {
     console.error("[recordLoanPayment] Error:", error)
     if (error?.code === "P2002") {
       return { success: false, error: "Nomor pembayaran duplikat, silakan coba lagi." }
     }
-    return { success: false, error: "Gagal mencatat pembayaran cicilan." }
+    return { success: false, error: `Gagal mencatat pembayaran cicilan: ${error?.message || error}` }
   }
 }
 
