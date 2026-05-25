@@ -479,23 +479,96 @@ export async function submitLoanApplication(data: {
     revalidatePath("/pinjaman");
 
     await logAudit({
-      action: "CREATE",
-      modelType: "loan_applications",
-      modelId: null,
-      newValues: {
-        application_no: appNo,
-        loan_product_id: data.loan_product_id,
-        amount_requested: data.amount_requested,
-        tenor_months: data.tenor_months,
-        repayment_method: data.repayment_method,
-        purpose: data.purpose,
-        status: "pending",
-      },
-    });
+        action: "CREATE",
+        modelType: "loan_applications",
+        modelId: null,
+        newValues: {
+          application_no: appNo,
+          loan_product_id: data.loan_product_id,
+          amount_requested: data.amount_requested,
+          tenor_months: data.tenor_months,
+          repayment_method: data.repayment_method,
+          purpose: data.purpose,
+          status: "pending",
+        },
+      });
 
-    return { success: true };
+      return { success: true };
+    } catch (error) {
+      console.error("submitLoanApplication error:", error);
+      return { success: false, error: "Gagal mengajukan pinjaman." };
+    }
+}
+
+/** Fetch all loans for admin/pengurus management */
+export async function getAllLoans(params?: { search?: string; status?: string }) {
+  try {
+    const whereClause: any = {}
+    
+    if (params?.status && params.status !== "all") {
+      whereClause.status = params.status
+    }
+    
+    if (params?.search) {
+      whereClause.OR = [
+        { loan_no: { contains: params.search } },
+        { members: { full_name: { contains: params.search } } },
+        { members: { nik: { contains: params.search } } },
+      ]
+    }
+
+    const loans = await prisma.loans.findMany({
+      where: whereClause,
+      include: {
+        members: {
+          select: {
+            full_name: true,
+            nik: true,
+            member_code: true,
+          }
+        },
+        loan_applications: {
+          include: {
+            loan_products: true
+          }
+        },
+        loan_schedules: {
+          orderBy: { installment_no: "asc" }
+        }
+      },
+      orderBy: { disbursed_at: "desc" }
+    })
+
+    return loans.map(l => ({
+      id: Number(l.id),
+      loan_no: l.loan_no,
+      member_name: l.members?.full_name || "Unknown",
+      member_nik: l.members?.nik || "-",
+      member_code: l.members?.member_code || "-",
+      product_name: l.loan_applications?.loan_products?.name || "Pinjaman Uang",
+      principal: Number(l.principal),
+      outstanding: Number(l.outstanding_principal),
+      total_paid: Number(l.total_paid),
+      monthly_installment: Number(l.monthly_installment),
+      tenor_months: l.tenor_months,
+      status: l.status,
+      repayment_method: l.repayment_method,
+      disbursed_at: l.disbursed_at?.toISOString() || null,
+      schedules: l.loan_schedules.map(s => ({
+        id: Number(s.id),
+        installment_no: s.installment_no,
+        due_date: s.due_date.toISOString().split("T")[0],
+        principal_due: Number(s.principal_due),
+        interest_due: Number(s.interest_due),
+        total_due: Number(s.total_due),
+        status: s.status,
+        principal_paid: Number(s.principal_paid),
+        interest_paid: Number(s.interest_paid),
+        penalty_paid: Number(s.penalty_paid || 0),
+      }))
+    }))
   } catch (error) {
-    console.error("submitLoanApplication error:", error);
-    return { success: false, error: "Gagal mengajukan pinjaman." };
+    console.error("getAllLoans error:", error);
+    return [];
   }
 }

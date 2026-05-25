@@ -1,10 +1,12 @@
 import { getMyPinjaman, getMyOrders } from "@/lib/actions/member-portal"
 import { getLoanProducts } from "@/lib/actions/loan-products"
+import { getAllLoans } from "@/lib/actions/loans"
 import { auth } from "@/auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CreditCard, ShoppingBag, Clock, CheckCircle, XCircle } from "lucide-react"
 import { MemberLoanForm } from "./member-loan-form"
+import { KelolaPinjamanClient } from "./kelola-pinjaman-client"
 import Link from "next/link"
 
 const formatRp = (v: number) =>
@@ -27,10 +29,16 @@ export default async function PinjamanPage() {
   const isAdmin = ["superadmin", "admin", "pengurus"].includes(session.user.role || "")
 
   if (isAdmin) {
+    const allLoans = await getAllLoans()
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold">Modul Pinjaman Anggota</h1>
-        <p className="text-muted-foreground mt-2">Untuk manajemen pinjaman, gunakan menu Master Pinjaman dan Approval Pinjaman di sidebar.</p>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Manajemen Pinjaman Anggota</h1>
+          <p className="text-muted-foreground mt-1">
+            Kelola saldo outstanding, tinjau jadwal angsuran, dan catat pelunasan cicilan anggota.
+          </p>
+        </div>
+        <KelolaPinjamanClient initialLoans={allLoans} />
       </div>
     )
   }

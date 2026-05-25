@@ -164,7 +164,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
   // Simpan pinjam
   "/simpanan":                    ["superadmin", "admin", "pengurus", "anggota"],
-  "/pinjaman":                    ["anggota"],
+  "/pinjaman":                    ["superadmin", "admin", "pengurus", "anggota"],
   "/pinjaman/produk":             ["superadmin", "admin", "pengurus"],
   "/pinjaman/approval":           ["superadmin", "admin", "pengurus"],
   // Toko
@@ -256,7 +256,18 @@ export function Sidebar({
   logoUrl?: string
 }) {
   const pathname = usePathname()
-  const groups = getGroupsByRole(role)
+  const groups = getGroupsByRole(role).map(g => ({
+    ...g,
+    items: g.items.map(item => {
+      if (item.href === "/pinjaman") {
+        return {
+          ...item,
+          label: role === "anggota" ? "Pinjaman Saya" : "Manajemen Pinjaman"
+        }
+      }
+      return item
+    })
+  }))
 
   return (
     <div className="flex h-full w-full max-w-xs flex-col bg-white dark:bg-slate-950 border-r border-slate-200/60 dark:border-slate-800 shadow-2xl z-10 transition-all duration-300 relative">
