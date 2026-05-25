@@ -37,6 +37,24 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 /** Status yang layak dipilih untuk pembayaran massal */
 const PAYABLE_STATUSES = new Set(["active", "overdue"])
 
+/** Cek apakah cicilan terdekat dapat dibayar pada bulan berjalan */
+const isPayableThisMonth = (loan: Loan) => {
+  if (!PAYABLE_STATUSES.has(loan.status)) return false
+  const nextUnpaid = loan.schedules.find((s) => s.status !== "paid")
+  if (!nextUnpaid) return false
+
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() // 0-indexed
+
+  const dueDate = new Date(nextUnpaid.due_date)
+  const dueYear = dueDate.getFullYear()
+  const dueMonth = dueDate.getMonth()
+
+  // Hanya boleh jika jatuh tempo di tahun/bulan berjalan atau masa lalu (menunggak)
+  return dueYear < currentYear || (dueYear === currentYear && dueMonth <= currentMonth)
+}
+
 interface LoanSchedule {
   id: number
   installment_no: number
@@ -110,9 +128,9 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
     [loans, search, statusFilter]
   )
 
-  /** Loan yang bisa dibayar dari daftar ter-filter */
+  /** Loan yang bisa dibayar dari daftar ter-filter pada bulan berjalan */
   const payableFilteredLoans = useMemo(
-    () => filteredLoans.filter((l) => PAYABLE_STATUSES.has(l.status)),
+    () => filteredLoans.filter((l) => isPayableThisMonth(l)),
     [filteredLoans]
   )
 
@@ -178,6 +196,27 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
     if (!selectedLoan) return
     const amt = parseFloat(amountPaid)
     if (isNaN(amt) || amt <= 0) return toast.error("Nominal pembayaran tidak valid.")
+
+    // Proteksi: Tampilkan konfirmasi jika membayar cicilan bulan depan (future schedule)
+    if (selectedScheduleId !== "free") {
+      const schObj = selectedLoan.schedules.find((s) => s.id.toString() === selectedScheduleId)
+      if (schObj) {
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() // 0-indexed
+        
+        const dueDate = new Date(schObj.due_date)
+        const dueYear = dueDate.getFullYear()
+        const dueMonth = dueDate.getMonth()
+        
+        if (dueYear > currentYear || (dueYear === currentYear && dueMonth > currentMonth)) {
+          const confirmMsg = `PERINGATAN: Cicilan Bulan ke-${schObj.installment_no} (Jatuh Tempo: ${dueDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}) jatuh pada bulan depan. Apakah Anda yakin ingin memproses pembayaran di muka?`
+          if (!window.confirm(confirmMsg)) {
+            return
+          }
+        }
+      }
+    }
 
     setSubmitting(true)
     try {
@@ -400,6 +439,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                 ) : (
                   filteredLoans.map((l) => {
                     const isPayable = PAYABLE_STATUSES.has(l.status)
+                    const canPayBulk = isPayableThisMonth(l)
                     const isChecked = selectedLoanIds.has(l.id)
                     return (
                       <TableRow
@@ -407,7 +447,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                         className={`hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors ${isChecked ? "bg-emerald-50/40 dark:bg-emerald-950/10" : ""}`}
                       >
                         <TableCell className="w-12 pl-4">
-                          {isPayable ? (
+                          {canPayBulk ? (
                             <Checkbox
                               checked={isChecked}
                               onCheckedChange={() => handleToggleLoan(l.id)}
