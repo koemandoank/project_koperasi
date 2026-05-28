@@ -42,12 +42,12 @@ export function LoginForm({ settings }: { settings?: any }) {
       <form action={formAction}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email / NIK / Username</Label>
+            <Label htmlFor="email">NIK</Label>
             <Input
               id="email"
               name="email"
               type="text"
-              placeholder="Masukkan username, email, atau NIK"
+              placeholder="Masukkan NIK"
               required
               disabled={isPending}
             />
