@@ -208,8 +208,6 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="salary_cut">Potong Gaji</SelectItem>
-                  <SelectItem value="cash">Tunai</SelectItem>
-                  <SelectItem value="saving_deduct">Potong Simpanan</SelectItem>
                 </SelectContent>
               </Select>
             </div>

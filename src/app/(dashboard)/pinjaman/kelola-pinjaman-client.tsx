@@ -101,7 +101,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
   // Bulk select state
   const [selectedLoanIds, setSelectedLoanIds] = useState<Set<number>>(new Set())
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
-  const [bulkPaymentMethod, setBulkPaymentMethod] = useState<PaymentMethod>("transfer")
+  const [bulkPaymentMethod, setBulkPaymentMethod] = useState<PaymentMethod>("salary_cut")
   const [bulkReference, setBulkReference] = useState("")
   const [bulkSubmitting, setBulkSubmitting] = useState(false)
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null)
@@ -109,7 +109,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
   // Single payment form state
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("free")
   const [amountPaid, setAmountPaid] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("transfer")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("salary_cut")
   const [reference, setReference] = useState("")
   const [penaltyAmount, setPenaltyAmount] = useState<string>("0")
   const [note, setNote] = useState("")
@@ -173,7 +173,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
       setSelectedScheduleId("free")
       setAmountPaid("")
     }
-    setPaymentMethod("transfer")
+    setPaymentMethod("salary_cut")
     setReference("")
     setPenaltyAmount("0")
     setNote("")
@@ -266,7 +266,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
   )
 
   const openBulkDialog = () => {
-    setBulkPaymentMethod("transfer")
+    setBulkPaymentMethod("salary_cut")
     setBulkReference("")
     setBulkProgress(null)
     setBulkDialogOpen(true)
@@ -611,10 +611,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="transfer">Bank Transfer (Giro/Virtual Account)</SelectItem>
-                    <SelectItem value="cash">Tunai / Cash Laci Toko</SelectItem>
                     <SelectItem value="salary_cut">Potong Gaji / Payroll</SelectItem>
-                    <SelectItem value="saving_deduct">Debet Simpanan Sukarela</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -703,10 +700,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="transfer">Bank Transfer (Giro/Virtual Account)</SelectItem>
-                  <SelectItem value="cash">Tunai / Cash Laci Toko</SelectItem>
                   <SelectItem value="salary_cut">Potong Gaji / Payroll</SelectItem>
-                  <SelectItem value="saving_deduct">Debet Simpanan Sukarela</SelectItem>
                 </SelectContent>
               </Select>
             </div>
