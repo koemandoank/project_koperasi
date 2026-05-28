@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/db/prisma";
 
@@ -46,7 +46,7 @@ export async function getJournalEntries(params?: {
     ])
 
     return {
-      entries: entries.map(e => ({
+      entries: entries.map((e: any) => ({
         id: Number(e.id),
         entry_no: e.entry_no,
         entry_date: e.entry_date.toISOString().split("T")[0],
@@ -55,7 +55,7 @@ export async function getJournalEntries(params?: {
         source: e.source,
         is_posted: e.is_posted,
         unit_name: e.units?.name || "-",
-        lines: e.journal_lines.map(l => ({
+        lines: e.journal_lines.map((l: any) => ({
           id: Number(l.id),
           account_code: l.chart_of_accounts?.code || "-",
           account_name: l.chart_of_accounts?.name || "-",

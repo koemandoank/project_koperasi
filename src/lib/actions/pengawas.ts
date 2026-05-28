@@ -176,9 +176,8 @@ export async function getFinancialRatios(year: number): Promise<FinancialRatios>
     })
 
     // Hitung set loan_id yang NPL
-    const nplLoanIds = new Set(overdueSchedules.map((s) => s.loan_id))
-    const totalPinjamanNPL_principal = overdueSchedules.reduce(
-      (sum, s) => sum + Number(s.principal_due) + Number(s.interest_due),
+    const nplLoanIds = new Set(overdueSchedules.map((s: any) => s.loan_id))
+    const totalPinjamanNPL_principal = overdueSchedules.reduce((sum: any, s: any) => sum + Number(s.principal_due) + Number(s.interest_due),
       0
     )
 
@@ -286,7 +285,7 @@ export async function getLoanCollectibility(): Promise<LoanCollectibilityReport>
 
     for (const loan of activeLoans) {
       const overdueSchedules = loan.loan_schedules.filter(
-        (s) => new Date(s.due_date) < today
+        (s: any) => new Date(s.due_date) < today
       )
 
       // DPD = selisih hari angsuran tertunggak terlama dengan hari ini
@@ -298,8 +297,7 @@ export async function getLoanCollectibility(): Promise<LoanCollectibilityReport>
           (today.getTime() - new Date(earliestOverdue.due_date).getTime()) /
             (1000 * 60 * 60 * 24)
         )
-        totalOverdue = overdueSchedules.reduce(
-          (sum, s) => sum + Number(s.principal_due) + Number(s.interest_due),
+        totalOverdue = overdueSchedules.reduce((sum: any, s: any) => sum + Number(s.principal_due) + Number(s.interest_due),
           0
         )
       }

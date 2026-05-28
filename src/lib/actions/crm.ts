@@ -432,7 +432,7 @@ export async function getMemberPurchaseHistory(
       take: limit,
     })
 
-    const totalSpent = orders.reduce((sum, o) => sum + Number(o.grand_total), 0)
+    const totalSpent = orders.reduce((sum: any, o: any) => sum + Number(o.grand_total), 0)
     const avgOrderValue = totalSpent / (orders.length || 1)
 
     return {

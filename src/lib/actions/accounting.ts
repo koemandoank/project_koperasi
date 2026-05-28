@@ -12,7 +12,7 @@ export async function getMonthlyClosures() {
       orderBy: [{ year: "desc" }, { month: "desc" }],
     });
 
-    return closures.map((c) => ({
+    return closures.map((c: any) => ({
       ...c,
       id: Number(c.id),
       total_revenue: Number(c.total_revenue),

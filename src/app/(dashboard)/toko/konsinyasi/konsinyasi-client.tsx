@@ -201,7 +201,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map(item => (
+                    {items.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.received_at}</TableCell>
                         <TableCell className="font-medium">{item.product_name}</TableCell>
@@ -279,7 +279,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     Tidak ada barang konsinyasi aktif
                   </div>
                 ) : (
-                  items.map(item => (
+                  items.map((item: any) => (
                     <div
                       key={item.id}
                       className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3"
@@ -377,8 +377,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payables.map(p => {
-                      const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
+                    {payables.map((p: any) => {
+                      const totalPaid = p.settlements.reduce((sum: any, s: any) => sum + s.amount_paid, 0);
                       return (
                         <TableRow key={p.id}>
                           <TableCell>{p.period_start} s/d {p.period_end}</TableCell>
@@ -416,8 +416,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     Tidak ada tagihan konsinyasi
                   </div>
                 ) : (
-                  payables.map(p => {
-                    const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
+                  payables.map((p: any) => {
+                    const totalPaid = p.settlements.reduce((sum: any, s: any) => sum + s.amount_paid, 0);
                     return (
                       <div
                         key={p.id}
@@ -481,7 +481,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                   <SelectValue placeholder="Pilih Produk" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map(p => (
+                  {products.map((p: any) => (
                     <SelectItem key={p.id} value={p.id.toString()}>
                       {p.name}{p.category ? ` — ${p.category}` : ""}
                     </SelectItem>
@@ -496,7 +496,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                   <SelectValue placeholder="Pilih Supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
+                  {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

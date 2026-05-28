@@ -75,8 +75,8 @@ export function ClosingClient({ closures }: { closures: any[] }) {
     setCheckDone(false)
   }, [month, year])
 
-  const hasBlockingError = checks?.some(c => c.status === "error") ?? false
-  const allOk = checks?.every(c => c.status === "ok" || c.status === "warning") ?? false
+  const hasBlockingError = checks?.some((c: any) => c.status === "error") ?? false
+  const allOk = checks?.every((c: any) => c.status === "ok" || c.status === "warning") ?? false
 
   const handleCloseMonth = async () => {
     if (!checkDone) {
@@ -120,7 +120,7 @@ export function ClosingClient({ closures }: { closures: any[] }) {
                     <SelectValue placeholder="Bulan" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MONTHS.map((m, i) => (
+                    {MONTHS.map((m: any, i: any) => (
                       <SelectItem key={i} value={(i + 1).toString()}>{m}</SelectItem>
                     ))}
                   </SelectContent>
@@ -133,7 +133,7 @@ export function ClosingClient({ closures }: { closures: any[] }) {
                     <SelectValue placeholder="Tahun" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[0, 1, 2].map(offset => {
+                    {[0, 1, 2].map((offset: any) => {
                       const y = now.getFullYear() - offset
                       return <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                     })}
@@ -198,17 +198,17 @@ export function ClosingClient({ closures }: { closures: any[] }) {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-bold">Hasil Pengecekan Otomatis</CardTitle>
                 <div className="flex items-center gap-1.5">
-                  {checks.filter(c => c.status === "error").length > 0 && (
+                  {checks.filter((c: any) => c.status === "error").length > 0 && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                      {checks.filter(c => c.status === "error").length} Kritis
+                      {checks.filter((c: any) => c.status === "error").length} Kritis
                     </span>
                   )}
-                  {checks.filter(c => c.status === "warning").length > 0 && (
+                  {checks.filter((c: any) => c.status === "warning").length > 0 && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                      {checks.filter(c => c.status === "warning").length} Peringatan
+                      {checks.filter((c: any) => c.status === "warning").length} Peringatan
                     </span>
                   )}
-                  {checks.every(c => c.status === "ok") && (
+                  {checks.every((c: any) => c.status === "ok") && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                       Semua OK
                     </span>
@@ -218,7 +218,7 @@ export function ClosingClient({ closures }: { closures: any[] }) {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {checks.map((check) => (
+                {checks.map((check: any) => (
                   <div
                     key={check.id}
                     className={cn(
@@ -292,7 +292,7 @@ export function ClosingClient({ closures }: { closures: any[] }) {
                     <TableCell colSpan={4} className="text-center text-slate-400 py-4">Belum ada riwayat tutup buku.</TableCell>
                   </TableRow>
                 )}
-                {closures.map(c => (
+                {closures.map((c: any) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{MONTHS[c.month - 1]} {c.year}</TableCell>
                     <TableCell className="text-right text-green-600">{formatCurrency(c.total_revenue)}</TableCell>
@@ -311,7 +311,7 @@ export function ClosingClient({ closures }: { closures: any[] }) {
                 Belum ada riwayat tutup buku.
               </div>
             ) : (
-              closures.map(c => (
+              closures.map((c: any) => (
                 <div key={c.id} className="p-4 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-base text-slate-900 dark:text-slate-50">{MONTHS[c.month - 1]} {c.year}</span>

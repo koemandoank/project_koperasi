@@ -157,18 +157,18 @@ export async function getCashRegisterSessions(
 
     // Resolve usernames
     const userIds = [...new Set([
-      ...sessions.map(s => s.opened_by),
-      ...sessions.filter(s => s.closed_by).map(s => s.closed_by!),
+      ...sessions.map((s: any) => s.opened_by),
+      ...sessions.filter((s: any) => s.closed_by).map((s: any) => s.closed_by!),
     ])]
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, username: true },
     })
-    const userMap = new Map(users.map(u => [u.id.toString(), u.username]))
+    const userMap = new Map(users.map((u: any) => [u.id.toString(), u.username]))
 
     return {
       success: true,
-      data: sessions.map(s => ({
+      data: sessions.map((s: any) => ({
         ...s,
         id:              Number(s.id),
         opening_balance: Number(s.opening_balance),
@@ -208,17 +208,17 @@ export async function getCashRegisterStatus() {
 
     // Resolve opener usernames
     const openerIds = registers
-      .flatMap(r => r.cash_register_sessions)
-      .map(s => s.opened_by)
+      .flatMap((r: any) => r.cash_register_sessions)
+      .map((s: any) => s.opened_by)
     const openers = openerIds.length
       ? await prisma.user.findMany({
           where: { id: { in: openerIds } },
           select: { id: true, username: true },
         })
       : []
-    const openerMap = new Map(openers.map(u => [u.id.toString(), u.username]))
+    const openerMap = new Map(openers.map((u: any) => [u.id.toString(), u.username]))
 
-    const result = registers.map((r) => {
+    const result = registers.map((r: any) => {
       const activeSession = r.cash_register_sessions[0] ?? null
       return {
         id:             Number(r.id),
@@ -292,12 +292,12 @@ export async function getSessionSummary(sessionId: number) {
       }),
     ])
 
-    const totalSales      = orders.reduce((s, o) => s + Number(o.grand_total), 0)
-    const totalRefunds    = returns.reduce((s, r) => s + Number(r.refund_amount), 0)
-    const totalCash       = orders.filter(o => o.payment_method === 'cash').reduce((s, o) => s + Number(o.grand_total), 0)
-    const totalQris       = orders.filter(o => o.payment_method === 'qris').reduce((s, o) => s + Number(o.grand_total), 0)
-    const totalTransfer   = orders.filter(o => o.payment_method === 'transfer').reduce((s, o) => s + Number(o.grand_total), 0)
-    const totalPaylater   = orders.filter(o => o.payment_method === 'paylater').reduce((s, o) => s + Number(o.grand_total), 0)
+    const totalSales      = orders.reduce((s: any, o: any) => s + Number(o.grand_total), 0)
+    const totalRefunds    = returns.reduce((s: any, r: any) => s + Number(r.refund_amount), 0)
+    const totalCash       = orders.filter((o: any) => o.payment_method === 'cash').reduce((s: any, o: any) => s + Number(o.grand_total), 0)
+    const totalQris       = orders.filter((o: any) => o.payment_method === 'qris').reduce((s: any, o: any) => s + Number(o.grand_total), 0)
+    const totalTransfer   = orders.filter((o: any) => o.payment_method === 'transfer').reduce((s: any, o: any) => s + Number(o.grand_total), 0)
+    const totalPaylater   = orders.filter((o: any) => o.payment_method === 'paylater').reduce((s: any, o: any) => s + Number(o.grand_total), 0)
     const expectedBalance = Number(cashSession.opening_balance) + totalCash + totalQris
 
     return {
@@ -321,7 +321,7 @@ export async function getSessionSummary(sessionId: number) {
           transfer: totalTransfer,
           paylater: totalPaylater,
         },
-        orders: orders.map(o => ({
+        orders: orders.map((o: any) => ({
           id:             Number(o.id),
           order_no:       o.order_no,
           grand_total:    Number(o.grand_total),
@@ -358,7 +358,7 @@ export async function processMultiPaymentOrder(
     if (!order) throw new Error('Order not found')
 
     // Validate total payments match grand total
-    const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0)
+    const totalPayments = payments.reduce((sum: any, p: any) => sum + p.amount, 0)
     if (totalPayments !== Number(order.grand_total)) {
       throw new Error(
         `Payment total (${totalPayments}) does not match order total (${order.grand_total})`
@@ -367,7 +367,7 @@ export async function processMultiPaymentOrder(
 
     // Create payment records for each method
     const paymentRecords = await Promise.all(
-      payments.map((p) =>
+      payments.map((p: any) =>
         prisma.order_payments.create({
           data: {
             order_id: orderId,
@@ -402,8 +402,8 @@ export async function processMultiPaymentOrder(
       modelId: Number(orderId),
       newValues: {
         order_id: Number(orderId),
-        methods: payments.map(p => p.method),
-        total: payments.reduce((s, p) => s + p.amount, 0),
+        methods: payments.map((p: any) => p.method),
+        total: payments.reduce((s: any, p: any) => s + p.amount, 0),
         payment_count: payments.length,
       },
     })
@@ -581,8 +581,7 @@ export async function getPOSTransactionSummary(
       _count: true,
     })
 
-    const totalSales = transactions.reduce(
-      (sum, t) => sum + Number(t._sum.grand_total ?? 0),
+    const totalSales = transactions.reduce((sum: any, t: any) => sum + Number(t._sum.grand_total ?? 0),
       0
     )
 
@@ -591,7 +590,7 @@ export async function getPOSTransactionSummary(
       data: {
         transactions,
         totalSales,
-        transactionCount: transactions.reduce((sum, t) => sum + t._count, 0),
+        transactionCount: transactions.reduce((sum: any, t: any) => sum + t._count, 0),
       },
     }
   } catch (error) {

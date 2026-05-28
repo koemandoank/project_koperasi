@@ -118,14 +118,14 @@ export function BottomNav({ role }: { role: string }) {
       )}
     >
       <div className="flex items-stretch h-16">
-        {tabs.map((tab) => {
+        {tabs.map((tab: any) => {
           const Icon = tab.icon
 
           // Active detection: exact match or prefix match
           const hrefPath = tab.href.split("?")[0]
           const isActive =
             pathname === hrefPath ||
-            (tab.matchPrefixes?.some((p) => pathname.startsWith(p))) ||
+            (tab.matchPrefixes?.some((p: any) => pathname.startsWith(p))) ||
             (hrefPath !== "/dashboard" && hrefPath !== "/dashboard/home" && pathname.startsWith(hrefPath + "/"))
 
           return (

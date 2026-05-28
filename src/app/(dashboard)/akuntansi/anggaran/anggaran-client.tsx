@@ -75,8 +75,8 @@ export function AnggaranClient({ initialBudgets }: AnggaranClientProps) {
   /**
    * Menghitung total rekap anggaran.
    */
-  const totalAllocated = budgets.reduce((s, b) => s + b.allocated, 0)
-  const totalUsed = budgets.reduce((s, b) => s + b.used, 0)
+  const totalAllocated = budgets.reduce((s: any, b: any) => s + b.allocated, 0)
+  const totalUsed = budgets.reduce((s: any, b: any) => s + b.used, 0)
   const totalRemaining = totalAllocated - totalUsed
   const overallUsagePct = totalAllocated > 0 ? Math.round((totalUsed / totalAllocated) * 100) : 0
 
@@ -256,7 +256,7 @@ export function AnggaranClient({ initialBudgets }: AnggaranClientProps) {
       </div>
 
       {/* Alert Warning Box jika ada anggaran kritis */}
-      {budgets.some((b) => (b.allocated > 0 ? (b.used / b.allocated) : 0) >= 0.85) && (
+      {budgets.some((b: any) => (b.allocated > 0 ? (b.used / b.allocated) : 0) >= 0.85) && (
         <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/60 dark:border-amber-900/30 rounded-2xl p-4 flex gap-3 items-start animate-pulse">
           <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
           <div className="text-sm">
@@ -273,7 +273,7 @@ export function AnggaranClient({ initialBudgets }: AnggaranClientProps) {
         <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-200 tracking-tight">Pos Anggaran Aktif</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {budgets.map((b, i) => {
+          {budgets.map((b: any, i: any) => {
             const pct = b.allocated > 0 ? Math.round((b.used / b.allocated) * 100) : 0
             return (
               <Card key={b.id || i} className="border border-slate-200/60 dark:border-slate-800 shadow-md rounded-2xl bg-white dark:bg-slate-950 p-6 space-y-4 hover:shadow-lg transition-all duration-300">
@@ -398,7 +398,7 @@ export function AnggaranClient({ initialBudgets }: AnggaranClientProps) {
                   Tema Warna Visual
                 </label>
                 <div className="flex flex-wrap gap-2.5 mt-1">
-                  {colorOptions.map((opt) => (
+                  {colorOptions.map((opt: any) => (
                     <button
                       key={opt.value}
                       type="button"
@@ -529,7 +529,7 @@ export function AnggaranClient({ initialBudgets }: AnggaranClientProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-900 bg-white dark:bg-slate-950 font-medium text-slate-700 dark:text-slate-350">
-                          {transactions.map((tx) => (
+                          {transactions.map((tx: any) => (
                             <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
                               <td className="px-4 py-3 text-slate-400 font-bold whitespace-nowrap">
                                 {new Date(tx.date).toLocaleDateString("id-ID", {

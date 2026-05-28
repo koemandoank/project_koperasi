@@ -23,13 +23,13 @@ export async function getUsers(): Promise<UserData[]> {
     const users = await prisma.user.findMany({
       where: {
         role: {
-          in: ["superadmin", "admin", "pengurus", "kasir"],
+          in: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
         },
       },
       orderBy: { id: "asc" },
     });
 
-    return users.map((u) => ({
+    return users.map((u: any) => ({
       id: Number(u.id),
       username: u.username,
       email: u.email,
@@ -47,7 +47,7 @@ export async function getUsers(): Promise<UserData[]> {
 export async function createUser(data: {
   username: string;
   email: string;
-  role: "admin" | "pengurus" | "kasir" | "superadmin";
+  role: "admin" | "pengurus" | "kasir" | "superadmin" | "petugas_akuntan" | "pengawas";
   password?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -88,7 +88,7 @@ export async function updateUser(
   data: {
     username: string;
     email: string;
-    role: "admin" | "pengurus" | "kasir" | "superadmin";
+    role: "admin" | "pengurus" | "kasir" | "superadmin" | "petugas_akuntan" | "pengawas";
     password?: string;
     is_active: boolean;
   }

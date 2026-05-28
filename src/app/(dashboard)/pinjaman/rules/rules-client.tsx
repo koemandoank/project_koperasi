@@ -78,7 +78,7 @@ export function RulesClient({
   const toggleProduct = (ruleKey: keyof LoanRules, productId: number) => {
     const current = formData[ruleKey].applied_to_products
     const updated = current.includes(productId)
-      ? current.filter(id => id !== productId)
+      ? current.filter((id: any) => id !== productId)
       : [...current, productId]
     updateRule(ruleKey, "applied_to_products", updated)
   }
@@ -91,7 +91,7 @@ export function RulesClient({
           Terapkan pada produk pinjaman (kosong = tidak diterapkan):
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {products.map(p => (
+          {products.map((p: any) => (
             <div key={p.id} className="flex items-center gap-2">
               <Checkbox
                 id={`${ruleKey}-${p.id}`}

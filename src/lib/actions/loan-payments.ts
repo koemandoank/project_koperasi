@@ -223,7 +223,7 @@ export async function getLoanPayments(loanId: number) {
       orderBy: { paid_at: "desc" },
     })
 
-    return payments.map((p) => ({
+    return payments.map((p: any) => ({
       id:                Number(p.id),
       payment_no:        p.payment_no,
       amount_paid:       Number(p.amount_paid),

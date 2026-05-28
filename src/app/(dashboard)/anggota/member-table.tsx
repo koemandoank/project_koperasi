@@ -39,7 +39,7 @@ export function MemberTable({ members, units }: { members: any[], units: any[] }
   const [loading, setLoading] = useState<number | null>(null)
   const [search, setSearch] = useState("")
 
-  const filteredMembers = members.filter(m =>
+  const filteredMembers = members.filter((m: any) =>
     m.full_name.toLowerCase().includes(search.toLowerCase()) ||
     m.nik.includes(search)
   )
@@ -97,7 +97,7 @@ export function MemberTable({ members, units }: { members: any[], units: any[] }
 
       {/* ── Card List ── */}
       <div className="space-y-3">
-        {filteredMembers.map((member) => (
+        {filteredMembers.map((member: any) => (
           <div
             key={member.id}
             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden"

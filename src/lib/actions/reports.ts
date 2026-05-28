@@ -155,7 +155,7 @@ export async function getMonthlyDeductionReport(
     day: "2-digit",
   })
   const parts = formatter.formatToParts(now)
-  const partMap = Object.fromEntries(parts.map(p => [p.type, p.value]))
+  const partMap = Object.fromEntries(parts.map((p: any) => [p.type, p.value]))
   const wibYear = parseInt(partMap.year)
   const wibMonth = parseInt(partMap.month) - 1 // 0-indexed
 
@@ -513,7 +513,7 @@ export async function getMonthlyDeductionReport(
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(
-        (m) =>
+        (m: any) =>
           m.name.toLowerCase().includes(q) ||
           m.nik.toLowerCase().includes(q)
       )

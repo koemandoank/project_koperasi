@@ -82,7 +82,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
       if (editingPromotion) {
         const updated = await updatePromotion(editingPromotion.id, formData)
         if (updated) {
-          setPromotions(promotions.map(p => p.id === editingPromotion.id ? updated : p))
+          setPromotions(promotions.map((p: any) => p.id === editingPromotion.id ? updated : p))
           toast.success("Promosi berhasil diperbarui")
         }
       } else {
@@ -116,7 +116,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
     // Diganti dengan penghapusan langsung sementara atau bisa ditambahkan konfirmasi non-blocking
     const success = await deletePromotion(id)
     if (success) {
-      setPromotions(promotions.filter(p => p.id !== id))
+      setPromotions(promotions.filter((p: any) => p.id !== id))
       toast.success("Promosi berhasil dihapus")
     } else {
       toast.error("Gagal menghapus promosi")
@@ -240,7 +240,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {promotions.map((promotion) => (
+              {promotions.map((promotion: any) => (
                 <TableRow key={promotion.id}>
                   <TableCell className="font-medium">{promotion.title}</TableCell>
                   <TableCell>

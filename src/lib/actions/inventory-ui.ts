@@ -79,7 +79,7 @@ export async function getInventarisReadModels() {
     success: true,
     data: {
       unitId: Number(ctx.unitId),
-      products: products.map((p) => ({
+      products: products.map((p: any) => ({
         id: Number(p.id),
         name: p.name,
         sku: p.sku,
@@ -88,7 +88,7 @@ export async function getInventarisReadModels() {
         price: Number(p.price),
         unit_measure: p.unit_measure,
       })),
-      locations: locations.map((l) => ({
+      locations: locations.map((l: any) => ({
         id: Number(l.id),
         location_code: l.location_code,
         location_name: l.location_name,

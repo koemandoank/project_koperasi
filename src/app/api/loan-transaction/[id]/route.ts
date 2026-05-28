@@ -70,7 +70,7 @@ export async function GET(
         interest_rate: Number(loan.loan_applications.loan_products.interest_rate),
         max_tenor: loan.loan_applications.loan_products.max_tenor,
       } : null,
-      loan_schedules: loan.loan_schedules.map(s => ({
+      loan_schedules: loan.loan_schedules.map((s: any) => ({
         id: Number(s.id),
         due_date: s.due_date,
         principal_payment: Number(s.principal_due),

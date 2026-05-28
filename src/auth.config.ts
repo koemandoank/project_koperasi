@@ -18,11 +18,17 @@ const ROLE_ROUTES: Record<string, string[]> = {
     "/keuangan", "/akuntansi/transaksi", "/akuntansi/anggaran", "/akuntansi/aset-tetap", "/laporan/analitik",
   ],
   anggota: ["/dashboard", "/simpanan", "/pinjaman", "/toko"],
+  petugas_akuntan: [
+    "/dashboard", "/akuntansi", "/laporan", "/keuangan", "/log",
+  ],
+  pengawas: [
+    "/dashboard", "/laporan", "/pengawas", "/log", "/akuntansi/laporan-keuangan",
+  ],
 };
 
 function canAccess(role: string, pathname: string): boolean {
-  // Hanya superadmin yang boleh mengakses menu pengawas
-  if (pathname.startsWith("/pengawas") && role !== "superadmin") {
+  // Hanya superadmin dan pengawas yang boleh mengakses menu pengawas
+  if (pathname.startsWith("/pengawas") && role !== "superadmin" && role !== "pengawas") {
     return false;
   }
   
@@ -83,11 +89,14 @@ export const authConfig = {
     },
     jwt({ token, user }) {
       if (user) {
-        const u = user as { role?: unknown; id?: unknown };
+        const u = user as { role?: unknown; id?: unknown; sessionToken?: string };
         if (u.role !== undefined) token.role = String(u.role);
         if (u.id !== undefined) {
           token.id = String(u.id);
           token.sub = String(u.id);
+        }
+        if (u.sessionToken !== undefined) {
+          token.sessionToken = u.sessionToken;
         }
       }
       return token;
@@ -100,6 +109,9 @@ export const authConfig = {
       }
       if (session.user && token.role) {
         session.user.role = String(token.role);
+      }
+      if (session.user && token.sessionToken) {
+        session.user.sessionToken = String(token.sessionToken);
       }
       return session;
     },

@@ -23,12 +23,12 @@ export default async function DashboardPage() {
   const settings = await getAppSettings()
   const companyName = settings?.company_name ?? "Koperasi"
 
-  if (["superadmin", "pengurus"].includes(role)) {
+  if (["superadmin", "pengurus", "petugas_akuntan", "pengawas"].includes(role)) {
     const [data, suppliersResult] = await Promise.all([
       getAdminStats(),
       getSuppliers(true)
     ])
-    const suppliers = (suppliersResult.data ?? []).map(s => ({
+    const suppliers = (suppliersResult.data ?? []).map((s: any) => ({
       id: Number(s.id),
       supplier_name: s.supplier_name
     }))
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
   ])
 
   // Hanya ambil promosi yang aktif
-  const activePromotions = allPromotions.filter(p => p.is_active)
+  const activePromotions = allPromotions.filter((p: any) => p.is_active)
 
   return (
     <DashboardMobileRedirect>

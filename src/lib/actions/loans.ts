@@ -61,7 +61,7 @@ export async function checkLoanRuleViolations(
       });
       
       if (activeLoan) {
-        const remainingSchedules = activeLoan.loan_schedules.filter(s => Number(s.principal_paid) < Number(s.principal_due)).length;
+        const remainingSchedules = activeLoan.loan_schedules.filter((s: any) => Number(s.principal_paid) < Number(s.principal_due)).length;
         if (remainingSchedules > rules.min_remaining_installments_for_topup.value) {
           violations.push(`Sisa cicilan pinjaman saat ini masih ${remainingSchedules}x. Batas top-up maksimal menyisakan ${rules.min_remaining_installments_for_topup.value}x cicilan.`);
         }
@@ -142,7 +142,7 @@ export async function getLoanApplications(statusFilter?: string) {
     });
 
     const result = await Promise.all(
-      apps.map(async (a) => {
+      apps.map(async (a: any) => {
         const violations = a.status === "pending"
           ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
           : [];
@@ -204,7 +204,7 @@ export async function updateLoanStatus(
 
     const statusMap = { approve: "approved", reject: "rejected" } as const;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const updatedApp = await tx.loan_applications.update({
         where: { id: BigInt(applicationId) },
         data: {
@@ -397,7 +397,7 @@ export async function submitLoanApplication(data: {
       });
       
       if (activeLoan) {
-        const remainingSchedules = activeLoan.loan_schedules.filter(s => Number(s.principal_paid) < Number(s.principal_due)).length;
+        const remainingSchedules = activeLoan.loan_schedules.filter((s: any) => Number(s.principal_paid) < Number(s.principal_due)).length;
         if (remainingSchedules > rules.min_remaining_installments_for_topup.value) {
           ruleViolationError = `Ditolak (Top-up): Sisa cicilan Anda masih ${remainingSchedules}x. Syarat batas top-up maksimal menyisakan ${rules.min_remaining_installments_for_topup.value}x cicilan.`;
         }
@@ -539,7 +539,7 @@ export async function getAllLoans(params?: { search?: string; status?: string })
       orderBy: { disbursed_at: "desc" }
     })
 
-    return loans.map(l => ({
+    return loans.map((l: any) => ({
       id: Number(l.id),
       loan_no: l.loan_no,
       member_name: l.members?.full_name || "Unknown",
@@ -554,7 +554,7 @@ export async function getAllLoans(params?: { search?: string; status?: string })
       status: l.status,
       repayment_method: l.repayment_method,
       disbursed_at: l.disbursed_at?.toISOString() || null,
-      schedules: l.loan_schedules.map(s => ({
+      schedules: l.loan_schedules.map((s: any) => ({
         id: Number(s.id),
         installment_no: s.installment_no,
         due_date: s.due_date.toISOString().split("T")[0],

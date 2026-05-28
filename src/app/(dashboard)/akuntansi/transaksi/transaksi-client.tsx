@@ -370,7 +370,7 @@ export function TransaksiClient({
                       required
                     >
                       <option value="" disabled>Pilih kategori...</option>
-                      {currentCategories.map((c) => (
+                      {currentCategories.map((c: any) => (
                         <option key={c.id} value={c.id.toString()}>{c.name}</option>
                       ))}
                     </select>
@@ -432,7 +432,7 @@ export function TransaksiClient({
                     required
                   >
                     <option value="" disabled>Pilih rekening...</option>
-                    {accounts.map((acc) => (
+                    {accounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id.toString()}>{acc.name}</option>
                     ))}
                   </select>
@@ -523,7 +523,7 @@ export function TransaksiClient({
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
-                {recentTransactions.map((tx) => (
+                {recentTransactions.map((tx: any) => (
                   <div key={tx.id} className="py-3.5 flex items-center justify-between group transition-all duration-200">
                     <div className="flex items-center gap-3">
                       {/* Status Dot */}

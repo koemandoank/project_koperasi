@@ -101,7 +101,7 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Laporan & Akuntansi",
     icon: Receipt,
-    roles: ["superadmin", "admin", "pengurus", "kasir"],
+    roles: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
     items: [
       { href: "/akuntansi/laporan-keuangan", label: "Laporan Keuangan RAT", icon: FileText },
       { href: "/laporan/partisipasi-anggota", label: "Partisipasi Anggota RAT", icon: Users },
@@ -119,7 +119,7 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Pengawas Koperasi",
     icon: ShieldCheck,
-    roles: ["superadmin"],
+    roles: ["superadmin", "pengawas"],
     items: [
       { href: "/pengawas", label: "Dashboard Pengawas", icon: ShieldCheck },
     ],
@@ -129,7 +129,7 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Log & Audit",
     icon: ShieldAlert,
-    roles: ["superadmin", "admin", "pengurus", "ketua"],
+    roles: ["superadmin", "admin", "pengurus", "ketua", "petugas_akuntan", "pengawas"],
     items: [
       { href: "/log",             label: "Log Aktivitas",     icon: ShieldAlert },
       { href: "/toko/kasir/sesi", label: "Riwayat Sesi Kasir", icon: Clock },
@@ -161,7 +161,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/anggota":                     ["superadmin", "admin", "pengurus"],
   "/akun":                        ["superadmin", "admin"],
   // Log & Audit
-  "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
+  "/log":                         ["superadmin", "admin", "pengurus", "ketua", "petugas_akuntan", "pengawas"],
   // Simpan pinjam
   "/simpanan":                    ["superadmin", "admin", "pengurus", "anggota"],
   "/pinjaman":                    ["superadmin", "admin", "pengurus", "anggota"],
@@ -190,10 +190,10 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/laporan/stok":                ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/potongan-gaji":       ["superadmin", "admin", "pengurus"],
   "/laporan/analitik":            ["superadmin", "admin", "pengurus", "kasir"],
-  "/akuntansi/buku-besar":        ["superadmin", "admin"],
-  "/akuntansi/tutup-buku":        ["superadmin", "admin"],
+  "/akuntansi/buku-besar":        ["superadmin", "admin", "petugas_akuntan"],
+  "/akuntansi/tutup-buku":        ["superadmin", "admin", "petugas_akuntan"],
   // Pengawas
-  "/pengawas":                    ["superadmin"],
+  "/pengawas":                    ["superadmin", "pengawas"],
   // Pengaturan
   "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
   "/pengaturan/promosi":          ["superadmin", "admin"],
@@ -211,15 +211,15 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
  */
 function getGroupsByRole(role: string): NavGroup[] {
   return ALL_GROUPS
-    .filter((g) => !g.roles || g.roles.includes(role))
-    .map((g) => ({
+    .filter((g: any) => !g.roles || g.roles.includes(role))
+    .map((g: any) => ({
       ...g,
-      items: g.items.filter((item) => {
+      items: g.items.filter((item: any) => {
         const allowed = ITEM_ROLE_MAP[item.href]
         return !allowed || allowed.includes(role)
       }),
     }))
-    .filter((g) => g.items.length > 0)
+    .filter((g: any) => g.items.length > 0)
 }
 
 // ─────────────────────────────────────────────
@@ -301,12 +301,12 @@ export function Sidebar({
 
       {/* Scrollable Nav */}
       <div className="flex-1 overflow-y-auto py-2 px-3 flex flex-col">
-        {groups.map((group) => (
+        {groups.map((group: any) => (
           <div key={group.groupLabel}>
             <GroupLabel label={group.groupLabel} icon={group.icon} />
 
             <div className="flex flex-col gap-0.5 mt-0.5">
-              {group.items.map((link) => {
+              {group.items.map((link: any) => {
                 /**
                  * Menentukan apakah link saat ini aktif.
                  * Untuk link dashboard, pencocokan dilakukan secara exact agar tidak

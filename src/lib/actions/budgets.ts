@@ -53,7 +53,7 @@ export async function getBudgets(): Promise<BudgetData[]> {
       })
     }
 
-    return list.map((b) => ({
+    return list.map((b: any) => ({
       id: Number(b.id),
       code: b.code,
       name: b.name,
@@ -86,7 +86,7 @@ async function seedDefaultBudgets(): Promise<void> {
 
   try {
     await prisma.budgets.createMany({
-      data: defaults.map((d) => ({
+      data: defaults.map((d: any) => ({
         code: d.code,
         name: d.name,
         allocated: d.allocated,

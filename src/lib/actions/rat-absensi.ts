@@ -101,7 +101,7 @@ export async function getRatMembersAttendanceList(year: number): Promise<RatMemb
       orderBy: { member_code: "asc" },
     })
 
-    return members.map((m) => {
+    return members.map((m: any) => {
       const att = m.rat_attendances[0]
       return {
         memberId: m.id.toString(),

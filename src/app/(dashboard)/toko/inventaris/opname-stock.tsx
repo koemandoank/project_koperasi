@@ -65,11 +65,11 @@ export function OpnameStockPanel({
     setLocationId(newLocationId);
     const lid = Number(newLocationId);
     setRows((prev) =>
-      prev.map((r) => {
+      prev.map((r: any) => {
         if (!r.productId) return r;
         const pid = Number(r.productId);
-        const bal = balances.find((b) => b.product_id === pid && b.location_id === lid);
-        const prod = products.find((p) => p.id === pid);
+        const bal = balances.find((b: any) => b.product_id === pid && b.location_id === lid);
+        const prod = products.find((p: any) => p.id === pid);
         const qtySystem = bal ? bal.qty_on_hand : (prod ? prod.stock : 0);
         return {
           ...r,
@@ -83,11 +83,11 @@ export function OpnameStockPanel({
   const handleProductChange = (idx: number, selectedId: string) => {
     const pid = Number(selectedId);
     const lid = Number(locationId);
-    const bal = balances.find((b) => b.product_id === pid && b.location_id === lid);
-    const prod = products.find((p) => p.id === pid);
+    const bal = balances.find((b: any) => b.product_id === pid && b.location_id === lid);
+    const prod = products.find((p: any) => p.id === pid);
     const qtySystem = bal ? bal.qty_on_hand : (prod ? prod.stock : 0);
     setRows((prev) =>
-      prev.map((x, i) =>
+      prev.map((x: any, i: any) =>
         i === idx
           ? {
               ...x,
@@ -103,7 +103,7 @@ export function OpnameStockPanel({
   const canCreate = useMemo(() => {
     const lid = Number(locationId);
     if (!Number.isFinite(lid) || lid <= 0) return false;
-    const any = rows.some((r) => r.productId.trim() && r.qtyPhysical >= 0 && r.qtySystem >= 0);
+    const any = rows.some((r: any) => r.productId.trim() && r.qtyPhysical >= 0 && r.qtySystem >= 0);
     return any;
   }, [locationId, rows]);
 
@@ -177,7 +177,7 @@ export function OpnameStockPanel({
             value={locationId}
             onChange={(e) => handleLocationChange(e.target.value)}
           >
-            {locations.map((l) => (
+            {locations.map((l: any) => (
               <option key={l.id} value={l.id}>
                 {l.location_name} ({l.location_code})
               </option>
@@ -215,7 +215,7 @@ export function OpnameStockPanel({
         </div>
 
         <div className="space-y-4">
-          {rows.map((r, idx) => (
+          {rows.map((r: any, idx: any) => (
             <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-4 md:gap-3 md:items-end">
               <div className="space-y-1">
                 <Label className="font-semibold text-xs md:text-sm">Pilih Produk</Label>
@@ -225,7 +225,7 @@ export function OpnameStockPanel({
                   onChange={(e) => handleProductChange(idx, e.target.value)}
                 >
                   <option value="">-- Pilih Produk --</option>
-                  {products.map((p) => (
+                  {products.map((p: any) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.sku})
                     </option>
@@ -239,7 +239,7 @@ export function OpnameStockPanel({
                   value={r.qtySystem}
                   onChange={(e) =>
                     setRows((prev) =>
-                      prev.map((x, i) => (i === idx ? { ...x, qtySystem: Number(e.target.value) } : x))
+                      prev.map((x: any, i: any) => (i === idx ? { ...x, qtySystem: Number(e.target.value) } : x))
                     )
                   }
                   className="h-12 text-base"
@@ -252,7 +252,7 @@ export function OpnameStockPanel({
                   value={r.qtyPhysical}
                   onChange={(e) =>
                     setRows((prev) =>
-                      prev.map((x, i) => (i === idx ? { ...x, qtyPhysical: Number(e.target.value) } : x))
+                      prev.map((x: any, i: any) => (i === idx ? { ...x, qtyPhysical: Number(e.target.value) } : x))
                     )
                   }
                   className="h-12 text-base"
@@ -264,7 +264,7 @@ export function OpnameStockPanel({
                   <Input
                     value={r.notes}
                     onChange={(e) =>
-                      setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, notes: e.target.value } : x)))
+                      setRows((prev) => prev.map((x: any, i: any) => (i === idx ? { ...x, notes: e.target.value } : x)))
                     }
                     placeholder="opsional"
                     className="h-12 text-base flex-1"
@@ -274,7 +274,7 @@ export function OpnameStockPanel({
                     type="button"
                     className="h-12 px-4 shrink-0 font-semibold"
                     disabled={rows.length <= 1}
-                    onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
+                    onClick={() => setRows((prev) => prev.filter((_: any, i: any) => i !== idx))}
                   >
                     Hapus
                   </Button>

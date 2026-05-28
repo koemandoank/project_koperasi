@@ -374,7 +374,7 @@ async function getKasAwal(prevEndDate: Date): Promise<number> {
       },
       select: { id: true },
     });
-    const ids = kasAccounts.map((acc) => acc.id);
+    const ids = kasAccounts.map((acc: any) => acc.id);
     if (ids.length === 0) return 0;
 
     const agg = await prisma.journal_lines.aggregate({
@@ -447,7 +447,7 @@ async function getInvestasi(startDate: Date, endDate: Date): Promise<ArusKasInve
       where: { is_active: true, type: "asset", code: { startsWith: "12" } },
       select: { id: true },
     });
-    const ids = asetTetapAccounts.map((a) => a.id);
+    const ids = asetTetapAccounts.map((a: any) => a.id);
     const mutasi = await calculateCoaMutasi(ids, startDate, endDate);
     
     return {

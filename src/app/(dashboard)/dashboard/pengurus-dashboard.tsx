@@ -222,7 +222,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
               { label: "Total Simpanan",       val: fmt(exec.financialOverview.totalSimpanan) },
               { label: "Pinjaman Beredar",     val: fmt(exec.financialOverview.totalPinjamanBeredar) },
               { label: "Estimasi SHU (YTD)",   val: fmt(exec.financialOverview.estimasiSHU) },
-            ].map(({ label, val }) => (
+            ].map(({  label, val  }: any) => (
               <div key={label} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 break-all">{val}</p>
@@ -314,7 +314,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                 <p className="text-sm text-emerald-600 font-medium">Tidak ada tagihan jatuh tempo</p>
               ) : (
                 <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                  {exec!.loanHealth.dueSoon.map((d, i) => (
+                  {exec!.loanHealth.dueSoon.map((d: any, i: any) => (
                     <div key={i} className="flex justify-between items-start text-xs border-b border-slate-50 dark:border-slate-800 pb-1.5 last:border-0">
                       <div>
                         <p className="font-semibold text-slate-800 dark:text-slate-100 leading-tight">{d.member_name}</p>
@@ -377,7 +377,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
               ) : (
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={exec.membershipStats.growthByMonth.map(g => ({
+                    <BarChart data={exec.membershipStats.growthByMonth.map((g: any) => ({
                       ...g, label: fmtMonth(g.month)
                     }))}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -419,7 +419,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
             ) : (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={exec.cashFlowMonthly.map(c => ({
+                  <AreaChart data={exec.cashFlowMonthly.map((c: any) => ({
                     ...c, label: fmtMonth(c.label)
                   }))}>
                     <defs>
@@ -470,7 +470,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
             { href: "/laporan/analitik",             icon: TrendingUp,  label: "Analitik Toko",        color: "from-violet-500 to-purple-700" },
             { href: "/laporan/potongan-gaji",        icon: CreditCard,  label: "Potongan Gaji",        color: "from-rose-500 to-red-600" },
             { href: "/akuntansi/pembagian-shu",      icon: Wallet,      label: "Pembagian SHU",        color: "from-indigo-500 to-indigo-700" },
-          ].map(({ href, icon: Icon, label, color }) => (
+          ].map(({  href, icon: Icon, label, color  }: any) => (
             <Link key={href} href={href}>
               <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer">
                 <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-sm`}>

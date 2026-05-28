@@ -25,7 +25,7 @@ export async function processPosCheckout(data: {
   try {
     // Validasi Zod pada data keranjang
     const parsedCart = z.array(PosItemSchema).parse(data.cart);
-    const calculatedGrandTotal = parsedCart.reduce((sum, item) => sum + (item.price * item.qty), 0) - data.discount;
+    const calculatedGrandTotal = parsedCart.reduce((sum: any, item: any) => sum + (item.price * item.qty), 0) - data.discount;
     if (data.grandTotal !== calculatedGrandTotal) {
         throw new Error("Manipulasi harga terdeteksi.");
     }
@@ -81,7 +81,7 @@ export async function processPosCheckout(data: {
       }
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const purchasePrices = new Map<bigint, number>();
 
       // Paylater limit is checked dynamically above, no separate field is updated here.

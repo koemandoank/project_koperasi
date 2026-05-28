@@ -96,7 +96,7 @@ export function PembelianClient({
     try {
       const res = await getPOItemsForReceipt(po.id);
       if (res.success && res.data) {
-        const itemsWithRemaining = res.data.items.map(item => {
+        const itemsWithRemaining = res.data.items.map((item: any) => {
           const remaining = Math.max(0, item.qty_ordered - item.qty_received);
           return {
             ...item,
@@ -105,7 +105,7 @@ export function PembelianClient({
             qty_rejected: 0,
             reject_reason: "",
           };
-        }).filter(item => item.qty_ordered > 0);
+        }).filter((item: any) => item.qty_ordered > 0);
 
         if (itemsWithRemaining.length === 0) {
           toast.info("Semua barang untuk PO ini sudah diterima penuh.");
@@ -127,7 +127,7 @@ export function PembelianClient({
   };
 
   const updateGRItem = (idx: number, field: keyof GRItem, value: number | string) => {
-    setGrItems(prev => prev.map((item, i) => {
+    setGrItems(prev => prev.map((item: any, i: any) => {
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
       // auto-sync: if qty_accepted changes, recalculate qty_rejected
@@ -147,14 +147,14 @@ export function PembelianClient({
 
   const handleSubmitGR = async () => {
     if (!grPoData) return;
-    const hasInvalid = grItems.some(i => (i.qty_accepted + i.qty_rejected) !== i.qty_ordered);
+    const hasInvalid = grItems.some((i: any) => (i.qty_accepted + i.qty_rejected) !== i.qty_ordered);
     if (hasInvalid) return toast.error("Jumlah diterima + ditolak harus sama dengan jumlah dipesan untuk setiap item.");
     setGrLoading(true);
     try {
       const res = await receiveGoodsFromPO(
         grPoData.id,
         grPoData.supplier_id,
-        grItems.map(i => ({
+        grItems.map((i: any) => ({
           productId:    i.product_id,
           qtyReceived:  i.qty_ordered, // total sisa yang sedang diterima kali ini
           qtyAccepted:  i.qty_accepted,
@@ -164,13 +164,13 @@ export function PembelianClient({
         grNotes || undefined
       );
       if (res.success) {
-        const hasReject = grItems.some(i => i.qty_rejected > 0);
+        const hasReject = grItems.some((i: any) => i.qty_rejected > 0);
         toast.success(`Barang berhasil diterima. No. GR: ${(res as any).grNo}${hasReject ? " — Ada retur ke supplier." : ""}`);
         setGrDialog(false);
         // Update PO status optimistically
-        const allRejected = grItems.every(i => i.qty_accepted === 0);
+        const allRejected = grItems.every((i: any) => i.qty_accepted === 0);
         const newStatus = allRejected ? "cancelled" : hasReject ? "partial_received" : "received";
-        setPos(prev => prev.map(p => p.id === grPoData.id ? { ...p, status: newStatus } : p));
+        setPos(prev => prev.map((p: any) => p.id === grPoData.id ? { ...p, status: newStatus } : p));
       } else {
         toast.error((res as any).error ?? "Gagal menyimpan Good Receipt.");
       }
@@ -207,7 +207,7 @@ export function PembelianClient({
 
   const handleCreatePO = async () => {
     if (!poForm.supplier_id || !poForm.delivery) return toast.error("Supplier dan Tanggal Pengiriman wajib diisi.");
-    const validItems = poForm.items.filter((i) => i.product_name && i.qty > 0 && i.unit_price > 0);
+    const validItems = poForm.items.filter((i: any) => i.product_name && i.qty > 0 && i.unit_price > 0);
     if (validItems.length === 0) return toast.error("Minimal satu item harus diisi.");
     setLoading(true);
     try {
@@ -215,7 +215,7 @@ export function PembelianClient({
         parseInt(poForm.supplier_id),
         new Date(poForm.po_date),
         new Date(poForm.delivery),
-        validItems.map((i) => ({
+        validItems.map((i: any) => ({
           productId: i.product_id ? parseInt(i.product_id) : 0,
           qtyOrdered: i.qty,
           unitPrice: i.unit_price,
@@ -230,7 +230,7 @@ export function PembelianClient({
           { 
             id: Number(d.id), 
             po_no: d.po_no,
-            supplier_name: suppliers.find((s) => s.id === parseInt(poForm.supplier_id))?.supplier_name ?? "-",
+            supplier_name: suppliers.find((s: any) => s.id === parseInt(poForm.supplier_id))?.supplier_name ?? "-",
             supplier_id: parseInt(poForm.supplier_id), 
             po_date: poForm.po_date,
             expected_delivery: poForm.delivery, 
@@ -256,16 +256,16 @@ export function PembelianClient({
       const res = await approvePurchaseOrder(poId);
       if (res.success) {
         toast.success("PO berhasil disetujui.");
-        setPos((prev) => prev.map((p) => p.id === poId ? { ...p, status: "approved" } : p));
+        setPos((prev) => prev.map((p: any) => p.id === poId ? { ...p, status: "approved" } : p));
       } else {
         toast.error((res as any).error ?? "Gagal menyetujui PO.");
       }
     } finally { setLoading(false); }
   };
 
-  const totalPoValue = pos.filter((p) => p.status !== "cancelled").reduce((s, p) => s + p.total_amount, 0);
-  const pendingPos = pos.filter((p) => ["draft", "submitted"].includes(p.status)).length;
-  const approvedPos = pos.filter((p) => p.status === "approved").length;
+  const totalPoValue = pos.filter((p: any) => p.status !== "cancelled").reduce((s: any, p: any) => s + p.total_amount, 0);
+  const pendingPos = pos.filter((p: any) => ["draft", "submitted"].includes(p.status)).length;
+  const approvedPos = pos.filter((p: any) => p.status === "approved").length;
 
   return (
     <>
@@ -322,7 +322,7 @@ export function PembelianClient({
                   {pos.length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Belum ada Purchase Order.</TableCell></TableRow>
                   )}
-                  {pos.map((po) => {
+                  {pos.map((po: any) => {
                     const cfg = STATUS_CONFIG[po.status] ?? { label: po.status, color: "bg-slate-100 text-slate-700" };
                     return (
                       <TableRow key={po.id}>
@@ -388,7 +388,7 @@ export function PembelianClient({
                   {suppliers.length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Belum ada supplier.</TableCell></TableRow>
                   )}
-                  {suppliers.map((s) => (
+                  {suppliers.map((s: any) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-mono">{s.supplier_code}</TableCell>
                       <TableCell className="font-medium">{s.supplier_name}</TableCell>
@@ -420,7 +420,7 @@ export function PembelianClient({
               { label: "Telepon", key: "phone", placeholder: "08xx" },
               { label: "Email", key: "email", placeholder: "email@contoh.com" },
               { label: "Kota", key: "city", placeholder: "Jakarta" },
-            ].map((f) => (
+            ].map((f: any) => (
               <div key={f.key} className="space-y-1">
                 <Label>{f.label}</Label>
                 <Input value={(supplierForm as any)[f.key]} placeholder={f.placeholder}
@@ -454,7 +454,7 @@ export function PembelianClient({
                   value={poForm.supplier_id}
                   onChange={(e) => setPoForm((p) => ({ ...p, supplier_id: e.target.value }))}>
                   <option value="">-- Pilih Supplier --</option>
-                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
+                  {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.supplier_name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
@@ -486,7 +486,7 @@ export function PembelianClient({
                   <Plus className="h-3 w-3 mr-1" /> Tambah Item
                 </Button>
               </div>
-              {poForm.items.map((item, idx) => (
+              {poForm.items.map((item: any, idx: any) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-5 space-y-1">
                     <Label className="text-xs">Nama Barang</Label>
@@ -494,10 +494,10 @@ export function PembelianClient({
                       value={item.product_id}
                       onChange={(e) => {
                         const selectedId = e.target.value;
-                        const product = products.find(p => p.id.toString() === selectedId);
+                        const product = products.find((p: any) => p.id.toString() === selectedId);
                         setPoForm((p) => ({
                           ...p,
-                          items: p.items.map((x, i) => i === idx ? {
+                          items: p.items.map((x: any, i: any) => i === idx ? {
                             ...x,
                             product_id: selectedId,
                             product_name: product?.name || "",
@@ -506,30 +506,30 @@ export function PembelianClient({
                         }))
                       }}>
                       <option value="">-- Pilih Barang --</option>
-                      {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {products.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Qty</Label>
                     <Input type="number" min={1} value={item.qty}
-                      onChange={(e) => setPoForm((p) => ({ ...p, items: p.items.map((x, i) => i === idx ? { ...x, qty: parseInt(e.target.value) || 1 } : x) }))} />
+                      onChange={(e) => setPoForm((p) => ({ ...p, items: p.items.map((x: any, i: any) => i === idx ? { ...x, qty: parseInt(e.target.value) || 1 } : x) }))} />
                   </div>
                   <div className="col-span-4 space-y-1">
                     <Label className="text-xs">Harga Satuan</Label>
                     <Input type="number" min={0} value={item.unit_price}
-                      onChange={(e) => setPoForm((p) => ({ ...p, items: p.items.map((x, i) => i === idx ? { ...x, unit_price: parseInt(e.target.value) || 0 } : x) }))} />
+                      onChange={(e) => setPoForm((p) => ({ ...p, items: p.items.map((x: any, i: any) => i === idx ? { ...x, unit_price: parseInt(e.target.value) || 0 } : x) }))} />
                   </div>
                   <div className="col-span-1">
                     <Button type="button" variant="ghost" size="icon" className="text-red-500"
                       disabled={poForm.items.length <= 1}
-                      onClick={() => setPoForm((p) => ({ ...p, items: p.items.filter((_, i) => i !== idx) }))}>
+                      onClick={() => setPoForm((p) => ({ ...p, items: p.items.filter((_: any, i: any) => i !== idx) }))}>
                       ✕
                     </Button>
                   </div>
                 </div>
               ))}
               <div className="text-right text-sm font-semibold text-blue-600">
-                Subtotal: {formatRp(poForm.items.reduce((s, i) => s + (i.qty * i.unit_price), 0))} + PPN 10%
+                Subtotal: {formatRp(poForm.items.reduce((s: any, i: any) => s + (i.qty * i.unit_price), 0))} + PPN 10%
               </div>
             </div>
 
@@ -581,7 +581,7 @@ export function PembelianClient({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {grItems.map((item, idx) => (
+                    {grItems.map((item: any, idx: any) => (
                       <TableRow key={item.id} className={item.qty_rejected > 0 ? "bg-red-50/40" : ""}>
                         <TableCell className="font-medium">{item.product_name}</TableCell>
                         <TableCell className="text-center font-semibold">{item.qty_ordered}</TableCell>
@@ -624,26 +624,26 @@ export function PembelianClient({
                 <div className="rounded-lg bg-green-50 border border-green-100 p-3 text-center">
                   <p className="text-xs text-green-700 mb-1">Total Diterima</p>
                   <p className="text-xl font-bold text-green-700">
-                    {grItems.reduce((s, i) => s + i.qty_accepted, 0)} pcs
+                    {grItems.reduce((s: any, i: any) => s + i.qty_accepted, 0)} pcs
                   </p>
                 </div>
                 <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-center">
                   <p className="text-xs text-red-700 mb-1">Total Ditolak / Retur</p>
                   <p className="text-xl font-bold text-red-600">
-                    {grItems.reduce((s, i) => s + i.qty_rejected, 0)} pcs
+                    {grItems.reduce((s: any, i: any) => s + i.qty_rejected, 0)} pcs
                   </p>
                 </div>
                 <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-center">
                   <p className="text-xs text-blue-700 mb-1">Status GR</p>
                   <p className="text-sm font-bold text-blue-700">
-                    {grItems.every(i => i.qty_accepted === 0) ? "Semua Ditolak"
-                      : grItems.some(i => i.qty_rejected > 0) ? "Parsial Diterima"
+                    {grItems.every((i: any) => i.qty_accepted === 0) ? "Semua Ditolak"
+                      : grItems.some((i: any) => i.qty_rejected > 0) ? "Parsial Diterima"
                       : "Semua Diterima"}
                   </p>
                 </div>
               </div>
 
-              {grItems.some(i => i.qty_rejected > 0) && (
+              {grItems.some((i: any) => i.qty_rejected > 0) && (
                 <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
                   <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>Barang yang ditolak akan dicatat sebagai <strong>retur ke supplier</strong> dan <strong>tidak</strong> masuk ke stok.</span>

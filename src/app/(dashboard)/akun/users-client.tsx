@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield } from "lucide-react";
+import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield, BookOpen, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -100,6 +100,8 @@ export function UsersClient({
     admin: "Administrator",
     pengurus: "Pengurus Koperasi",
     kasir: "Kasir Toko",
+    petugas_akuntan: "Petugas Akuntan",
+    pengawas: "Pengawas Koperasi",
   };
 
   const roleColors: Record<string, string> = {
@@ -107,6 +109,8 @@ export function UsersClient({
     admin: "bg-blue-100 text-blue-700 border-blue-200",
     pengurus: "bg-emerald-100 text-emerald-700 border-emerald-200",
     kasir: "bg-amber-100 text-amber-700 border-amber-200",
+    petugas_akuntan: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    pengawas: "bg-indigo-100 text-indigo-700 border-indigo-200",
   };
 
   const roleIcons: Record<string, React.ReactNode> = {
@@ -114,6 +118,8 @@ export function UsersClient({
     admin: <Shield className="h-3.5 w-3.5" />,
     pengurus: <UserCheck className="h-3.5 w-3.5" />,
     kasir: <Lock className="h-3.5 w-3.5" />,
+    petugas_akuntan: <BookOpen className="h-3.5 w-3.5" />,
+    pengawas: <ShieldCheck className="h-3.5 w-3.5" />,
   };
 
   return (
@@ -145,7 +151,7 @@ export function UsersClient({
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((u) => {
+              users.map((u: any) => {
                 const canEdit =
                   currentRole === "superadmin" ||
                   (currentRole === "admin" && u.role !== "superadmin");
@@ -198,7 +204,7 @@ export function UsersClient({
             Tidak ada data user.
           </div>
         ) : (
-          users.map((u) => {
+          users.map((u: any) => {
             const canEdit =
               currentRole === "superadmin" ||
               (currentRole === "admin" && u.role !== "superadmin");
@@ -291,6 +297,8 @@ export function UsersClient({
                   <SelectItem value="admin">Administrator</SelectItem>
                   <SelectItem value="pengurus">Pengurus Koperasi</SelectItem>
                   <SelectItem value="kasir">Kasir Toko</SelectItem>
+                  <SelectItem value="petugas_akuntan">Petugas Akuntan</SelectItem>
+                  <SelectItem value="pengawas">Pengawas Koperasi</SelectItem>
                 </SelectContent>
               </Select>
             </div>

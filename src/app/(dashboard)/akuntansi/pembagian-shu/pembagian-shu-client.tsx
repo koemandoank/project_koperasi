@@ -141,7 +141,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
       doc.setFont("helvetica", "bold")
       doc.text("B. BUKU PEMBANTU SHU RAT PER ANGGOTA", 14, finalY1)
 
-      const memberRows = report.members.map((m, idx) => [
+      const memberRows = report.members.map((m: any, idx: any) => [
         (idx + 1).toString(),
         `${m.memberName}\n(${m.memberNo})`,
         `${formatCurrency(m.savingsBalance)}\n(Bobot: ${formatPercent(m.savingsWeight)})`,
@@ -152,11 +152,11 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
       ])
 
       // Tambahkan baris total
-      const totalSavings = report.members.reduce((acc, m) => acc + m.savingsBalance, 0)
-      const totalJasaModal = report.members.reduce((acc, m) => acc + m.jasaModal, 0)
-      const totalPartisipasi = report.members.reduce((acc, m) => acc + m.belanjaPaid + m.bungaPaid, 0)
-      const totalJasaUsaha = report.members.reduce((acc, m) => acc + m.jasaUsaha, 0)
-      const totalShuMembers = report.members.reduce((acc, m) => acc + m.totalShu, 0)
+      const totalSavings = report.members.reduce((acc: any, m: any) => acc + m.savingsBalance, 0)
+      const totalJasaModal = report.members.reduce((acc: any, m: any) => acc + m.jasaModal, 0)
+      const totalPartisipasi = report.members.reduce((acc: any, m: any) => acc + m.belanjaPaid + m.bungaPaid, 0)
+      const totalJasaUsaha = report.members.reduce((acc: any, m: any) => acc + m.jasaUsaha, 0)
+      const totalShuMembers = report.members.reduce((acc: any, m: any) => acc + m.totalShu, 0)
 
       memberRows.push([
         "",
@@ -297,7 +297,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
       currentRow++
 
       // Rows members
-      report.members.forEach((m, idx) => {
+      report.members.forEach((m: any, idx: any) => {
         const row = ws.getRow(currentRow)
         row.values = [
           idx + 1,
@@ -331,11 +331,11 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
       })
 
       // Add Total Row
-      const totalSavings = report.members.reduce((acc, m) => acc + m.savingsBalance, 0)
-      const totalJasaModal = report.members.reduce((acc, m) => acc + m.jasaModal, 0)
-      const totalPartisipasi = report.members.reduce((acc, m) => acc + m.belanjaPaid + m.bungaPaid, 0)
-      const totalJasaUsaha = report.members.reduce((acc, m) => acc + m.jasaUsaha, 0)
-      const totalShuMembers = report.members.reduce((acc, m) => acc + m.totalShu, 0)
+      const totalSavings = report.members.reduce((acc: any, m: any) => acc + m.savingsBalance, 0)
+      const totalJasaModal = report.members.reduce((acc: any, m: any) => acc + m.jasaModal, 0)
+      const totalPartisipasi = report.members.reduce((acc: any, m: any) => acc + m.belanjaPaid + m.bungaPaid, 0)
+      const totalJasaUsaha = report.members.reduce((acc: any, m: any) => acc + m.jasaUsaha, 0)
+      const totalShuMembers = report.members.reduce((acc: any, m: any) => acc + m.totalShu, 0)
 
       const totalRow = ws.getRow(currentRow)
       totalRow.values = [
@@ -396,7 +396,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
               <SelectValue placeholder="Pilih Tahun" />
             </SelectTrigger>
             <SelectContent>
-              {years.map((y) => (
+              {years.map((y: any) => (
                 <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
@@ -550,7 +550,7 @@ export function PembagianShuClient({ initialReport, initialYear, templateConfig 
                         <TableCell colSpan={6} className="text-center text-slate-400 py-4">Belum ada anggota aktif terdaftar.</TableCell>
                       </TableRow>
                     )}
-                    {report.members.map((m) => (
+                    {report.members.map((m: any) => (
                       <TableRow key={m.memberId} className="hover:bg-slate-50/50">
                         <TableCell className="font-medium">
                           <div>{m.memberName}</div>

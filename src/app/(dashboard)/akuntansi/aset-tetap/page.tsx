@@ -143,8 +143,8 @@ export default function AsetTetapPage(): React.JSX.Element {
   }, [])
 
   // Calculations
-  const totalValue = assets.reduce((sum, item) => sum + item.acquisitionCost, 0)
-  const activeCount = assets.filter(item => item.condition !== "RUSAK").length
+  const totalValue = assets.reduce((sum: any, item: any) => sum + item.acquisitionCost, 0)
+  const activeCount = assets.filter((item: any) => item.condition !== "RUSAK").length
   const totalCount = assets.length
 
   /**
@@ -319,7 +319,7 @@ export default function AsetTetapPage(): React.JSX.Element {
         </div>
       ) : (
         <div className="space-y-4">
-          {assets.map((asset) => (
+          {assets.map((asset: any) => (
             <div
               key={asset.id}
               className="flex items-center justify-between p-4 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-900 rounded-2xl hover:shadow-md transition-shadow duration-200"

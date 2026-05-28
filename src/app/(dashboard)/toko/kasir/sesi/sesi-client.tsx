@@ -129,7 +129,7 @@ export function SesiKasirClient({
         {[
           { id: false, label: "Status Kasir", icon: CreditCard },
           { id: true,  label: `Riwayat Sesi (${history.length})`, icon: History },
-        ].map(({ id, label, icon: Icon }) => (
+        ].map(({  id, label, icon: Icon  }: any) => (
           <button
             key={String(id)}
             onClick={() => setShowHistory(id)}
@@ -147,7 +147,7 @@ export function SesiKasirClient({
       {/* ── Status Panel ──────────────────────────────────────────────────────── */}
       {!showHistory && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {registers.map((reg) => {
+          {registers.map((reg: any) => {
             const has = !!reg.active_session
             return (
               <div key={reg.id} className={`rounded-2xl border shadow-md overflow-hidden transition-all ${
@@ -242,13 +242,13 @@ export function SesiKasirClient({
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b">
-                  {["Tanggal", "Kasir", "Buka", "Tutup", "Saldo Awal", "Saldo Akhir", "Selisih", "Status", "Operator"].map(h => (
+                  {["Tanggal", "Kasir", "Buka", "Tutup", "Saldo Awal", "Saldo Akhir", "Selisih", "Status", "Operator"].map((h: any) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {history.map((s) => {
+                {history.map((s: any) => {
                   const diffVal = s.difference ?? 0
                   const isOpen = s.status === "open"
                   return (
@@ -375,7 +375,7 @@ export function SesiKasirClient({
                   { label: "Total Penjualan",  val: rp(summary.total_sales),   icon: ArrowUpRight,   color: "text-emerald-600" },
                   { label: "Total Retur",      val: rp(summary.total_refunds), icon: ArrowDownRight, color: "text-rose-600" },
                   { label: "Penjualan Bersih", val: rp(summary.net_sales),     icon: Wallet,         color: "text-indigo-600" },
-                ].map(({ label, val, icon: Icon, color }) => (
+                ].map(({  label, val, icon: Icon, color  }: any) => (
                   <div key={label} className="rounded-xl border bg-card p-3 shadow-sm">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon className={`h-3.5 w-3.5 ${color}`} />
@@ -395,7 +395,7 @@ export function SesiKasirClient({
                     { label: "QRIS",     val: summary.breakdown.qris,     icon: Smartphone,  color: "text-violet-600"  },
                     { label: "Transfer", val: summary.breakdown.transfer,  icon: CreditCard,  color: "text-blue-600"   },
                     { label: "Paylater", val: summary.breakdown.paylater,  icon: Wallet,      color: "text-amber-600"  },
-                  ].map(({ label, val, icon: Icon, color }) => (
+                  ].map(({  label, val, icon: Icon, color  }: any) => (
                     <div key={label} className="flex items-center gap-2">
                       <Icon className={`h-4 w-4 shrink-0 ${color}`} />
                       <div>
@@ -413,7 +413,7 @@ export function SesiKasirClient({
                 {[
                   { label: "Saldo Awal", val: rp(summary.opening_balance), sign: "" },
                   { label: "+ Tunai & QRIS", val: rp(summary.breakdown.cash + summary.breakdown.qris), sign: "text-emerald-600" },
-                ].map(({ label, val, sign }) => (
+                ].map(({  label, val, sign  }: any) => (
                   <div key={label} className="flex justify-between py-1.5 border-b">
                     <span className="text-sm text-muted-foreground">{label}</span>
                     <span className={`font-semibold ${sign}`}>{val}</span>

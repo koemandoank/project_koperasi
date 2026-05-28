@@ -139,7 +139,7 @@ export async function processMonthlyPayrollBatch({
     }
 
     // 5. Eksekusi batch di dalam transaksi database tunggal
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       let savingsCount = 0
       let savingsAmount = 0
       let loansCount = 0

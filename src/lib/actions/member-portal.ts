@@ -35,7 +35,7 @@ export async function getMySimpanan() {
     return {
       member_name: member.full_name,
       member_code: member.member_code,
-      savings: member.savings.map(s => ({
+      savings: member.savings.map((s: any) => ({
         id: Number(s.id),
         type_code: s.saving_types?.code || "-",
         type_name: s.saving_types?.name || "-",
@@ -44,8 +44,8 @@ export async function getMySimpanan() {
         total_withdraw: Number(s.total_withdraw),
         last_transaction: s.saving_transactions[0]?.transaction_at?.toISOString() || null,
       })),
-      totalBalance: member.savings.reduce((sum, s) => sum + Number(s.balance), 0),
-      transactions: transactions.map(t => ({
+      totalBalance: member.savings.reduce((sum: any, s: any) => sum + Number(s.balance), 0),
+      transactions: transactions.map((t: any) => ({
         id: Number(t.id),
         type: t.type,
         amount: Number(t.amount),
@@ -105,13 +105,13 @@ export async function getMyPinjaman() {
     return {
       member_name: member.full_name,
       member_id: Number(member.id),
-      paylater_debts: paylaterOrders.map(o => ({
+      paylater_debts: paylaterOrders.map((o: any) => ({
         id: Number(o.id),
         order_no: o.order_no,
         amount: Number(o.grand_total),
         ordered_at: o.ordered_at.toISOString().split("T")[0]
       })),
-      loans: member.loans.map(l => ({
+      loans: member.loans.map((l: any) => ({
         id: Number(l.id),
         loan_no: l.loan_no,
         principal: Number(l.principal),
@@ -128,8 +128,8 @@ export async function getMyPinjaman() {
           interest_rate: Number(l.loan_applications.loan_products.interest_rate),
           max_tenor: l.loan_applications.loan_products.max_tenor,
         } : null,
-        next_due: l.loan_schedules.find(s => s.status === "pending")?.due_date?.toISOString().split("T")[0] || null,
-        loan_schedules: l.loan_schedules.map(s => ({
+        next_due: l.loan_schedules.find((s: any) => s.status === "pending")?.due_date?.toISOString().split("T")[0] || null,
+        loan_schedules: l.loan_schedules.map((s: any) => ({
           id: Number(s.id),
           installment_no: s.installment_no,
           due_date: s.due_date,
@@ -141,7 +141,7 @@ export async function getMyPinjaman() {
           status: s.status,
         })),
       })),
-      applications: await Promise.all(member.loan_applications.map(async (a) => {
+      applications: await Promise.all(member.loan_applications.map(async (a: any) => {
         const { checkLoanRuleViolations } = await import("./loans");
         const violations = a.status === "pending"
           ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
@@ -185,7 +185,7 @@ export async function getMyOrders() {
       take: 30
     })
 
-    return orders.map(o => ({
+    return orders.map((o: any) => ({
       id: Number(o.id),
       order_no: o.order_no,
       grand_total: Number(o.grand_total),
@@ -263,7 +263,7 @@ export async function getMyLoyalty() {
       include: { loyalty_programs: true }
     })
 
-    return memberships.map(m => ({
+    return memberships.map((m: any) => ({
       id: Number(m.id),
       program_name: m.loyalty_programs.program_name,
       level: m.membership_level,

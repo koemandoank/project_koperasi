@@ -95,7 +95,7 @@ async function ensureDefaultFixedAssets(): Promise<void> {
 
   // Seed each default asset with double-entry journal posting
   for (const item of defaults) {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // 1. Create COA account for Fixed Asset
       const coa = await tx.chart_of_accounts.create({
         data: {
@@ -208,7 +208,7 @@ export async function getFixedAssets(): Promise<{ success: boolean; assets: Fixe
       }
 
       // Calculate cost based on ledger debit lines (acquisition cost)
-      const cost = coa.journal_lines.reduce((sum, line) => sum + Number(line.debit) - Number(line.credit), 0)
+      const cost = coa.journal_lines.reduce((sum: any, line: any) => sum + Number(line.debit) - Number(line.credit), 0)
 
       // Get acquisition date from earliest journal entry or fallback to coa created_at
       let acquisitionDate = coa.created_at ? coa.created_at.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
@@ -291,7 +291,7 @@ export async function createFixedAsset(input: CreateFixedAssetInput): Promise<{ 
     })
 
     let maxIndex = 0
-    siblingCoas.forEach(c => {
+    siblingCoas.forEach((c: any) => {
       const idx = parseInt(c.code.substring(3), 10)
       if (!isNaN(idx) && idx > maxIndex) {
         maxIndex = idx
@@ -320,7 +320,7 @@ export async function createFixedAsset(input: CreateFixedAssetInput): Promise<{ 
     const dateParsed = new Date(input.acquisitionDate)
 
     // Execute in a robust database transaction block
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // 1. Create COA Account for Fixed Asset
       const coa = await tx.chart_of_accounts.create({
         data: {

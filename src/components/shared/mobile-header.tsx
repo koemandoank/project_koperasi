@@ -103,7 +103,7 @@ export function MobileHeader({
   const router = useRouter()
   const [notifOpen, setNotifOpen] = useState(false)
 
-  const totalNotif = notifications.reduce((s, n) => s + n.count, 0)
+  const totalNotif = notifications.reduce((s: any, n: any) => s + n.count, 0)
   const title = resolveTitle(pathname)
   const isRoot = ROOT_PATHS.has(pathname)
 

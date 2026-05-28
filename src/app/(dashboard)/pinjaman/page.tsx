@@ -60,7 +60,7 @@ export default async function PinjamanPage() {
     )
   }
 
-  const activeLoanProducts = loanProducts.filter(p => p.is_active)
+  const activeLoanProducts = loanProducts.filter((p: { is_active: boolean | null }) => p.is_active)
 
   return (
     <div className="p-6 space-y-6">

@@ -198,7 +198,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       crdLaba: number
     }>()
 
-    membersList.forEach(m => {
+    membersList.forEach((m: any) => {
       if (m.status === 'active') {
         const com2Val = (m.unit_code || 'U-001').replace(/^U-/, '')
         sembakoMap.set(m.nik, {
@@ -215,7 +215,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       }
     })
 
-    detailRows.forEach(r => {
+    detailRows.forEach((r: any) => {
       if (r.category_slug !== 'sembako') return
 
       let entry = sembakoMap.get(r.nik)
@@ -248,12 +248,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
     let list = Array.from(sembakoMap.values())
 
     if (onlyActiveSembako) {
-      list = list.filter(item => item.crdJual > 0 || item.casJual > 0)
+      list = list.filter((item: any) => item.crdJual > 0 || item.casJual > 0)
     }
 
     if (sembakoSearch.trim() !== '') {
       const q = sembakoSearch.toLowerCase()
-      list = list.filter(item => 
+      list = list.filter((item: any) => 
         item.nama.toLowerCase().includes(q) || 
         item.nik.toLowerCase().includes(q)
       )
@@ -268,12 +268,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
     if (onlyActivePotongan) {
       // Show only members with actual deductions
-      list = list.filter(item => item.total_deduction > 0)
+      list = list.filter((item: any) => item.total_deduction > 0)
     }
 
     if (potonganSearch.trim() !== '') {
       const q = potonganSearch.toLowerCase()
-      list = list.filter(item => 
+      list = list.filter((item: any) => 
         item.name.toLowerCase().includes(q) || 
         item.nik.toLowerCase().includes(q) ||
         item.department.toLowerCase().includes(q)
@@ -289,7 +289,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
     if (onlyActiveStock) {
       // Show only products with activity or current stock
-      list = list.filter(item => 
+      list = list.filter((item: any) => 
         item.stockAwal > 0 || 
         item.pembelian > 0 || 
         item.totPenjualan > 0 || 
@@ -302,7 +302,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
     if (stockSearch.trim() !== '') {
       const q = stockSearch.toLowerCase()
-      list = list.filter(item => 
+      list = list.filter((item: any) => 
         item.name.toLowerCase().includes(q) || 
         item.sku.toLowerCase().includes(q)
       )
@@ -378,10 +378,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       h2.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E78'} }; c.font = { color:{argb:'FFFFFFFF'}, bold:true }; c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
       
       let currentRow2 = startRow2 + 1
-      data.topProducts.forEach((p, idx) => {
+      data.topProducts.forEach((p: any, idx: any) => {
         const r = ws2.getRow(currentRow2)
         r.values = [idx+1, p.product_name, p.total_qty, p.total_revenue, p.total_cogs, p.gross_profit, `${p.margin_pct}%`]
-        ;[4,5,6].forEach(i => r.getCell(i).numFmt = '"Rp"#,##0')
+        ;[4,5,6].forEach((i: any) => r.getCell(i).numFmt = '"Rp"#,##0')
         if (p.gross_profit < 0) r.getCell(6).font = { color:{argb:'FFDC2626'}, bold:true }
         r.eachCell(c => { c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
         currentRow2++
@@ -408,7 +408,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       h3.eachCell(c => { c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E78'} }; c.font = { color:{argb:'FFFFFFFF'}, bold:true }; c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} } })
       
       let currentRow3 = startRow3 + 1
-      data.byPaymentMethod.forEach(m => {
+      data.byPaymentMethod.forEach((m: any) => {
         const r = ws3.getRow(currentRow3)
         r.values = [PAYMENT_LABELS[m.method]??m.method, m.count, m.total]
         r.getCell(3).numFmt = '"Rp"#,##0'
@@ -469,7 +469,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       autoTable(doc, {
         startY: startY + 4,
         head: [['#','Produk','Qty','Omzet','Modal','Laba Kotor','Margin']],
-        body: data.topProducts.map((p,i) => [
+        body: data.topProducts.map((p: any, i: any) => [
           i+1, p.product_name, p.total_qty,
           formatRp(p.total_revenue), formatRp(p.total_cogs), formatRp(p.gross_profit), `${p.margin_pct}%`
         ]),
@@ -518,7 +518,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       // ───────────────────────────────────────────────────────────
       const wsDetail = wb.addWorksheet('Detail Transaksi')
       const colWidthsDetail = [5, 14, 6, 6, 18, 22, 28, 6, 16, 16, 16, 16, 14]
-      colWidthsDetail.forEach((w, i) => { wsDetail.getColumn(i + 1).width = w })
+      colWidthsDetail.forEach((w: any, i: any) => { wsDetail.getColumn(i + 1).width = w })
 
       wsDetail.mergeCells('A1:C1')
       const r1 = wsDetail.getCell('A1')
@@ -532,12 +532,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       const bulanNm = startD.toLocaleDateString('id-ID', { month: 'long' }).toUpperCase()
       const tahun   = startD.getFullYear()
 
-      const totalQty   = rows.reduce((s, r) => s + r.qty, 0)
-      const totalJual  = rows.reduce((s, r) => s + r.harga_jual, 0)
-      const totalHJual = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
-      const totalHPP   = rows.reduce((s, r) => s + r.harga_pokok, 0)
-      const totalTHPP  = rows.reduce((s, r) => s + r.tot_harga_pokok, 0)
-      const totalLaba  = rows.reduce((s, r) => s + r.laba, 0)
+      const totalQty   = rows.reduce((s: any, r: any) => s + r.qty, 0)
+      const totalJual  = rows.reduce((s: any, r: any) => s + r.harga_jual, 0)
+      const totalHJual = rows.reduce((s: any, r: any) => s + r.tot_harga_jual, 0)
+      const totalHPP   = rows.reduce((s: any, r: any) => s + r.harga_pokok, 0)
+      const totalTHPP  = rows.reduce((s: any, r: any) => s + r.tot_harga_pokok, 0)
+      const totalLaba  = rows.reduce((s: any, r: any) => s + r.laba, 0)
 
       const BLUE = 'FF1F4E78'; const WHITE = 'FFFFFFFF'
 
@@ -582,7 +582,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       })
       hRow.height = 30
 
-      rows.forEach((r, idx) => {
+      rows.forEach((r: any, idx: any) => {
         const dataRow = wsDetail.addRow([
           r.no, r.tanggal, r.minggu, r.bayar, r.nik, r.nama_anggota, r.nama_barang,
           r.qty, r.harga_jual, r.tot_harga_jual, r.harga_pokok, r.tot_harga_pokok, r.laba
@@ -660,7 +660,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         const border1 = { border: { top:{style:'thin' as const}, left:{style:'thin' as const}, bottom:{style:'thin' as const}, right:{style:'thin' as const} } }
 
         const wsWeek = wb.addWorksheet(`Rekap Minggu ${weekSheetNo++}`)
-        ;[5,12,16,18,18,18].forEach((w,i) => wsWeek.getColumn(i+2).width = w)
+        ;[5,12,16,18,18,18].forEach((w: any, i: any) => wsWeek.getColumn(i+2).width = w)
 
         wsWeek.getCell('B1').value = 'PT. Sulfindo Adiusaha'; wsWeek.getCell('B1').font = { bold:true }
         
@@ -678,14 +678,14 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           wsWeek.getCell(`B${startRow}`).value = label
           wsWeek.getCell(`B${startRow}`).font  = { bold:true, color:{ argb: isCash ? '00000099' : RED } }
           const hRow = wsWeek.getRow(startRow+1)
-          ;['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].forEach((h,i) => {
+          ;['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].forEach((h: any, i: any) => {
             const c = hRow.getCell(i+2)
             c.value = h; c.font = { bold:true }; Object.assign(c, center, border1)
             c.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FFD9E1F2'} }
           })
           let rowIdx = startRow + 2
           let totHPP = 0, totJual = 0
-          dates.forEach((d, idx) => {
+          dates.forEach((d: any, idx: any) => {
             const entry  = dayMap.get(d)!
             const hpp    = isCash ? entry.hppCash  : entry.hppKredit
             const jual   = isCash ? entry.jualCash : entry.jualKredit
@@ -693,7 +693,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
             totHPP += hpp; totJual += jual
             const dt      = parseTanggal(d)
             const r       = wsWeek.getRow(rowIdx++)
-            ;[idx+1, DAY_ID_LOCAL[dt.getDay()], d, hpp > 0 ? hpp : '-', jual > 0 ? jual : '-', laba !== 0 ? laba : '-'].forEach((v,i) => {
+            ;[idx+1, DAY_ID_LOCAL[dt.getDay()], d, hpp > 0 ? hpp : '-', jual > 0 ? jual : '-', laba !== 0 ? laba : '-'].forEach((v: any, i: any) => {
               const c = r.getCell(i+2); c.value = v; Object.assign(c, border1)
               if (i >= 3 && typeof v === 'number') { c.numFmt = '#,##0'; Object.assign(c, right) }
               else Object.assign(c, center)
@@ -701,8 +701,8 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           })
           const tot = wsWeek.getRow(rowIdx)
           tot.getCell(3).value = 'JUMLAH'; tot.getCell(3).font = { bold:true }
-          ;[2,3,4].forEach(i => Object.assign(tot.getCell(i), border1))
-          ;[totHPP, totJual, totJual-totHPP].forEach((v,i) => {
+          ;[2,3,4].forEach((i: any) => Object.assign(tot.getCell(i), border1))
+          ;[totHPP, totJual, totJual-totHPP].forEach((v: any, i: any) => {
             const c = tot.getCell(i+5)
             c.value = v; c.numFmt = '#,##0'; c.font = { bold:true }; Object.assign(c, right, border1)
           })
@@ -742,7 +742,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       const wsSembako = wb.addWorksheet('Rekap Sembako')
       wsSembako.views = [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
 
-      ;[5, 16, 32, 6, 8, 18, 18, 18, 18, 18].forEach((w, i) => {
+      ;[5, 16, 32, 6, 8, 18, 18, 18, 18, 18].forEach((w: any, i: any) => {
         wsSembako.getColumn(i + 1).width = w
       })
 
@@ -767,7 +767,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
       const sembakoMap = new Map<string, SembakoRecord>()
 
-      allMembers.forEach(m => {
+      allMembers.forEach((m: any) => {
         if (m.status === 'active') {
           const com2Val = (m.unit_code || 'U-001').replace(/^U-/, '')
           sembakoMap.set(m.nik, {
@@ -829,7 +829,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       let totalCasPokok = 0
       let totalCrdLaba = 0
 
-      sembakoList.forEach(item => {
+      sembakoList.forEach((item: any) => {
         totalCrdJual += item.crdJual
         totalCasJual += item.casJual
         totalCrdPokok += item.crdPokok
@@ -877,7 +877,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       })
 
-      sembakoList.forEach((item, index) => {
+      sembakoList.forEach((item: any, index: any) => {
         const rowData = [
           index + 1,
           item.nik,
@@ -936,7 +936,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       wsPotongan.views = [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
 
       const colWidthsPotongan = [5, 16, 32, 6, 8, 14, 14, 14, 14, 12, 12, 14, 12, 14, 12, 14, 16]
-      colWidthsPotongan.forEach((w, i) => {
+      colWidthsPotongan.forEach((w: any, i: any) => {
         wsPotongan.getColumn(i + 1).width = w
       })
 
@@ -960,9 +960,9 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       let tPBarang = 0, tAdmPBrg = 0
       let tKreditSbk = 0, tTotal = 0
 
-      deductions.forEach(item => {
-        const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-        const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+      deductions.forEach((item: any) => {
+        const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+        const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
         const simpSukarela = item.total_simpanan_salary_cut
         const pUang = item.total_pinjaman_uang
         const admPU = item.total_pinjaman_uang_interest ?? 0
@@ -1028,10 +1028,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       })
 
-      deductions.forEach((item, index) => {
+      deductions.forEach((item: any, index: any) => {
         const com2Val = (item.department || 'SAU').replace(/^U-/, '')
-        const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-        const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+        const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+        const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
         const simpSukarela = item.total_simpanan_salary_cut
         const pUang = item.total_pinjaman_uang
         const admPU = item.total_pinjaman_uang_interest ?? 0
@@ -1112,7 +1112,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       wsStock.views = [{ state: 'frozen', xSplit: 0, ySplit: 5 }]
 
       const colWidthsStock = [5, 14, 32, 14, 14, 12, 12, 12, 12, 12, 14, 14, 14, 14, 14]
-      colWidthsStock.forEach((w, i) => {
+      colWidthsStock.forEach((w: any, i: any) => {
         wsStock.getColumn(i + 1).width = w
       })
 
@@ -1134,7 +1134,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       let tTotPenjualan = 0, tStockAkhir = 0
       let tStockOpname = 0, tQtyRetur = 0, tPenyesuaian = 0
 
-      stocks.forEach(item => {
+      stocks.forEach((item: any) => {
         tStockAwal += item.stockAwal
         tPembelian += item.pembelian
         tM1 += item.m1
@@ -1189,7 +1189,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       })
 
-      stocks.forEach((item, index) => {
+      stocks.forEach((item: any, index: any) => {
         const rowData = [
           index + 1,
           item.sku,
@@ -1279,7 +1279,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
       // ── Column widths ─────────────────────────────────────────
       const colWidths = [5, 14, 6, 6, 18, 22, 28, 6, 16, 16, 16, 16, 14]
-      colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w })
+      colWidths.forEach((w: any, i: any) => { ws.getColumn(i + 1).width = w })
 
       // ── ROW 1: Koperasi name ──────────────────────────────────
       ws.mergeCells('A1:C1')
@@ -1297,12 +1297,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       const tahun   = startD.getFullYear()
 
       // TOTAL values (right side of row 3)
-      const totalQty   = rows.reduce((s, r) => s + r.qty, 0)
-      const totalJual  = rows.reduce((s, r) => s + r.harga_jual, 0)
-      const totalHJual = rows.reduce((s, r) => s + r.tot_harga_jual, 0)
-      const totalHPP   = rows.reduce((s, r) => s + r.harga_pokok, 0)
-      const totalTHPP  = rows.reduce((s, r) => s + r.tot_harga_pokok, 0)
-      const totalLaba  = rows.reduce((s, r) => s + r.laba, 0)
+      const totalQty   = rows.reduce((s: any, r: any) => s + r.qty, 0)
+      const totalJual  = rows.reduce((s: any, r: any) => s + r.harga_jual, 0)
+      const totalHJual = rows.reduce((s: any, r: any) => s + r.tot_harga_jual, 0)
+      const totalHPP   = rows.reduce((s: any, r: any) => s + r.harga_pokok, 0)
+      const totalTHPP  = rows.reduce((s: any, r: any) => s + r.tot_harga_pokok, 0)
+      const totalLaba  = rows.reduce((s: any, r: any) => s + r.laba, 0)
 
       const BLUE = 'FF1F4E78'; const WHITE = 'FFFFFFFF'
 
@@ -1349,7 +1349,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       hRow.height = 30
 
       // ── DATA ROWS ─────────────────────────────────────────────
-      rows.forEach((r, idx) => {
+      rows.forEach((r: any, idx: any) => {
         const dataRow = ws.addRow([
           r.no, r.tanggal, r.minggu, r.bayar, r.nik, r.nama_anggota, r.nama_barang,
           r.qty, r.harga_jual, r.tot_harga_jual, r.harga_pokok, r.tot_harga_pokok, r.laba
@@ -1418,7 +1418,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
       let sheetLabel: string
 
       if (source === 'mingguan' && mingguData) {
-        dayMap = new Map(mingguData.rows.map(r => [r.tanggal, {
+        dayMap = new Map(mingguData.rows.map((r: any) => [r.tanggal, {
           tanggal: r.tanggal, hppCash: r.hppCash, jualCash: r.jualCash,
           hppKredit: r.hppKredit, jualKredit: r.jualKredit,
         }]))
@@ -1466,7 +1466,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
         const border1 = { border: { top:{style:'thin' as const}, left:{style:'thin' as const}, bottom:{style:'thin' as const}, right:{style:'thin' as const} } }
 
         const ws = wb.addWorksheet(`Minggu ${sheetNo++}`)
-        ;[5,12,16,18,18,18].forEach((w,i) => ws.getColumn(i+2).width = w)
+        ;[5,12,16,18,18,18].forEach((w: any, i: any) => ws.getColumn(i+2).width = w)
 
         // R1 company
         ws.getCell('B1').value = 'PT. Sulfindo Adiusaha'; ws.getCell('B1').font = { bold:true }
@@ -1486,14 +1486,14 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           ws.getCell(`B${startRow}`).font  = { bold:true, color:{ argb: isCash ? '00000099' : RED } }
           // header
           const hRow = ws.getRow(startRow+1)
-          ;['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].forEach((h,i) => {
+          ;['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].forEach((h: any, i: any) => {
             const c = hRow.getCell(i+2)
             c.value = h; c.font = { bold:true }; Object.assign(c, center, border1)
             c.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FFD9E1F2'} }
           })
           let rowIdx = startRow + 2
           let totHPP = 0, totJual = 0
-          dates.forEach((d, idx) => {
+          dates.forEach((d: any, idx: any) => {
             const entry  = dayMap.get(d)!
             const hpp    = isCash ? entry.hppCash  : entry.hppKredit
             const jual   = isCash ? entry.jualCash : entry.jualKredit
@@ -1501,7 +1501,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
             totHPP += hpp; totJual += jual
             const dt      = parseTanggal(d)
             const r       = ws.getRow(rowIdx++)
-            ;[idx+1, DAY_ID_LOCAL[dt.getDay()], d, hpp > 0 ? hpp : '-', jual > 0 ? jual : '-', laba !== 0 ? laba : '-'].forEach((v,i) => {
+            ;[idx+1, DAY_ID_LOCAL[dt.getDay()], d, hpp > 0 ? hpp : '-', jual > 0 ? jual : '-', laba !== 0 ? laba : '-'].forEach((v: any, i: any) => {
               const c = r.getCell(i+2); c.value = v; Object.assign(c, border1)
               if (i >= 3 && typeof v === 'number') { c.numFmt = '#,##0'; Object.assign(c, right) }
               else Object.assign(c, center)
@@ -1510,8 +1510,8 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
           // JUMLAH row
           const tot = ws.getRow(rowIdx)
           tot.getCell(3).value = 'JUMLAH'; tot.getCell(3).font = { bold:true }
-          ;[2,3,4].forEach(i => Object.assign(tot.getCell(i), border1))
-          ;[totHPP, totJual, totJual-totHPP].forEach((v,i) => {
+          ;[2,3,4].forEach((i: any) => Object.assign(tot.getCell(i), border1))
+          ;[totHPP, totJual, totJual-totHPP].forEach((v: any, i: any) => {
             const c = tot.getCell(i+5)
             c.value = v; c.numFmt = '#,##0'; c.font = { bold:true }; Object.assign(c, right, border1)
           })
@@ -1603,8 +1603,8 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Penjualan per Metode Pembayaran</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {data.byPaymentMethod.map(m => {
-                  const totalAll = data.byPaymentMethod.reduce((s,x) => s+x.total, 0)
+                {data.byPaymentMethod.map((m: any) => {
+                  const totalAll = data.byPaymentMethod.reduce((s: any, x: any) => s+x.total, 0)
                   const pct = totalAll > 0 ? Math.round((m.total/totalAll)*100) : 0
                   return (
                     <div key={m.method} className="space-y-1">
@@ -1713,7 +1713,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {PRESETS.map(p => (
+                  {PRESETS.map((p: any) => (
                     <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
                       className="h-8 text-[11px] px-3 py-1 rounded-lg font-semibold">{p.label}</Button>
                   ))}
@@ -1725,7 +1725,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
                     <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {MONTH_OPTIONS.map(m => (
+                      {MONTH_OPTIONS.map((m: any) => (
                         <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1736,7 +1736,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
                     <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {YEAR_OPTIONS.map(y => (
+                      {YEAR_OPTIONS.map((y: any) => (
                         <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1747,7 +1747,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
                     <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                      {['all','cash','qris','paylater','transfer','saving_deduct'].map((m: any) => (
                         <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1790,10 +1790,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <div className="flex items-center gap-6 px-4 py-2.5 bg-[#1F4E78] text-white text-xs font-bold rounded-t-xl">
                     <span>BULAN: {new Date(startDate).toLocaleDateString('id-ID',{month:'long',year:'numeric'}).toUpperCase()}</span>
                     <span className="ml-auto flex gap-6">
-                      <span>TOTAL QTY: {detailRows.reduce((s,r)=>s+r.qty,0)}</span>
-                      <span>TOTAL JUAL: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_jual,0))}</span>
-                      <span>TOTAL HPP: {formatRp(detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0))}</span>
-                      <span>TOTAL LABA: {formatRp(detailRows.reduce((s,r)=>s+r.laba,0))}</span>
+                      <span>TOTAL QTY: {detailRows.reduce((s: any, r: any) =>s+r.qty,0)}</span>
+                      <span>TOTAL JUAL: {formatRp(detailRows.reduce((s: any, r: any) =>s+r.tot_harga_jual,0))}</span>
+                      <span>TOTAL HPP: {formatRp(detailRows.reduce((s: any, r: any) =>s+r.tot_harga_pokok,0))}</span>
+                      <span>TOTAL LABA: {formatRp(detailRows.reduce((s: any, r: any) =>s+r.laba,0))}</span>
                     </span>
                   </div>
                   <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-b-xl">
@@ -1802,13 +1802,13 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <tr className="bg-[#1F4E78] text-white">
                           {['NO','TANGGAL','MINGGU','BAYAR','NIK','NAMA ANGGOTA','NAMA BARANG',
                             'QTY','HARGA JUAL','TOT HARGA JUAL','HARGA POKOK','TOT HARGA POKOK','LABA'
-                          ].map(h => (
+                          ].map((h: any) => (
                             <th key={h} className="px-2 py-2.5 text-center font-bold border border-[#163d5e] whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {detailRows.map((r, idx) => (
+                        {detailRows.map((r: any, idx: any) => (
                           <tr key={r.no} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                             <td className="px-2 py-1.5 text-center border border-gray-200">{r.no}</td>
                             <td className="px-2 py-1.5 text-center border border-gray-200 whitespace-nowrap">{r.tanggal}</td>
@@ -1836,12 +1836,12 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         ))}
                         <tr className="bg-[#1F4E78] text-white font-bold">
                           <td colSpan={7} className="px-3 py-2.5 text-center border border-[#163d5e]">TOTAL</td>
-                          <td className="px-2 py-2.5 text-center border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.qty,0)}</td>
-                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_jual,0).toLocaleString('id-ID')}</td>
-                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_jual,0).toLocaleString('id-ID')}</td>
-                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.harga_pokok,0).toLocaleString('id-ID')}</td>
-                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.tot_harga_pokok,0).toLocaleString('id-ID')}</td>
-                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s,r)=>s+r.laba,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-center border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.qty,0)}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.harga_jual,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.tot_harga_jual,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.harga_pokok,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.tot_harga_pokok,0).toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-2.5 text-right border border-[#163d5e]">{detailRows.reduce((s: any, r: any) =>s+r.laba,0).toLocaleString('id-ID')}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1850,7 +1850,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
                 {/* Mobile View */}
                 <div className="block md:hidden space-y-3">
-                  {detailRows.map((r) => (
+                  {detailRows.map((r: any) => (
                     <div key={r.no} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
                       <div className="flex justify-between items-start gap-2">
                         <div className="flex-1 min-w-0">
@@ -1912,7 +1912,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={String(mTahun)} onValueChange={v => setMTahun(Number(v ?? new Date().getFullYear()))}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)} className="text-sm">{y}</SelectItem>)}
+                            {[2024, 2025, 2026, 2027].map((y: any) => <SelectItem key={y} value={String(y)} className="text-sm">{y}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1921,7 +1921,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={String(mBulan)} onValueChange={v => setMBulan(Number(v ?? 1))}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {BULAN_NAMES.slice(1).map((b,i) => <SelectItem key={i+1} value={String(i+1)} className="text-sm">{b}</SelectItem>)}
+                            {BULAN_NAMES.slice(1).map((b: any, i: any) => <SelectItem key={i+1} value={String(i+1)} className="text-sm">{b}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1930,7 +1930,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={String(mMinggu)} onValueChange={v => setMMinggu(Number(v ?? 1))}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)} className="text-sm">Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
+                            {[1,2,3,4,5].map((w: any) => <SelectItem key={w} value={String(w)} className="text-sm">Minggu {WEEK_ROMAN[w]} (tgl {(w-1)*7+1}–{Math.min(w*7,31)})</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1964,13 +1964,13 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                           <table className="w-full text-xs border-collapse">
                             <thead>
                               <tr className="bg-slate-150 text-slate-700 dark:bg-slate-850 dark:text-slate-300">
-                                {['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].map(h => (
+                                {['No','Week','Tanggal','Harga Pokok','Harga Jual','Laba'].map((h: any) => (
                                   <th key={h} className="px-2 py-2 text-center border border-gray-200 dark:border-gray-800 font-bold whitespace-nowrap">{h}</th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
-                              {mg.rows.map((r, i) => {
+                              {mg.rows.map((r: any, i: any) => {
                                 const hpp  = isCash ? r.hppCash  : r.hppKredit
                                 const jual = isCash ? r.jualCash : r.jualKredit
                                 const laba = isCash ? r.labaCash : r.labaKredit
@@ -1997,7 +1997,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
                         {/* Mobile List View */}
                         <div className="block md:hidden space-y-2.5">
-                          {mg.rows.map((r, i) => {
+                          {mg.rows.map((r: any, i: any) => {
                             const hpp  = isCash ? r.hppCash  : r.hppKredit
                             const jual = isCash ? r.jualCash : r.jualKredit
                             const laba = isCash ? r.labaCash : r.labaKredit
@@ -2094,7 +2094,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4 shadow-sm">
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
-                      {PRESETS.map(p => (
+                      {PRESETS.map((p: any) => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
                           className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
                       ))}
@@ -2105,7 +2105,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {MONTH_OPTIONS.map(m => (
+                            {MONTH_OPTIONS.map((m: any) => (
                               <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2116,7 +2116,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {YEAR_OPTIONS.map(y => (
+                            {YEAR_OPTIONS.map((y: any) => (
                               <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2127,7 +2127,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map((m: any) => (
                               <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2204,7 +2204,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             </tr>
                           </thead>
                           <tbody>
-                            {sembakoRows.map((r, idx) => (
+                            {sembakoRows.map((r: any, idx: any) => (
                               <tr key={r.nik} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900 hover:bg-slate-100'}>
                                 <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
                                 <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono">{r.nik}</td>
@@ -2220,11 +2220,11 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             ))}
                             <tr className="bg-emerald-800 text-white font-bold">
                               <td colSpan={5} className="px-3 py-2.5 text-center border border-emerald-900">TOTAL</td>
-                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdJual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casJual,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdPokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.casPokok,0).toLocaleString('id-ID')}</td>
-                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s,r)=>s+r.crdLaba,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s: any, r: any) =>s+r.crdJual,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s: any, r: any) =>s+r.casJual,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s: any, r: any) =>s+r.crdPokok,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s: any, r: any) =>s+r.casPokok,0).toLocaleString('id-ID')}</td>
+                              <td className="px-2 py-2.5 text-right border border-emerald-900">{sembakoRows.reduce((s: any, r: any) =>s+r.crdLaba,0).toLocaleString('id-ID')}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -2238,24 +2238,24 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <p className="text-slate-400">Total Kredit Jual</p>
-                              <p className="text-base font-black text-emerald-450">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdJual,0))}</p>
+                              <p className="text-base font-black text-emerald-450">{formatRp(sembakoRows.reduce((s: any, r: any) =>s+r.crdJual,0))}</p>
                             </div>
                             <div>
                               <p className="text-slate-400">Total Cash Jual</p>
-                              <p className="text-base font-black text-blue-450">{formatRp(sembakoRows.reduce((s,r)=>s+r.casJual,0))}</p>
+                              <p className="text-base font-black text-blue-450">{formatRp(sembakoRows.reduce((s: any, r: any) =>s+r.casJual,0))}</p>
                             </div>
                             <div>
                               <p className="text-slate-400">Total HPP Kredit</p>
-                              <p className="text-base font-black text-amber-500">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdPokok,0))}</p>
+                              <p className="text-base font-black text-amber-500">{formatRp(sembakoRows.reduce((s: any, r: any) =>s+r.crdPokok,0))}</p>
                             </div>
                             <div>
                               <p className="text-slate-400">Total Laba Kredit</p>
-                              <p className="text-base font-black text-teal-400">{formatRp(sembakoRows.reduce((s,r)=>s+r.crdLaba,0))}</p>
+                              <p className="text-base font-black text-teal-400">{formatRp(sembakoRows.reduce((s: any, r: any) =>s+r.crdLaba,0))}</p>
                             </div>
                           </div>
                         </div>
 
-                        {sembakoRows.map((r, idx) => (
+                        {sembakoRows.map((r: any, idx: any) => (
                           <div key={r.nik} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
                             <div className="flex justify-between items-start gap-2">
                               <div className="flex-1 min-w-0">
@@ -2320,7 +2320,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
-                      {PRESETS.map(p => (
+                      {PRESETS.map((p: any) => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
                           className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
@@ -2331,7 +2331,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {MONTH_OPTIONS.map(m => (
+                            {MONTH_OPTIONS.map((m: any) => (
                               <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2342,7 +2342,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {YEAR_OPTIONS.map(y => (
+                            {YEAR_OPTIONS.map((y: any) => (
                               <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2353,7 +2353,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map((m: any) => (
                               <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2444,10 +2444,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredDeductions.map((item, idx) => {
+                            {filteredDeductions.map((item: any, idx: any) => {
                               const com2Val = (item.department || 'SAU').replace(/^U-/, '')
-                              const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-                              const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                              const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+                              const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
                               const simpSukarela = item.total_simpanan_salary_cut
                               const pUang = item.total_pinjaman_uang
                               const admPU = item.total_pinjaman_uang_interest ?? 0
@@ -2484,42 +2484,42 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             <tr className="bg-red-800 text-white font-bold">
                               <td colSpan={5} className="px-3 py-2.5 text-center border border-red-950">TOTAL</td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.total_simpanan_salary_cut, 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.total_simpanan_salary_cut, 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_uang, 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.total_pinjaman_uang, 0).toLocaleString('id-ID')}
                               </td>
                                                             <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_uang_interest ?? 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + (item.total_pinjaman_uang_interest ?? 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_uang_transfer ?? 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + (item.total_pinjaman_uang_transfer ?? 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_kilat, 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.total_pinjaman_kilat, 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_kilat_interest ?? 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + (item.total_pinjaman_kilat_interest ?? 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.total_pinjaman_barang, 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.total_pinjaman_barang, 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + (item.total_pinjaman_barang_interest ?? 0), 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + (item.total_pinjaman_barang_interest ?? 0), 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                {filteredDeductions.reduce((s, item) => s + item.total_paylater, 0).toLocaleString('id-ID')}
+                                {filteredDeductions.reduce((s: any, item: any) => s + item.total_paylater, 0).toLocaleString('id-ID')}
                               </td>
                               <td className="px-2 py-2.5 text-right border border-red-950">
-                                                                {filteredDeductions.reduce((s, item) => {
-                                  const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-                                  const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                                                                {filteredDeductions.reduce((s: any, item: any) => {
+                                  const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+                                  const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
                                   const simpSukarela = item.total_simpanan_salary_cut
                                   const pUang = item.total_pinjaman_uang
                                   const admPU = item.total_pinjaman_uang_interest ?? 0
@@ -2546,9 +2546,9 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             <div>
                               <p className="text-slate-400">Total Simpanan</p>
                               <p className="text-sm font-bold text-slate-200">
-                                {formatRp(filteredDeductions.reduce((s, item) => {
-                                  const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-                                  const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                                {formatRp(filteredDeductions.reduce((s: any, item: any) => {
+                                  const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+                                  const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
                                   return s + simpPokok + simpWajib + item.total_simpanan_salary_cut
                                 }, 0))}
                               </p>
@@ -2556,16 +2556,16 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             <div>
                               <p className="text-slate-400">Total Pinjaman & Paylater</p>
                               <p className="text-sm font-bold text-slate-200">
-                                {formatRp(filteredDeductions.reduce((s, item) => s + item.total_pinjaman_uang + item.total_pinjaman_kilat + item.total_pinjaman_barang + item.total_paylater, 0))}
+                                {formatRp(filteredDeductions.reduce((s: any, item: any) => s + item.total_pinjaman_uang + item.total_pinjaman_kilat + item.total_pinjaman_barang + item.total_paylater, 0))}
                               </p>
                             </div>
                           </div>
                           <div className="border-t border-slate-800 pt-2 flex justify-between items-center">
                             <span className="text-xs font-bold text-slate-400">GRAND TOTAL POTONGAN</span>
                             <span className="text-lg font-black text-red-400">
-                              {formatRp(filteredDeductions.reduce((s, item) => {
-                                const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-                                const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                              {formatRp(filteredDeductions.reduce((s: any, item: any) => {
+                                const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+                                const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
                                 const simpSukarela = item.total_simpanan_salary_cut
                                 const pUang = item.total_pinjaman_uang
                                 const pKhusus = item.total_pinjaman_kilat
@@ -2577,10 +2577,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                           </div>
                         </div>
 
-                        {filteredDeductions.map((item, idx) => {
+                        {filteredDeductions.map((item: any, idx: any) => {
                           const com2Val = (item.department || 'SAU').replace(/^U-/, '')
-                          const simpPokok = item.details.filter(d => d.reference === 'SP').reduce((sum, d) => sum + d.amount, 0)
-                          const simpWajib = item.details.filter(d => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum, d) => sum + d.amount, 0)
+                          const simpPokok = item.details.filter((d: any) => d.reference === 'SP').reduce((sum: any, d: any) => sum + d.amount, 0)
+                          const simpWajib = item.details.filter((d: any) => d.reference === 'SW' || (d.category === 'simpanan_wajib' && d.reference !== 'SP')).reduce((sum: any, d: any) => sum + d.amount, 0)
                           const simpSukarela = item.total_simpanan_salary_cut
                           const pUang = item.total_pinjaman_uang
                           const pKhusus = item.total_pinjaman_kilat
@@ -2666,7 +2666,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
-                      {PRESETS.map(p => (
+                      {PRESETS.map((p: any) => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
                           className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
@@ -2677,7 +2677,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedMonth} onValueChange={(v) => handleMonthYearChange(v ?? '1', selectedYear)}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {MONTH_OPTIONS.map(m => (
+                            {MONTH_OPTIONS.map((m: any) => (
                               <SelectItem key={m.value} value={m.value} className="text-sm">{m.label}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2688,7 +2688,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={selectedYear} onValueChange={(v) => handleMonthYearChange(selectedMonth, v ?? '2026')}>
                           <SelectTrigger className="h-12 text-base rounded-xl bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {YEAR_OPTIONS.map(y => (
+                            {YEAR_OPTIONS.map((y: any) => (
                               <SelectItem key={y} value={y} className="text-sm">{y}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2699,7 +2699,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         <Select value={payMethod} onValueChange={(v) => setPayMethod(v ?? 'all')}>
                           <SelectTrigger className="h-12 text-base rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {['all','cash','qris','paylater','transfer','saving_deduct'].map(m => (
+                            {['all','cash','qris','paylater','transfer','saving_deduct'].map((m: any) => (
                               <SelectItem key={m} value={m} className="text-sm">{PAYMENT_LABELS[m]}</SelectItem>
                             ))}
                           </SelectContent>
@@ -2784,7 +2784,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredStocks.map((item, idx) => (
+                            {filteredStocks.map((item: any, idx: any) => (
                               <tr key={item.productId} className={idx % 2 === 0 ? 'bg-gray-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900 hover:bg-slate-100'}>
                                 <td className="px-2 py-1.5 text-center border border-gray-200 dark:border-gray-800">{idx + 1}</td>
                                 <td className="px-2 py-1.5 border border-gray-200 dark:border-gray-800 font-mono text-gray-600 dark:text-gray-400">{item.sku}</td>
@@ -2805,18 +2805,18 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             ))}
                             <tr className="bg-indigo-800 text-white font-bold text-right">
                               <td colSpan={3} className="px-3 py-2.5 text-center border border-indigo-950">TOTAL</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAwal,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.pembelian,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m1,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m2,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m3,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m4,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.m5,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.totPenjualan,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAkhir,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.penyesuaian,0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+(r.stockOpname||0),0))}</td>
-                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s,r)=>s+r.qtyRetur,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.stockAwal,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.pembelian,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.m1,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.m2,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.m3,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.m4,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.m5,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.totPenjualan,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.stockAkhir,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.penyesuaian,0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+(r.stockOpname||0),0))}</td>
+                              <td className="px-2 py-2.5 border border-indigo-950">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.qtyRetur,0))}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -2830,20 +2830,20 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                           <div className="grid grid-cols-3 gap-2 text-center text-xs">
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Stok Awal</p>
-                              <p className="font-bold text-slate-100">{formatRp(filteredStocks.reduce((s,r)=>s+r.stockAwal,0))}</p>
+                              <p className="font-bold text-slate-100">{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.stockAwal,0))}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Pembelian</p>
-                              <p className="font-bold text-green-400">+{formatRp(filteredStocks.reduce((s,r)=>s+r.pembelian,0))}</p>
+                              <p className="font-bold text-green-400">+{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.pembelian,0))}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
                               <p className="text-[10px] text-slate-400">Penjualan</p>
-                              <p className="font-bold text-blue-400 font-bold">-{formatRp(filteredStocks.reduce((s,r)=>s+r.totPenjualan,0))}</p>
+                              <p className="font-bold text-blue-400 font-bold">-{formatRp(filteredStocks.reduce((s: any, r: any) =>s+r.totPenjualan,0))}</p>
                             </div>
                           </div>
                         </div>
 
-                        {filteredStocks.map((item, idx) => (
+                        {filteredStocks.map((item: any, idx: any) => (
                           <div key={item.productId} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
                             <div className="flex justify-between items-start gap-2">
                               <div className="flex-1 min-w-0">
@@ -2876,7 +2876,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                             <div className="bg-slate-50/50 dark:bg-slate-850/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
                               <p className="text-[9px] text-slate-405 font-bold mb-1.5 uppercase tracking-wider">Penjualan Mingguan</p>
                               <div className="grid grid-cols-5 gap-1 text-center text-[10px]">
-                                {['M1','M2','M3','M4','M5'].map((m, i) => {
+                                {['M1','M2','M3','M4','M5'].map((m: any, i: any) => {
                                   const val = i === 0 ? item.m1 : i === 1 ? item.m2 : i === 2 ? item.m3 : i === 3 ? item.m4 : item.m5
                                   return (
                                     <div key={m}>
@@ -2941,7 +2941,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.slowMoving.map(p => (
+                      {data.slowMoving.map((p: any) => (
                         <TableRow key={p.id} className="hover:bg-slate-50/85">
                           <TableCell className="font-medium">{p.name}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{p.category}</TableCell>
@@ -2956,7 +2956,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
                 {/* Mobile View */}
                 <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800 p-4 space-y-3">
-                  {data.slowMoving.map((p, idx) => (
+                  {data.slowMoving.map((p: any, idx: any) => (
                     <div key={p.id} className="pt-3 first:pt-0 space-y-2">
                       <div className="flex justify-between items-start gap-2">
                         <div className="flex-1 min-w-0">

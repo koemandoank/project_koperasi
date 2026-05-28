@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/db/prisma"
 
@@ -85,7 +85,7 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
     const assetAccounts = await prisma.chart_of_accounts.findMany({
       where: { type: "asset" }
     })
-    const assetAccountIds = assetAccounts.map(a => a.id)
+    const assetAccountIds = assetAccounts.map((a: any) => a.id)
     const assetLines = await prisma.journal_lines.aggregate({
       _sum: { debit: true, credit: true },
       where: {
@@ -130,7 +130,7 @@ export async function getGlobalFinancialStats(period: "weekly" | "monthly" | "ye
       }
     })
     let pengeluaranToko = 0
-    stockInbound.forEach(movement => {
+    stockInbound.forEach((movement: any) => {
       pengeluaranToko += movement.qty * Number(movement.products.purchase_price || 0)
     })
 

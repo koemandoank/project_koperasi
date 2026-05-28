@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
@@ -18,7 +18,7 @@ export async function getProducts() {
       orderBy: { created_at: "desc" }
     });
 
-    return products.map(p => ({
+    return products.map((p: any) => ({
       id: Number(p.id),
       sku: p.sku,
       name: p.name,
@@ -46,7 +46,7 @@ export async function getCategories() {
     const categories = await prisma.product_categories.findMany({
       where: { is_active: true }
     });
-    return categories.map(c => ({ id: Number(c.id), name: c.name }));
+    return categories.map((c: any) => ({ id: Number(c.id), name: c.name }));
   } catch {
     return [];
   }

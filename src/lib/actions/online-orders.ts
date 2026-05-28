@@ -41,7 +41,7 @@ export async function createOnlineOrder(data: {
     const count = await prisma.orders.count()
     const orderNo = `ONL-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(count + 1).padStart(4, "0")}`
 
-    const subtotal = data.cart.reduce((s, i) => s + i.price * i.qty, 0)
+    const subtotal = data.cart.reduce((s: any, i: any) => s + i.price * i.qty, 0)
     const grandTotal = subtotal
 
     const noteText = [
@@ -72,7 +72,7 @@ export async function createOnlineOrder(data: {
       }
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const order = await tx.orders.create({
         data: {
           order_no: orderNo,
@@ -147,7 +147,7 @@ export async function getOnlineOrders(status?: string) {
       orderBy: { ordered_at: "desc" }
     })
 
-    return orders.map(o => ({
+    return orders.map((o: any) => ({
       id: Number(o.id),
       order_no: o.order_no,
       member_name: o.members?.full_name || "Umum",
@@ -160,7 +160,7 @@ export async function getOnlineOrders(status?: string) {
       delivery_address: o.delivery_address || "",
       ordered_at: o.ordered_at.toISOString(),
       item_count: o.order_items.length,
-      items: o.order_items.map(i => ({
+      items: o.order_items.map((i: any) => ({
         name: i.product_name,
         qty: i.qty,
         subtotal: Number(i.subtotal),

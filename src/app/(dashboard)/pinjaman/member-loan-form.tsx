@@ -66,7 +66,7 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
     }
   }, [open, selectedProduct, form.amount_requested])
 
-  const product = loanProducts.find(p => p.id.toString() === selectedProduct)
+  const product = loanProducts.find((p: any) => p.id.toString() === selectedProduct)
   const formatRp = (v: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -153,7 +153,7 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
             <div className="space-y-3">
               <Label className="text-base">Pilih Produk Pinjaman</Label>
               <RadioGroup value={selectedProduct} onValueChange={handleProductChange} className="grid grid-cols-1 gap-3">
-                {loanProducts.map(p => (
+                {loanProducts.map((p: any) => (
                   <Label
                     key={p.id}
                     htmlFor={`loan-${p.id}`}
@@ -235,7 +235,7 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
                   <span>PERINGATAN ATURAN PINJAMAN:</span>
                 </div>
                 <ul className="list-disc pl-5 space-y-1 font-semibold text-red-800 dark:text-red-300">
-                  {ruleViolations.map((v, i) => (
+                  {ruleViolations.map((v: any, i: any) => (
                     <li key={i}>{v}</li>
                   ))}
                 </ul>

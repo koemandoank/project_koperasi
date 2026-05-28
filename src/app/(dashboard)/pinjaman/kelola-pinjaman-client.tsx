@@ -40,7 +40,7 @@ const PAYABLE_STATUSES = new Set(["active", "overdue"])
 /** Cek apakah cicilan terdekat dapat dibayar pada bulan berjalan */
 const isPayableThisMonth = (loan: Loan) => {
   if (!PAYABLE_STATUSES.has(loan.status)) return false
-  const nextUnpaid = loan.schedules.find((s) => s.status !== "paid")
+  const nextUnpaid = loan.schedules.find((s: any) => s.status !== "paid")
   if (!nextUnpaid) return false
 
   const now = new Date()
@@ -117,7 +117,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
   const router = useRouter()
 
   const filteredLoans = useMemo(() =>
-    loans.filter((l) => {
+    loans.filter((l: any) => {
       const matchSearch =
         l.member_name.toLowerCase().includes(search.toLowerCase()) ||
         l.loan_no.toLowerCase().includes(search.toLowerCase()) ||
@@ -130,26 +130,26 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
 
   /** Loan yang bisa dibayar dari daftar ter-filter pada bulan berjalan */
   const payableFilteredLoans = useMemo(
-    () => filteredLoans.filter((l) => isPayableThisMonth(l)),
+    () => filteredLoans.filter((l: any) => isPayableThisMonth(l)),
     [filteredLoans]
   )
 
   const isAllSelected =
     payableFilteredLoans.length > 0 &&
-    payableFilteredLoans.every((l) => selectedLoanIds.has(l.id))
+    payableFilteredLoans.every((l: any) => selectedLoanIds.has(l.id))
 
   const isIndeterminate =
-    !isAllSelected && payableFilteredLoans.some((l) => selectedLoanIds.has(l.id))
+    !isAllSelected && payableFilteredLoans.some((l: any) => selectedLoanIds.has(l.id))
 
   /** Toggle select-all pada filtered payable loans */
   const handleSelectAll = () => {
     if (isAllSelected) {
       const next = new Set(selectedLoanIds)
-      payableFilteredLoans.forEach((l) => next.delete(l.id))
+      payableFilteredLoans.forEach((l: any) => next.delete(l.id))
       setSelectedLoanIds(next)
     } else {
       const next = new Set(selectedLoanIds)
-      payableFilteredLoans.forEach((l) => next.add(l.id))
+      payableFilteredLoans.forEach((l: any) => next.add(l.id))
       setSelectedLoanIds(next)
     }
   }
@@ -165,7 +165,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
 
   const openPaymentModal = (loan: Loan) => {
     setSelectedLoan(loan)
-    const nextUnpaid = loan.schedules.find((s) => s.status !== "paid")
+    const nextUnpaid = loan.schedules.find((s: any) => s.status !== "paid")
     if (nextUnpaid) {
       setSelectedScheduleId(nextUnpaid.id.toString())
       setAmountPaid(nextUnpaid.total_due.toString())
@@ -186,7 +186,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
     if (val === "free") {
       setAmountPaid("")
     } else {
-      const sch = selectedLoan?.schedules.find((s) => s.id.toString() === val)
+      const sch = selectedLoan?.schedules.find((s: any) => s.id.toString() === val)
       if (sch) setAmountPaid(sch.total_due.toString())
     }
   }
@@ -199,7 +199,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
 
     // Proteksi: Tampilkan konfirmasi jika membayar cicilan bulan depan (future schedule)
     if (selectedScheduleId !== "free") {
-      const schObj = selectedLoan.schedules.find((s) => s.id.toString() === selectedScheduleId)
+      const schObj = selectedLoan.schedules.find((s: any) => s.id.toString() === selectedScheduleId)
       if (schObj) {
         const now = new Date()
         const currentYear = now.getFullYear()
@@ -235,7 +235,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
         setPaymentDialogOpen(false)
         router.refresh()
         setLoans((prev) =>
-          prev.map((l) => {
+          prev.map((l: any) => {
             if (l.id !== selectedLoan.id) return l
             const newOutstanding = Math.max(0, l.outstanding - amt)
             return { ...l, outstanding: newOutstanding, total_paid: l.total_paid + amt, status: newOutstanding <= 0 ? "paid_off" : l.status }
@@ -256,12 +256,12 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
 
   /** Daftar loan yang saat ini dipilih untuk bulk pay */
   const selectedLoansData = useMemo(
-    () => loans.filter((l) => selectedLoanIds.has(l.id) && PAYABLE_STATUSES.has(l.status)),
+    () => loans.filter((l: any) => selectedLoanIds.has(l.id) && PAYABLE_STATUSES.has(l.status)),
     [loans, selectedLoanIds]
   )
 
   const totalBulkAmount = useMemo(
-    () => selectedLoansData.reduce((sum, l) => sum + l.monthly_installment, 0),
+    () => selectedLoansData.reduce((sum: any, l: any) => sum + l.monthly_installment, 0),
     [selectedLoansData]
   )
 
@@ -283,7 +283,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
 
     for (let i = 0; i < selectedLoansData.length; i++) {
       const loan = selectedLoansData[i]
-      const nextUnpaid = loan.schedules.find((s) => s.status !== "paid")
+      const nextUnpaid = loan.schedules.find((s: any) => s.status !== "paid")
       const amount = nextUnpaid ? nextUnpaid.total_due : loan.monthly_installment
       const scheduleId = nextUnpaid ? nextUnpaid.id : undefined
 
@@ -301,7 +301,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
         if (res.success) {
           successCount++
           setLoans((prev) =>
-            prev.map((l) => {
+            prev.map((l: any) => {
               if (l.id !== loan.id) return l
               const newOutstanding = Math.max(0, l.outstanding - amount)
               return { ...l, outstanding: newOutstanding, total_paid: l.total_paid + amount, status: newOutstanding <= 0 ? "paid_off" : l.status }
@@ -348,7 +348,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
         </div>
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1">
-          {["all", "active", "overdue", "paid_off"].map((st) => (
+          {["all", "active", "overdue", "paid_off"].map((st: any) => (
             <Button
               key={st}
               variant={statusFilter === st ? "default" : "outline"}
@@ -437,7 +437,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLoans.map((l) => {
+                  filteredLoans.map((l: any) => {
                     const isPayable = PAYABLE_STATUSES.has(l.status)
                     const canPayBulk = isPayableThisMonth(l)
                     const isChecked = selectedLoanIds.has(l.id)
@@ -471,7 +471,7 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                         <TableCell className="py-4 text-right font-medium text-slate-700 dark:text-slate-350">{formatRp(l.monthly_installment)}</TableCell>
                         <TableCell className="py-4 text-center">
                           {(() => {
-                            const nextUnpaid = l.schedules.find((s) => s.status !== "paid")
+                            const nextUnpaid = l.schedules.find((s: any) => s.status !== "paid")
                             const nextDueDate = nextUnpaid ? nextUnpaid.due_date : null
                             return nextDueDate ? (
                               <div className="flex flex-col items-center gap-1">
@@ -571,8 +571,8 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                   <SelectContent>
                     <SelectItem value="free">Bebas / Tanpa Jadwal Spesifik</SelectItem>
                     {selectedLoan.schedules
-                      .filter((s) => s.status !== "paid")
-                      .map((s) => (
+                      .filter((s: any) => s.status !== "paid")
+                      .map((s: any) => (
                         <SelectItem key={s.id} value={s.id.toString()}>
                           Bulan ke-{s.installment_no} (Jatuh Tempo: {new Date(s.due_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}) — {formatRp(s.total_due)}
                         </SelectItem>
@@ -672,8 +672,8 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
             <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ringkasan Pembayaran Massal</p>
               <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {selectedLoansData.map((l) => {
-                  const nextUnpaid = l.schedules.find((s) => s.status !== "paid")
+                {selectedLoansData.map((l: any) => {
+                  const nextUnpaid = l.schedules.find((s: any) => s.status !== "paid")
                   const amount = nextUnpaid ? nextUnpaid.total_due : l.monthly_installment
                   return (
                     <div key={l.id} className="flex justify-between items-center text-sm">

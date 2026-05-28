@@ -98,7 +98,7 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-2 gap-3">
-          {items.map(({ label, value, color }) => (
+          {items.map(({  label, value, color  }: any) => (
             <div key={label} className="space-y-0.5">
               <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
               <p className={`text-xl font-bold ${color}`}>{value}</p>
@@ -127,7 +127,7 @@ function PromosiCarousel({ ads }: { ads: typeof FALLBACK_ADS }) {
             className="flex transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${slide * 100}%)` }}
           >
-            {ads.map((ad) => (
+            {ads.map((ad: any) => (
               <div key={ad.id} className="w-full flex-shrink-0 p-4">
                 <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-slate-900 to-purple-700 p-4 text-center shadow-xl">
                   {ad.image_url && ad.image_url !== "/koperasi.png" && (
@@ -157,7 +157,7 @@ function PromosiCarousel({ ads }: { ads: typeof FALLBACK_ADS }) {
             </>
           )}
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
-            {ads.map((_, i) => (
+            {ads.map((_: any, i: any) => (
               <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === slide ? "bg-white" : "bg-white/40"}`} />
             ))}
           </div>
@@ -212,7 +212,7 @@ function MenuShortcutAnggota() {
   ]
   return (
     <div className="grid grid-cols-4 gap-2">
-      {menus.map(({ href, icon, label }) => (
+      {menus.map(({  href, icon, label  }: any) => (
         <Link
           key={href}
           href={href}
@@ -266,14 +266,14 @@ function MenuGridPengurus({ role }: { role: string }) {
     "/akuntansi/laporan-keuangan":  ["superadmin", "admin", "pengurus"],
     "/laporan/partisipasi-anggota": ["superadmin", "admin", "pengurus"],
     "/akuntansi/rat-absensi":       ["superadmin", "admin", "pengurus"],
-    "/akuntansi/buku-besar":        ["superadmin", "admin"],
-    "/akuntansi/tutup-buku":        ["superadmin", "admin"],
-    "/pengawas":                    ["superadmin"],
+    "/akuntansi/buku-besar":        ["superadmin", "admin", "petugas_akuntan"],
+    "/akuntansi/tutup-buku":        ["superadmin", "admin", "petugas_akuntan"],
+    "/pengawas":                    ["superadmin", "pengawas"],
     "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
     "/pengaturan/promosi":          ["superadmin", "admin"],
     "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
     "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
-    "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
+    "/log":                         ["superadmin", "admin", "pengurus", "ketua", "petugas_akuntan", "pengawas"],
     "/pengaturan":                  ["superadmin", "admin"],
     "/profil":                      ["superadmin", "admin", "pengurus", "kasir", "anggota"],
   }
@@ -355,24 +355,24 @@ function MenuGridPengurus({ role }: { role: string }) {
 
   // Filter menu secara dinamis berdasarkan role pengguna aktif (RBAC)
   const sections = rawSections
-    .map((section) => ({
+    .map((section: any) => ({
       ...section,
-      items: section.items.filter((item) => {
+      items: section.items.filter((item: any) => {
         const allowedRoles = itemRoles[item.href]
         return !allowedRoles || allowedRoles.includes(role)
       })
     }))
-    .filter((section) => section.items.length > 0)
+    .filter((section: any) => section.items.length > 0)
 
   return (
     <div className="space-y-5">
-      {sections.map((section) => (
+      {sections.map((section: any) => (
         <div key={section.title}>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
             {section.title}
           </p>
           <div className="grid grid-cols-4 gap-2">
-            {section.items.map(({ href, icon, label }) => (
+            {section.items.map(({  href, icon, label  }: any) => (
               <Link
                 key={href}
                 href={href}
@@ -400,8 +400,8 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
 
   const isPengurus = ["superadmin", "admin", "pengurus", "ketua", "kasir"].includes(role)
 
-  const ads = promotions.filter((p) => p.is_active).length > 0
-    ? promotions.filter((p) => p.is_active)
+  const ads = promotions.filter((p: any) => p.is_active).length > 0
+    ? promotions.filter((p: any) => p.is_active)
     : FALLBACK_ADS
 
   // ── Tab Navigation (hanya mobile) ──────────────────────────────────────────
@@ -448,7 +448,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
               { href: "/pinjaman", icon: <CreditCard className="mb-2 h-8 w-8 text-emerald-600" />, label: "Pinjaman" },
               { href: "/toko",     icon: <ShoppingBag className="mb-2 h-8 w-8 text-amber-600" />,  label: "Toko" },
               { href: "/profil",   icon: <User className="mb-2 h-8 w-8 text-violet-600" />,        label: "Profil" },
-            ].map(({ href, icon, label }) => (
+            ].map(({  href, icon, label  }: any) => (
               <Link key={href} href={href} className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
                 {icon}
                 <span className="text-sm font-semibold">{label}</span>
@@ -469,7 +469,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
       <div className="md:hidden flex flex-col" style={{ height: "calc(100dvh - 120px)" }}>
         {/* Tab Nav Bar */}
         <div className="flex bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-4">
-          {tabs.map(({ key, label, icon }) => (
+          {tabs.map(({  key, label, icon  }: any) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
@@ -506,7 +506,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
                         { href: "/pinjaman/approval", icon: <ShieldCheck className="h-6 w-6 text-white" />, label: "Approval",  color: "from-rose-500 to-rose-700" },
                         { href: "/toko/kasir",        icon: <Receipt className="h-6 w-6 text-white" />,     label: "Kasir",     color: "from-amber-500 to-orange-600" },
                         { href: "/laporan/analitik",  icon: <BarChart3 className="h-6 w-6 text-white" />,  label: "Analitik",  color: "from-emerald-500 to-teal-600" },
-                      ].map(({ href, icon, label, color }) => (
+                      ].map(({  href, icon, label, color  }: any) => (
                         <Link key={href} href={href}
                           className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 transition-transform"
                         >
@@ -543,7 +543,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Promosi &amp; Iklan Aktif</p>
               <PromosiCarousel ads={ads} />
               <div className="space-y-2">
-                {ads.map((ad) => (
+                {ads.map((ad: any) => (
                   <div key={ad.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 flex gap-3 items-start">
                     <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center">
                       <Megaphone className="h-5 w-5 text-white" />

@@ -110,7 +110,7 @@ export function SavingTypesModal({ initialTypes }: { initialTypes: SavingTypeDat
   };
 
   const handleToggle = async (id: number, currentActive: boolean) => {
-    const optimistic = types.map((t) =>
+    const optimistic = types.map((t: any) =>
       t.id === id ? { ...t, is_active: !currentActive } : t
     );
     setTypes(optimistic);
@@ -213,7 +213,7 @@ export function SavingTypesModal({ initialTypes }: { initialTypes: SavingTypeDat
 
             {/* Card list replacing table */}
             <div className="space-y-3">
-              {types.map((t) => (
+              {types.map((t: any) => (
                 <div
                   key={t.id}
                   className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 ${

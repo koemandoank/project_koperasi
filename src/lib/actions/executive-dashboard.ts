@@ -56,7 +56,7 @@ export type ExecutiveDashboardData = {
 async function calculateTotalKasBank(): Promise<number> {
   try {
     const assetAccounts = await prisma.chart_of_accounts.findMany({ where: { type: "asset" } });
-    const assetIds = assetAccounts.map((a) => a.id);
+    const assetIds = assetAccounts.map((a: any) => a.id);
     const assetLines = await prisma.journal_lines.aggregate({
       _sum: { debit: true, credit: true },
       where: { account_id: { in: assetIds }, journal_entries: { is_posted: true } },
@@ -100,7 +100,7 @@ async function calculateTotalSimpanan(): Promise<number> {
       _sum: { amount: true },
     });
     const simpananMap = Object.fromEntries(
-      totalSimpananAgg.map((g) => [g.type, Number(g._sum.amount || 0)])
+      totalSimpananAgg.map((g: any) => [g.type, Number(g._sum.amount || 0)])
     );
     return Math.max(0, (simpananMap["deposit"] || 0) - (simpananMap["withdraw"] || 0));
   } catch (error) {
@@ -137,7 +137,7 @@ async function calculateEstimasiSHU(yearStart: Date): Promise<number> {
       }),
     ]);
 
-    const ytdHpp = ytdHppItems.reduce((s, i) => s + i.qty * Number(i.purchase_price ?? 0), 0);
+    const ytdHpp = ytdHppItems.reduce((s: any, i: any) => s + i.qty * Number(i.purchase_price ?? 0), 0);
     const labaKotor = Number(omzetYtd._sum.grand_total || 0) - ytdHpp;
     const pendapatanSP = Number(ytdRev._sum.credit || 0) - Number(ytdRev._sum.debit || 0);
     const bebanYtd = Number(ytdExp._sum.debit || 0) - Number(ytdExp._sum.credit || 0);
@@ -231,7 +231,7 @@ async function getLoanHealth(
       }),
     ])
 
-    const nplAmount = nplSchedules.reduce((sum, s) => {
+    const nplAmount = nplSchedules.reduce((sum: any, s: any) => {
       const outstanding =
         Number(s.total_due) - Number(s.principal_paid) - Number(s.interest_paid) - Number(s.penalty_paid || 0)
       return sum + Math.max(0, outstanding)
@@ -240,7 +240,7 @@ async function getLoanHealth(
       ? Math.round((nplAmount / totalPinjamanBeredar) * 10000) / 100
       : 0
 
-    const dueSoon = dueSoonSchedules.map((s) => ({
+    const dueSoon = dueSoonSchedules.map((s: any) => ({
       member_name: s.loans.members?.full_name ?? "-",
       loan_no:     s.loans.loan_no,
       due_date:    (s.due_date as Date).toLocaleDateString("id-ID"),
@@ -274,7 +274,7 @@ async function getMembershipStats(): Promise<MembershipStats> {
         by: ["status"],
         _count: { id: true },
       }),
-      prisma.$queryRaw<{ month: string; new_members: number }[]>`
+      prisma.$queryRaw`
         SELECT
           DATE_FORMAT(created_at, '%Y-%m') AS month,
           COUNT(*) AS new_members
@@ -286,13 +286,13 @@ async function getMembershipStats(): Promise<MembershipStats> {
     ])
 
     const statusMap = Object.fromEntries(
-      memberCounts.map((g) => [g.status, g._count.id])
+      memberCounts.map((g: any) => [g.status, g._count.id])
     )
     const membershipStats: MembershipStats = {
-      total:    memberCounts.reduce((s, g) => s + g._count.id, 0),
+      total:    memberCounts.reduce((s: any, g: any) => s + g._count.id, 0),
       active:   statusMap["active"]   || 0,
       inactive: (statusMap["inactive"] || 0) + (statusMap["suspended"] || 0),
-      growthByMonth: (memberGrowthRaw as any[]).map((r) => ({
+      growthByMonth: (memberGrowthRaw as any[]).map((r: any) => ({
         month:       String(r.month),
         new_members: Number(r.new_members),
       })),
@@ -312,9 +312,7 @@ async function getMembershipStats(): Promise<MembershipStats> {
  */
 async function getCashFlowMonthly(): Promise<CashFlowPoint[]> {
   try {
-    const cashFlowRaw = await prisma.$queryRaw<
-      { month: string; pemasukan: number; pengeluaran: number }[]
-    >`
+    const cashFlowRaw = await prisma.$queryRaw`
       SELECT
         DATE_FORMAT(bulan, '%Y-%m') AS month,
         SUM(pemasukan)              AS pemasukan,
@@ -363,7 +361,7 @@ async function getCashFlowMonthly(): Promise<CashFlowPoint[]> {
       ORDER BY month ASC
     `
 
-    return (cashFlowRaw as any[]).map((r) => ({
+    return (cashFlowRaw as any[]).map((r: any) => ({
       label:       String(r.month),
       pemasukan:   Number(r.pemasukan  || 0),
       pengeluaran: Number(r.pengeluaran || 0),

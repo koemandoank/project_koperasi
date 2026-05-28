@@ -240,7 +240,7 @@ export function MemberForm({
                   onValueChange={v => setFormData({ ...formData, unit_id: v })}
                   className="grid grid-cols-2 gap-2"
                 >
-                  {units.map(u => (
+                  {units.map((u: any) => (
                     <div
                       key={u.id}
                       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors active:bg-slate-50 dark:active:bg-slate-800 ${
@@ -312,7 +312,7 @@ export function MemberForm({
                     { value: "pengurus",   label: "Pengurus" },
                     { value: "admin",      label: "Admin" },
                     { value: "superadmin", label: "Superadmin", danger: true },
-                  ].map(({ value, label, danger }) => (
+                  ].map(({  value, label, danger  }: any) => (
                     <div
                       key={value}
                       className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 active:bg-slate-50 cursor-pointer"

@@ -21,7 +21,7 @@ export async function getAdminStats() {
     
     // For simplicity, we calculate the balance of all assets based on journal lines
     // Debit increases asset, credit decreases
-    const assetAccountIds = cashBankAccounts.map(a => a.id)
+    const assetAccountIds = cashBankAccounts.map((a: any) => a.id)
     const journalLines = await prisma.journal_lines.aggregate({
       _sum: {
         debit: true,
@@ -89,11 +89,11 @@ export async function getAdminStats() {
         total: pendingLoans + pendingStockAdjustments
       },
       currentSHU,
-      shuHistory: shuHistory.map(s => ({
+      shuHistory: shuHistory.map((s: any) => ({
         name: s.period_year.toString(),
         amount: Number(s.total_shu)
       })).reverse(),
-      restockAlerts: restockAlerts.map(p => ({ ...p, id: Number(p.id) }))
+      restockAlerts: restockAlerts.map((p: any) => ({ ...p, id: Number(p.id) }))
     }
   } catch (error) {
     console.error("getAdminStats error:", error)
@@ -145,7 +145,7 @@ export async function getKreditStats() {
     return {
       loanOutstanding: Number(activeLoans._sum.outstanding_principal || 0),
       nplAmount,
-      todayCollectionTotal: todayCollections.reduce((acc, curr) => acc + (Number(curr.total_due) - (Number(curr.principal_paid) + Number(curr.interest_paid) + Number(curr.penalty_paid))), 0),
+      todayCollectionTotal: todayCollections.reduce((acc: any, curr: any) => acc + (Number(curr.total_due) - (Number(curr.principal_paid) + Number(curr.interest_paid) + Number(curr.penalty_paid))), 0),
       todayCollectionsCount: todayCollections.length,
       pendingApplications,
       savingsGrowth: Number(savingsGrowth._sum.amount || 0)
@@ -182,7 +182,7 @@ export async function getKasirStats() {
       }
     })
     
-    const inventoryAlertsRaw = await prisma.$queryRaw<any[]>`
+    const inventoryAlertsRaw = await prisma.$queryRaw`
       SELECT p.id, p.name, p.sku, p.stock, p.min_stock, p.restock_requested 
       FROM products p
       LEFT JOIN product_categories c ON p.category_id = c.id
@@ -191,7 +191,7 @@ export async function getKasirStats() {
         AND (c.slug IS NULL OR c.slug != 'konsinyasi')
     `
     const inventoryAlerts = inventoryAlertsRaw.length
-    const lowStockIds = inventoryAlertsRaw.map(p => BigInt(p.id))
+    const lowStockIds = inventoryAlertsRaw.map((p: any) => BigInt(p.id))
     
     // Cari status PO aktif untuk produk-produk ini
     const activePOs = await prisma.purchase_orders.findMany({
@@ -213,7 +213,7 @@ export async function getKasirStats() {
       }
     }
 
-    const lowStockItems = inventoryAlertsRaw.map(p => ({
+    const lowStockItems = inventoryAlertsRaw.map((p: any) => ({
       id: Number(p.id),
       name: p.name,
       sku: p.sku,
@@ -255,7 +255,7 @@ export async function getKasirStats() {
       inventoryAlerts,
       lowStockItems,
       voidRefundLogs,
-      topProducts: topProducts.map(p => ({
+      topProducts: topProducts.map((p: any) => ({
         name: p.product_name,
         qty: p._sum.qty || 0,
         revenue: Number(p._sum.subtotal || 0)

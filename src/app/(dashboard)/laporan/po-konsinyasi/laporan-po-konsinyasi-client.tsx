@@ -155,7 +155,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
 
         let currentRow = startRow + 1
 
-        poData.forEach(po => {
+        poData.forEach((po: any) => {
           const row = wsPO.getRow(currentRow)
           row.values = [po.po_no, po.po_date, po.supplier_name, po.total_amount, STATUS_PO[po.status] || po.status, '', '']
           wsPO.mergeCells(row.number, 5, row.number, 7)
@@ -176,7 +176,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
           }
           currentRow++
 
-          po.items.forEach(item => {
+          po.items.forEach((item: any) => {
             const iRow = wsPO.getRow(currentRow)
             iRow.values = ['', item.product_sku, item.product_name, item.qty_ordered, item.qty_received, item.unit_price, item.total_price]
             iRow.getCell(6).numFmt = '"Rp"#,##0.00'
@@ -229,7 +229,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
 
         let currentRow = startRow + 1
 
-        conData.forEach(c => {
+        conData.forEach((c: any) => {
           const row = wsCon.getRow(currentRow)
           row.values = [
             c.consignment_date, c.product_sku, c.product_name, c.supplier_name,
@@ -275,7 +275,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
         doc.setFont("helvetica", "bold")
         doc.text('Data Purchase Order', 14, startY)
         const poRows: any[] = []
-        poData.forEach(po => {
+        poData.forEach((po: any) => {
           poRows.push([po.po_no, po.po_date, po.supplier_name, formatCurrency(po.total_amount), STATUS_PO[po.status] || po.status])
         })
         autoTable(doc, {
@@ -294,7 +294,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
         doc.setFont("helvetica", "bold")
         doc.text('Data Konsinyasi (Titip Jual)', 14, startY)
         const conRows: any[] = []
-        conData.forEach(c => {
+        conData.forEach((c: any) => {
           conRows.push([
             c.consignment_date, c.product_name, c.supplier_name,
             c.qty_received.toString(), c.qty_sold.toString(), c.qty_remaining.toString(),
@@ -323,15 +323,15 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
   // ── Summary calculations
   const poSummary = {
     total: poData.length,
-    totalAmount: poData.reduce((s, r) => s + r.total_amount, 0),
-    totalItems: poData.reduce((s, r) => s + r.items.reduce((si, i) => si + i.qty_ordered, 0), 0),
+    totalAmount: poData.reduce((s: number, r: any) => s + r.total_amount, 0),
+    totalItems: poData.reduce((s: number, r: any) => s + r.items.reduce((si: number, i: any) => si + i.qty_ordered, 0), 0),
   }
   const conSummary = {
     total: conData.length,
-    totalSold: conData.reduce((s, r) => s + r.qty_sold, 0),
-    totalSoldValue: conData.reduce((s, r) => s + r.total_sold_value, 0),
-    totalPayable: conData.reduce((s, r) => s + r.total_payable, 0),
-    totalMargin: conData.reduce((s, r) => s + r.margin, 0),
+    totalSold: conData.reduce((s: number, r: any) => s + r.qty_sold, 0),
+    totalSoldValue: conData.reduce((s: number, r: any) => s + r.total_sold_value, 0),
+    totalPayable: conData.reduce((s: number, r: any) => s + r.total_payable, 0),
+    totalMargin: conData.reduce((s: number, r: any) => s + r.margin, 0),
   }
 
   const statusBadge = (s: string) => {
@@ -355,7 +355,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
         <CardContent className="space-y-4">
           {/* Preset range */}
           <div className="flex flex-wrap gap-2">
-            {PRESET_RANGES.map(p => (
+            {PRESET_RANGES.map((p: any) => (
               <Button key={p.label} variant="outline" size="sm"
                 onClick={() => applyPreset(p.days)}
               >
@@ -393,7 +393,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
                 <SelectTrigger><SelectValue placeholder="Semua Supplier" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Supplier</SelectItem>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
+                  {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -404,7 +404,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
                 <SelectTrigger><SelectValue placeholder="Semua Produk" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Produk</SelectItem>
-                  {products.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                  {products.map((p: any) => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -465,7 +465,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
             {/* Status filter */}
             <div className="flex gap-2 items-center">
               <Label className="text-xs shrink-0">Status PO:</Label>
-              {['all', 'draft', 'ordered', 'received', 'cancelled'].map(s => (
+              {['all', 'draft', 'ordered', 'received', 'cancelled'].map((s: any) => (
                 <Button key={s} size="sm"
                   variant={statusPO === s ? 'default' : 'outline'}
                   onClick={() => setStatusPO(s)}
@@ -495,7 +495,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
                     {poData.length === 0 && (
                       <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Tidak ada data PO untuk filter ini.</TableCell></TableRow>
                     )}
-                    {poData.map(po => (
+                    {poData.map((po: any) => (
                       <Fragment key={po.id}>
                         <TableRow className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setExpandedPO(expandedPO === po.id ? null : po.id)}
@@ -536,7 +536,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {po.items.map(item => (
+                                    {po.items.map((item: any) => (
                                       <tr key={item.id} className="border-b last:border-0">
                                         <td className="py-1 font-mono text-xs text-muted-foreground">{item.product_sku}</td>
                                         <td className="py-1">{item.product_name}</td>
@@ -587,7 +587,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
             {/* Status filter */}
             <div className="flex gap-2 items-center">
               <Label className="text-xs shrink-0">Status:</Label>
-              {['all', 'active', 'returned', 'settled'].map(s => (
+              {['all', 'active', 'returned', 'settled'].map((s: any) => (
                 <Button key={s} size="sm"
                   variant={statusCon === s ? 'default' : 'outline'}
                   onClick={() => setStatusCon(s)}
@@ -620,7 +620,7 @@ export default function LaporanPOKonsinyasiClient({ suppliers, products, templat
                     {conData.length === 0 && (
                       <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Tidak ada data konsinyasi untuk filter ini.</TableCell></TableRow>
                     )}
-                    {conData.map(c => (
+                    {conData.map((c: any) => (
                       <TableRow key={c.id}>
                         <TableCell className="text-sm">{c.consignment_date}</TableCell>
                         <TableCell>

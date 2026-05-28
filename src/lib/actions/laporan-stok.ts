@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/db/prisma'
 
@@ -53,7 +53,7 @@ export async function getStockMovements(params: {
       },
     })
 
-    return movements.map(m => ({
+    return movements.map((m: any) => ({
       id:           Number(m.id),
       created_at:   m.created_at?.toISOString() ?? new Date().toISOString(),
       product_name: m.products.name,
@@ -198,7 +198,7 @@ export async function getMonitoringStockReport(params: {
 
     // Map of latest opname qty physical per product
     const opnameMap = new Map<number, number>()
-    opnameDetails.forEach(od => {
+    opnameDetails.forEach((od: any) => {
       const pid = Number(od.product_id)
       if (!opnameMap.has(pid)) {
         opnameMap.set(pid, od.qty_physical)
@@ -207,7 +207,7 @@ export async function getMonitoringStockReport(params: {
 
     // Group movements by product
     const prodMovementsMap = new Map<number, typeof movements>()
-    movements.forEach(m => {
+    movements.forEach((m: any) => {
       const pid = Number(m.product_id)
       if (!prodMovementsMap.has(pid)) {
         prodMovementsMap.set(pid, [])
@@ -215,7 +215,7 @@ export async function getMonitoringStockReport(params: {
       prodMovementsMap.get(pid)!.push(m)
     })
 
-    const reportRows: MonitoringStockRow[] = products.map(p => {
+    const reportRows: MonitoringStockRow[] = products.map((p: any) => {
       const pid = Number(p.id)
       const pMovements = prodMovementsMap.get(pid) || []
       const purchasePrice = Number(p.purchase_price || 0)
@@ -240,7 +240,7 @@ export async function getMonitoringStockReport(params: {
       let qtyReturQty = 0
       let adjustmentQty = 0
 
-      pMovements.forEach(m => {
+      pMovements.forEach((m: any) => {
         const qty = m.qty
 
         if (m.type === 'in') {

@@ -35,7 +35,7 @@ export async function createConsignmentItem(
     if (qtyReceived <= 0) throw new Error('Jumlah barang harus lebih dari 0')
     if (unitPrice < 0) throw new Error('Harga tidak boleh negatif')
 
-    const item = await prisma.$transaction(async (tx) => {
+    const item = await prisma.$transaction(async (tx: any) => {
       // 1. Buat record konsinyasi
       const created = await tx.consignment_items.create({
         data: {
@@ -119,7 +119,7 @@ export async function getConsignmentItems(
       orderBy: { consignment_date: 'desc' },
     })
 
-    const mappedItems = items.map(item => {
+    const mappedItems = items.map((item: any) => {
       const qty_received = Number(item.qty_received)
       const qty_returned = Number(item.qty_returned)
       // Stok aktual produk = sisa barang yang belum terjual & belum diretur
@@ -207,7 +207,7 @@ export async function returnConsignmentItem(
     const newStatus =
       Number(item.products?.stock ?? 0) - qtyReturn <= 0 ? 'returned' : item.status
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.consignment_items.update({
         where: { id: BigInt(itemId) },
         data: {
@@ -270,7 +270,7 @@ export async function recordConsignmentPayable(
 
     if (qtySold <= 0) throw new Error('Jumlah terjual harus lebih dari 0')
 
-    const payable = await prisma.$transaction(async (tx) => {
+    const payable = await prisma.$transaction(async (tx: any) => {
       // 1. Buat record tagihan
       const p = await tx.consignment_payables.create({
         data: {
@@ -348,7 +348,7 @@ export async function getConsignmentPayables(
       orderBy: { created_at: 'desc' },
     })
 
-    const mappedPayables = payables.map(p => ({
+    const mappedPayables = payables.map((p: any) => ({
       id: Number(p.id),
       supplier_id: Number(p.supplier_id),
       supplier_name: p.suppliers?.supplier_name ?? '-',
@@ -365,7 +365,7 @@ export async function getConsignmentPayables(
       total_revenue: Number(p.total_amount),
       payable_amount: Number(p.total_amount),
       status: p.status,
-      settlements: p.settlements.map(s => ({
+      settlements: p.settlements.map((s: any) => ({
         id: Number(s.id),
         amount_paid: Number(s.amount_paid),
         payment_method: s.payment_method,
@@ -431,8 +431,7 @@ export async function createConsignmentSettlement(
     })
 
     if (payable) {
-      const totalPaid = payable.settlements.reduce(
-        (sum, s) => sum + Number(s.amount_paid),
+      const totalPaid = payable.settlements.reduce((sum: any, s: any) => sum + Number(s.amount_paid),
         0
       )
       const newStatus =

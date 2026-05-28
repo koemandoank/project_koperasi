@@ -23,7 +23,7 @@ export async function getMembers() {
       orderBy: { created_at: "desc" },
     });
 
-    return members.map((m) => ({
+    return members.map((m: any) => ({
       id: Number(m.id),
       member_code: m.member_code,
       nik: m.nik,
@@ -49,7 +49,7 @@ export async function getUnits() {
     const units = await prisma.unit.findMany({
       where: { is_active: true },
     });
-    return units.map((u) => ({ id: Number(u.id), name: u.name }));
+    return units.map((u: any) => ({ id: Number(u.id), name: u.name }));
   } catch {
     return [];
   }
@@ -144,7 +144,7 @@ export async function createMember(data: any) {
 
     let newMemberId: bigint | null = null;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const member = await tx.member.create({
         data: {
           member_code: memberCode,
@@ -224,7 +224,7 @@ export async function updateMember(id: number, data: any) {
       select: { role: true, email: true },
     });
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.member.update({
         where: { id: BigInt(id) },
         data: {

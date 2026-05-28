@@ -188,7 +188,7 @@ export async function getAuditLogs(
     ])
 
     // Filter search (nik / nama / username) — dilakukan in-memory setelah JOIN
-    let logs = rawLogs.map((log) => ({
+    let logs = rawLogs.map((log: any) => ({
       id: Number(log.id),
       action: log.action,
       model_type: log.model_type ?? "unknown",
@@ -213,7 +213,7 @@ export async function getAuditLogs(
     if (filters.search) {
       const q = filters.search.toLowerCase()
       logs = logs.filter(
-        (l) =>
+        (l: any) =>
           l.user?.username?.toLowerCase().includes(q) ||
           l.user?.full_name?.toLowerCase().includes(q) ||
           l.user?.nik?.toLowerCase().includes(q)
@@ -238,8 +238,8 @@ export async function getAuditCategories(): Promise<string[]> {
       where: { model_type: { not: null } },
     })
     const categories = [...new Set(
-      types.map((t) => resolveCategory(t.model_type ?? ""))
-    )]
+      types.map((t: any) => resolveCategory(t.model_type ?? ""))
+    )] as string[]
     return categories
   } catch {
     return []

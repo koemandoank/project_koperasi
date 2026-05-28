@@ -57,7 +57,7 @@ export function TransferStockPanel({
     const t = Number(toLocationId);
     if (!Number.isFinite(f) || !Number.isFinite(t) || f <= 0 || t <= 0) return false;
     if (f === t) return false;
-    if (!rows.some((r) => r.productId.trim().length > 0 && r.qtyRequested > 0)) return false;
+    if (!rows.some((r: any) => r.productId.trim().length > 0 && r.qtyRequested > 0)) return false;
     return true;
   }, [fromLocationId, toLocationId, rows]);
 
@@ -66,8 +66,8 @@ export function TransferStockPanel({
       if (!canSubmit) return;
 
       const items = rows
-        .filter((r) => r.productId.trim() && r.qtyRequested > 0)
-        .map((r) => ({
+        .filter((r: any) => r.productId.trim() && r.qtyRequested > 0)
+        .map((r: any) => ({
           productId: BigInt(r.productId),
           qtyRequested: r.qtyRequested,
         }));
@@ -112,7 +112,7 @@ export function TransferStockPanel({
             value={fromLocationId}
             onChange={(e) => setFromLocationId(e.target.value)}
           >
-            {locations.map((l) => (
+            {locations.map((l: any) => (
               <option key={l.id} value={l.id}>
                 {l.location_name} ({l.location_code})
               </option>
@@ -127,7 +127,7 @@ export function TransferStockPanel({
             value={toLocationId}
             onChange={(e) => setToLocationId(e.target.value)}
           >
-            {locations.map((l) => (
+            {locations.map((l: any) => (
               <option key={l.id} value={l.id}>
                 {l.location_name} ({l.location_code})
               </option>
@@ -155,7 +155,7 @@ export function TransferStockPanel({
         </div>
 
         <div className="space-y-3">
-          {rows.map((r, idx) => (
+          {rows.map((r: any, idx: any) => (
             <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl space-y-3 md:space-y-0 md:p-0 md:bg-transparent md:border-0 md:grid md:grid-cols-3 md:gap-3 md:items-end">
               <div className="space-y-1">
                 <Label className="font-semibold text-xs md:text-sm">Pilih Produk</Label>
@@ -164,9 +164,9 @@ export function TransferStockPanel({
                   value={r.productId}
                   onChange={(e) => {
                     const selectedId = e.target.value;
-                    const prod = products.find(p => String(p.id) === selectedId);
+                    const prod = products.find((p: any) => String(p.id) === selectedId);
                     setRows((prev) =>
-                      prev.map((x, i) =>
+                      prev.map((x: any, i: any) =>
                         i === idx
                           ? {
                               ...x,
@@ -179,7 +179,7 @@ export function TransferStockPanel({
                   }}
                 >
                   <option value="">-- Pilih Produk --</option>
-                  {products.map((p) => (
+                  {products.map((p: any) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.sku}) - Stok: {p.stock} {p.unit_measure}
                     </option>
@@ -192,7 +192,7 @@ export function TransferStockPanel({
                   type="number"
                   value={r.qtyRequested}
                   onChange={(e) =>
-                    setRows((prev) => prev.map((x, i) => (i === idx ? { ...x, qtyRequested: Number(e.target.value) } : x)))
+                    setRows((prev) => prev.map((x: any, i: any) => (i === idx ? { ...x, qtyRequested: Number(e.target.value) } : x)))
                   }
                   className="h-12 text-base"
                 />
@@ -203,7 +203,7 @@ export function TransferStockPanel({
                   type="button"
                   className="w-full h-12 font-semibold"
                   disabled={rows.length <= 1}
-                  onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
+                  onClick={() => setRows((prev) => prev.filter((_: any, i: any) => i !== idx))}
                 >
                   Hapus Item
                 </Button>

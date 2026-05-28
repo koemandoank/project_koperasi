@@ -195,7 +195,7 @@ export function RatAbsensiClient({ initialQuorum, initialAttendance, initialYear
       doc.setFont("helvetica", "bold")
       doc.text("2. BUKU DAFTAR HADIR HARI H RAT", 14, finalY1)
 
-      const memberRows = filteredList.map((m, idx) => [
+      const memberRows = filteredList.map((m: any, idx: any) => [
         (idx + 1).toString(),
         m.memberCode,
         m.fullName,
@@ -249,7 +249,7 @@ export function RatAbsensiClient({ initialQuorum, initialAttendance, initialYear
   }
 
   // Filter list anggota berdasarkan input search dan tombol filter
-  const filteredList = attendanceList.filter((m) => {
+  const filteredList = attendanceList.filter((m: any) => {
     const matchSearch =
       m.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.memberCode.toLowerCase().includes(searchQuery.toLowerCase())
@@ -401,28 +401,28 @@ export function RatAbsensiClient({ initialQuorum, initialAttendance, initialYear
             onClick={() => setFilterType("present")}
             className={`rounded-xl h-8 px-4 text-xs font-bold ${filterType === "present" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"}`}
           >
-            Hadir ({attendanceList.filter(a => a.isPresent).length})
+            Hadir ({attendanceList.filter((a: any) => a.isPresent).length})
           </Button>
           <Button
             variant={filterType === "absent" ? "default" : "ghost"}
             onClick={() => setFilterType("absent")}
             className={`rounded-xl h-8 px-4 text-xs font-bold ${filterType === "absent" ? "bg-rose-600 hover:bg-rose-700 text-white" : "text-slate-500 hover:bg-slate-100"}`}
           >
-            Belum Hadir ({attendanceList.filter(a => !a.isPresent).length})
+            Belum Hadir ({attendanceList.filter((a: any) => !a.isPresent).length})
           </Button>
           <Button
             variant={filterType === "voted" ? "default" : "ghost"}
             onClick={() => setFilterType("voted")}
             className={`rounded-xl h-8 px-4 text-xs font-bold ${filterType === "voted" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "text-slate-500 hover:bg-slate-100"}`}
           >
-            Sudah Memilih ({attendanceList.filter(a => a.voted).length})
+            Sudah Memilih ({attendanceList.filter((a: any) => a.voted).length})
           </Button>
           <Button
             variant={filterType === "not_voted" ? "default" : "ghost"}
             onClick={() => setFilterType("not_voted")}
             className={`rounded-xl h-8 px-4 text-xs font-bold ${filterType === "not_voted" ? "bg-amber-600 hover:bg-amber-700 text-white" : "text-slate-500 hover:bg-slate-100"}`}
           >
-            Hadir Belum Memilih ({attendanceList.filter(a => a.isPresent && !a.voted).length})
+            Hadir Belum Memilih ({attendanceList.filter((a: any) => a.isPresent && !a.voted).length})
           </Button>
         </div>
       </div>
@@ -464,7 +464,7 @@ export function RatAbsensiClient({ initialQuorum, initialAttendance, initialYear
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredList.map((m) => {
+                  filteredList.map((m: any) => {
                     const isMutating = mutatingIds[m.memberId] || false
                     const isVoteMutating = mutatingIds[`vote-${m.memberId}`] || false
                     

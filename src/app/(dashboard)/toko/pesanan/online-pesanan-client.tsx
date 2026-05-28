@@ -33,8 +33,8 @@ export function OnlinePesananClient({ orders }: { orders: any[] }) {
   const [loading, setLoading] = useState<number | null>(null)
   const [detailOrder, setDetailOrder] = useState<any | null>(null)
 
-  const filtered = filter === "all" ? orders : orders.filter(o => o.order_status === filter)
-  const pendingCount = orders.filter(o => o.order_status === "pending").length
+  const filtered = filter === "all" ? orders : orders.filter((o: any) => o.order_status === filter)
+  const pendingCount = orders.filter((o: any) => o.order_status === "pending").length
 
   const handleStatus = async (orderId: number, status: "confirmed" | "processing" | "delivered" | "cancelled") => {
     setLoading(orderId)
@@ -55,7 +55,7 @@ export function OnlinePesananClient({ orders }: { orders: any[] }) {
   return (
     <>
       <div className="flex gap-2 flex-wrap mb-4">
-        {FILTERS.map(f => (
+        {FILTERS.map((f: any) => (
           <Button key={f.value} className="h-11 px-4 text-sm font-medium active:scale-95 transition-all" variant={filter === f.value ? "default" : "outline"}
             onClick={() => setFilter(f.value)}>
             {f.label}
@@ -86,7 +86,7 @@ export function OnlinePesananClient({ orders }: { orders: any[] }) {
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map(o => {
+            {filtered.map((o: any) => {
               const sc = STATUS_CONFIG[o.order_status] || STATUS_CONFIG.pending
               const isDelivery = o.note?.includes("[ANTAR ke:")
               return (
@@ -163,7 +163,7 @@ export function OnlinePesananClient({ orders }: { orders: any[] }) {
             Tidak ada pesanan.
           </div>
         )}
-        {filtered.map(o => {
+        {filtered.map((o: any) => {
           const sc = STATUS_CONFIG[o.order_status] || STATUS_CONFIG.pending
           const isDelivery = o.note?.includes("[ANTAR ke:")
           return (

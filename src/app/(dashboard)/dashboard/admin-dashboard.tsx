@@ -88,7 +88,7 @@ export function AdminDashboard({ companyName = "Koperasi" }: { companyName?: str
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {['Token Listrik 100k', 'Beras Premium 5kg', 'Minyak Goreng 2L', 'Paket Data Telkomsel'].map((item, i) => (
+              {['Token Listrik 100k', 'Beras Premium 5kg', 'Minyak Goreng 2L', 'Paket Data Telkomsel'].map((item: any, i: any) => (
                 <div key={item} className="flex items-center">
                   <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium leading-none">{item}</p>

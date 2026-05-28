@@ -30,7 +30,7 @@ export async function getSavingTypes(): Promise<SavingTypeData[]> {
       },
     });
 
-    return types.map((t) => ({
+    return types.map((t: any) => ({
       id: Number(t.id),
       code: t.code,
       name: t.name,

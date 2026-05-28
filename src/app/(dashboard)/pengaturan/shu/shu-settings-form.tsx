@@ -21,7 +21,7 @@ import {
 
 const formatRp = (v: number) => `${v.toFixed(1)}%`;
 
-const ALOKASI_META: Record<keyof AlokasiFeksi, { label: string; law: string; min?: number }> = {
+const ALOKASI_META: Record<string, { label: string; law: string; min?: number }> = {
   cadangan:          { label: "Dana Cadangan",              law: "Ps.45 ayat (2a)", min: 20 },
   jasa_anggota:      { label: "Total Jasa Anggota",         law: "Ps.45 ayat (2b)" },
   pengurus:          { label: "Honorarium Pengurus & Pengawas", law: "Ps.45 ayat (2c)" },
@@ -81,7 +81,7 @@ export function ShuConfigForm({
   const setAlokasi = (k: keyof AlokasiFeksi, v: number) =>
     setCfg(p => ({ ...p, alokasi: { ...p.alokasi, [k]: v } }));
 
-  const totalAlokasi = Object.values(cfg.alokasi).reduce((a, b) => a + b, 0);
+  const totalAlokasi = Object.values(cfg.alokasi).reduce((a: any, b: any) => a + b, 0);
   const totalBobotJasa = cfg.jasa_anggota_bobot.modal + cfg.jasa_anggota_bobot.usaha;
   const totalBobotUnit = cfg.bobot_unit.simpan_pinjam + cfg.bobot_unit.toko;
 
@@ -154,21 +154,21 @@ export function ShuConfigForm({
               <div className="overflow-hidden rounded-full h-4 flex border">
                 {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map((k, i) => (
                   <div key={k} className={`${PIE_COLORS[i]} transition-all duration-300`}
-                    style={{ width: `${(cfg.alokasi[k] / Math.max(totalAlokasi, 0.01)) * 100}%` }}
-                    title={`${ALOKASI_META[k].label}: ${cfg.alokasi[k]}%`}
+                    style={{ width: `${((cfg.alokasi as Record<string, number>)[k] / Math.max(totalAlokasi, 0.01)) * 100}%` }}
+                    title={`${ALOKASI_META[k].label}: ${(cfg.alokasi as Record<string, number>)[k]}%`}
                   />
                 ))}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map(k => (
+                {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map((k: any) => (
                   <div key={k} className="p-3 border rounded-lg bg-slate-50/50 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="font-semibold text-sm">{ALOKASI_META[k].label}</Label>
                       <Badge variant="outline" className="text-xs font-mono">{ALOKASI_META[k].law}</Badge>
                     </div>
                     <PctInput
-                      value={cfg.alokasi[k]}
+                      value={(cfg.alokasi as Record<string, number>)[k]}
                       onChange={v => setAlokasi(k, v)}
                       min={ALOKASI_META[k].min}
                     />
@@ -248,8 +248,8 @@ export function ShuConfigForm({
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label className="font-semibold">Komponen Simpanan yang Dihitung</Label>
-                {(["pokok", "wajib", "sukarela_berjangka"] as const).map(k => {
-                  const labels = { pokok: "Simpanan Pokok", wajib: "Simpanan Wajib", sukarela_berjangka: "Simpanan Sukarela Berjangka (Deposito)" };
+                {(["pokok", "wajib", "sukarela_berjangka"] as const).map((k) => {
+                  const labels: Record<string, string> = { pokok: "Simpanan Pokok", wajib: "Simpanan Wajib", sukarela_berjangka: "Simpanan Sukarela Berjangka (Deposito)" };
                   const checked = cfg.formula_jasa_modal.komponen_simpanan.includes(k);
                   return (
                     <div key={k} className="flex items-center gap-3 p-3 border rounded-lg">
@@ -260,7 +260,7 @@ export function ShuConfigForm({
                         onCheckedChange={v => {
                           const list = v
                             ? [...cfg.formula_jasa_modal.komponen_simpanan, k]
-                            : cfg.formula_jasa_modal.komponen_simpanan.filter(x => x !== k);
+                            : cfg.formula_jasa_modal.komponen_simpanan.filter((x: any) => x !== k);
                           setCfg(p => ({ ...p, formula_jasa_modal: { ...p.formula_jasa_modal, komponen_simpanan: list } }));
                         }}
                       />

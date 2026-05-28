@@ -53,7 +53,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
     { value: "rejected", label: "Ditolak" },
   ]
 
-  const filtered = applications.filter(a => {
+  const filtered = applications.filter((a: any) => {
     const matchSearch =
       a.member_name.toLowerCase().includes(search.toLowerCase()) ||
       a.member_nik.includes(search) ||
@@ -116,7 +116,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
         </div>
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {FILTERS.map(f => (
+          {FILTERS.map((f: any) => (
             <Button
               key={f.value}
               variant={filter === f.value ? "default" : "outline"}
@@ -139,7 +139,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
 
       {/* ── Card List ── */}
       <div className="space-y-3 mt-3">
-        {filtered.map(app => {
+        {filtered.map((app: any) => {
           const status = STATUS_CONFIG[app.status] || STATUS_CONFIG.draft
 
           return (

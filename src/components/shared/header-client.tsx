@@ -18,7 +18,7 @@ export function HeaderClient({
 }) {
   const [notifOpen, setNotifOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const totalNotif = notifications.reduce((s, n) => s + n.count, 0)
+  const totalNotif = notifications.reduce((s: any, n: any) => s + n.count, 0)
 
   const NOTIF_ICONS: Record<string, any> = {
     loan: CreditCard,

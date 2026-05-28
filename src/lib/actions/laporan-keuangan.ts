@@ -260,7 +260,7 @@ export async function getLabaRugi(year: number): Promise<LabaRugiReport> {
     const grossProfit = totalRevenue - storeCogs;
 
     const operationalExpenses = await calculateOperationalExpensesForPeriod(startDate, endDate);
-    const totalExpenses = operationalExpenses.reduce((sum, item) => sum + item.balance, 0);
+    const totalExpenses = operationalExpenses.reduce((sum: any, item: any) => sum + item.balance, 0);
     const netShu = grossProfit - totalExpenses;
 
     return {
@@ -284,11 +284,11 @@ export async function getLabaRugi(year: number): Promise<LabaRugiReport> {
  */
 function extractAssets(coasAsset: CoaSummaryItem[]) {
   const fixedAssets = coasAsset.filter(
-    (item) => item.code.startsWith("12") || /tetap|peralatan|kendaraan|akumulasi|gedung|tanah/i.test(item.name)
+        (item: any) => item.code.startsWith("12") || /tetap|peralatan|kendaraan|akumulasi|gedung|tanah/i.test(item.name)
   );
-  const currentAssets = coasAsset.filter((item) => !fixedAssets.includes(item));
-  const totalCurrentAssets = currentAssets.reduce((sum, item) => sum + item.balance, 0);
-  const totalFixedAssets = fixedAssets.reduce((sum, item) => sum + item.balance, 0);
+  const currentAssets = coasAsset.filter((item: any) => !fixedAssets.includes(item));
+  const totalCurrentAssets = currentAssets.reduce((sum: any, item: any) => sum + item.balance, 0);
+  const totalFixedAssets = fixedAssets.reduce((sum: any, item: any) => sum + item.balance, 0);
   return {
     currentAssets,
     fixedAssets,
@@ -305,11 +305,11 @@ function extractAssets(coasAsset: CoaSummaryItem[]) {
  */
 function extractLiabilities(coasLiability: CoaSummaryItem[]) {
   const longTermLiabilities = coasLiability.filter(
-    (item) => item.code.startsWith("22") || /panjang|bank/i.test(item.name)
+        (item: any) => item.code.startsWith("22") || /panjang|bank/i.test(item.name)
   );
-  const currentLiabilities = coasLiability.filter((item) => !longTermLiabilities.includes(item));
-  const totalCurrentLiabilities = currentLiabilities.reduce((sum, item) => sum + item.balance, 0);
-  const totalLongTermLiabilities = longTermLiabilities.reduce((sum, item) => sum + item.balance, 0);
+  const currentLiabilities = coasLiability.filter((item: any) => !longTermLiabilities.includes(item));
+  const totalCurrentLiabilities = currentLiabilities.reduce((sum: any, item: any) => sum + item.balance, 0);
+  const totalLongTermLiabilities = longTermLiabilities.reduce((sum: any, item: any) => sum + item.balance, 0);
   return {
     currentLiabilities,
     longTermLiabilities,
@@ -327,11 +327,11 @@ function extractLiabilities(coasLiability: CoaSummaryItem[]) {
  */
 function extractEquity(coasEquity: CoaSummaryItem[], currentShu: number) {
   const memberSavings = coasEquity.filter(
-    (item) => item.code.startsWith("31") || /simpanan pokok|simpanan wajib/i.test(item.name)
+        (item: any) => item.code.startsWith("31") || /simpanan pokok|simpanan wajib/i.test(item.name)
   );
-  const reservesAndOthers = coasEquity.filter((item) => !memberSavings.includes(item));
-  const totalMemberSavings = memberSavings.reduce((sum, item) => sum + item.balance, 0);
-  const totalReserves = reservesAndOthers.reduce((sum, item) => sum + item.balance, 0);
+  const reservesAndOthers = coasEquity.filter((item: any) => !memberSavings.includes(item));
+  const totalMemberSavings = memberSavings.reduce((sum: any, item: any) => sum + item.balance, 0);
+  const totalReserves = reservesAndOthers.reduce((sum: any, item: any) => sum + item.balance, 0);
   return {
     memberSavings,
     reservesAndOthers,

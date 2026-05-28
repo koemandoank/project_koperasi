@@ -96,7 +96,7 @@ function DetailRow({ row }: { row: MemberDeductionRow }) {
           <TableCell colSpan={11} className="px-8 py-3">
             <div className="space-y-1">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Detail Potongan</p>
-              {row.details.map((d, i) => (
+              {row.details.map((d: any, i: any) => (
                 <div key={i} className="flex items-center justify-between gap-4 text-xs py-1 border-b last:border-0 border-slate-100">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLORS[d.category]}`}>
@@ -172,8 +172,7 @@ export function ReportClient({
   const periodLabel = dateFrom && dateTo ? `${dateFrom} s/d ${dateTo}` : "Semua Waktu"
 
   // ── Summary totals ────────────────────────────────────────────────────────
-  const totals = data.reduce(
-    (acc, r) => ({
+  const totals = data.reduce((acc: any, r: any) => ({
       pinjaman_uang:       acc.pinjaman_uang + r.total_pinjaman_uang,
       pinjaman_barang:     acc.pinjaman_barang + r.total_pinjaman_barang,
       pinjaman_kilat:      acc.pinjaman_kilat + r.total_pinjaman_kilat,
@@ -237,7 +236,7 @@ export function ReportClient({
     const startRow = generateExcelHeader(ws, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, COLS.length, templateConfig)
 
     const hdrRow = ws.getRow(startRow)
-    hdrRow.values = COLS.map((c) => c.header)
+    hdrRow.values = COLS.map((c: any) => c.header)
     hdrRow.font = { bold: true, color: { argb: "FFFFFFFF" } }
     hdrRow.alignment = { horizontal: "center", vertical: "middle" }
     hdrRow.eachCell((cell) => {
@@ -247,17 +246,17 @@ export function ReportClient({
 
     const moneyFmt = '"Rp"#,##0;[Red]-"Rp"#,##0'
     let cur = startRow + 1
-    data.forEach((r, i) => {
+    data.forEach((r: any, i: any) => {
       const row = ws.getRow(cur++)
       row.values = { no: i + 1, nik: r.nik, name: r.name, dept: r.department, c1: r.total_pinjaman_uang, c2: r.total_pinjaman_barang, c3: r.total_pinjaman_kilat, c4: r.total_paylater, c5: r.total_simpanan_wajib, c6: r.total_simpanan_salary_cut, total: r.total_deduction }
-      ;["c1","c2","c3","c4","c5","c6","total"].forEach((k) => { row.getCell(k).numFmt = moneyFmt })
+      ;["c1","c2","c3","c4","c5","c6","total"].forEach((k: any) => { row.getCell(k).numFmt = moneyFmt })
       row.eachCell((cell) => { cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } } })
     })
 
     const totRow = ws.getRow(cur)
     totRow.values = { no: "", nik: "", name: "", dept: "TOTAL", c1: totals.pinjaman_uang, c2: totals.pinjaman_barang, c3: totals.pinjaman_kilat, c4: totals.paylater, c5: totals.simpanan_wajib, c6: totals.simpanan_salary_cut, total: totals.total }
     totRow.font = { bold: true }
-    ;["c1","c2","c3","c4","c5","c6","total"].forEach((k) => { totRow.getCell(k).numFmt = moneyFmt })
+    ;["c1","c2","c3","c4","c5","c6","total"].forEach((k: any) => { totRow.getCell(k).numFmt = moneyFmt })
     totRow.eachCell((cell, col) => {
       if (col >= 5) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } }
@@ -276,7 +275,7 @@ export function ReportClient({
     const doc = new jsPDF({ orientation: "landscape" })
     const startY = generatePdfHeader(doc, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, templateConfig)
 
-    const tableData = data.map((r, i) => [
+    const tableData = data.map((r: any, i: any) => [
       i + 1, r.nik, r.name, r.department,
       r.total_pinjaman_uang > 0 ? fmt(r.total_pinjaman_uang) : "-",
       r.total_pinjaman_barang > 0 ? fmt(r.total_pinjaman_barang) : "-",
@@ -374,7 +373,7 @@ export function ReportClient({
         </div>
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           <span className="text-xs text-muted-foreground flex items-center mr-2">Pilih Cepat:</span>
-          {(["hari", "minggu", "bulan"] as const).map((p) => (
+          {(["hari", "minggu", "bulan"] as const).map((p: any) => (
             <Button key={p} variant="outline" size="sm" className="h-8 text-xs capitalize" onClick={() => setPreset(p)}>
               {p === "hari" ? "Hari Ini" : p === "minggu" ? "Minggu Ini" : "Bulan Ini"}
             </Button>
@@ -430,7 +429,7 @@ export function ReportClient({
               </TableRow>
             ) : (
               <>
-                {data.map((row) => <DetailRow key={row.member_id} row={row} />)}
+                {data.map((row: any) => <DetailRow key={row.member_id} row={row} />)}
                 {/* Total Row */}
                 <TableRow className="bg-slate-100 dark:bg-slate-800 font-bold border-t-2">
                   <TableCell />

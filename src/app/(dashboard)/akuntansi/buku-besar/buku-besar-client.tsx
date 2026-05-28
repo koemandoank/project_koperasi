@@ -62,9 +62,9 @@ export function BukuBesarClient({ data, notifications = [] }: { data: any; notif
     router.push(`/akuntansi/buku-besar?${params.toString()}`)
   }
 
-  const activeNotifs = notifications.filter((_, idx) => !dismissedNotifs.has(idx))
-  const errorCount = activeNotifs.filter(n => n.type === "error").length
-  const warningCount = activeNotifs.filter(n => n.type === "warning").length
+  const activeNotifs = notifications.filter((_: any, idx: any) => !dismissedNotifs.has(idx))
+  const errorCount = activeNotifs.filter((n: any) => n.type === "error").length
+  const warningCount = activeNotifs.filter((n: any) => n.type === "warning").length
 
   return (
     <div className="space-y-4">
@@ -87,7 +87,7 @@ export function BukuBesarClient({ data, notifications = [] }: { data: any; notif
           </div>
 
           {/* Individual notification cards */}
-          {notifications.map((notif, idx) => {
+          {notifications.map((notif: any, idx: any) => {
             if (dismissedNotifs.has(idx)) return null
             const isError = notif.type === "error"
             const isWarning = notif.type === "warning"
@@ -345,7 +345,7 @@ export function BukuBesarClient({ data, notifications = [] }: { data: any; notif
       {/* Pagination */}
       {data.totalPages > 1 && (
         <div className="flex justify-center gap-2 pt-4">
-          {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(p => (
+          {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((p: any) => (
             <Button key={p} variant={data.page === p ? "default" : "outline"} className="h-11 w-11 rounded-xl font-bold" onClick={() => handlePage(p)}>
               {p}
             </Button>

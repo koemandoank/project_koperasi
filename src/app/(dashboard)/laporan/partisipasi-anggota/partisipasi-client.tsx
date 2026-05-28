@@ -36,8 +36,7 @@ interface Totals {
  * @returns {Totals} Objek total akumulasi
  */
 function calculateTotals(members: MemberShuProjection[]): Totals {
-  return members.reduce(
-    (acc, m) => {
+  return members.reduce((acc: any, m: any) => {
       acc.savings += m.savingsBalance;
       acc.belanja += m.belanjaPaid;
       acc.bunga += m.bungaPaid;
@@ -55,7 +54,7 @@ function calculateTotals(members: MemberShuProjection[]): Totals {
  * @returns {string[][]} Array baris data untuk PDF
  */
 function getPDFRows(members: MemberShuProjection[]): string[][] {
-  return members.map((m, idx) => [
+  return members.map((m: any, idx: any) => [
     (idx + 1).toString(),
     m.memberNo,
     m.memberName,
@@ -220,7 +219,7 @@ export function PartisipasiClient({ initialReport, initialYear, templateConfig }
       headerRow.height = 25
       currentRow++
 
-      filteredMembers.forEach((m, idx) => {
+      filteredMembers.forEach((m: any, idx: any) => {
         const row = ws.getRow(currentRow)
         row.values = [idx + 1, m.memberNo, m.memberName, m.savingsBalance, m.belanjaPaid, m.bungaPaid, m.totalShu]
         row.getCell(1).alignment = { horizontal: 'center' }
@@ -268,7 +267,7 @@ export function PartisipasiClient({ initialReport, initialYear, templateConfig }
 
   const filteredMembers = report
     ? report.members.filter(
-        (m) =>
+        (m: any) =>
           m.memberName.toLowerCase().includes(search.toLowerCase()) ||
           m.memberNo.toLowerCase().includes(search.toLowerCase())
       )
@@ -288,7 +287,7 @@ export function PartisipasiClient({ initialReport, initialYear, templateConfig }
               <SelectValue placeholder="Pilih Tahun" />
             </SelectTrigger>
             <SelectContent>
-              {years.map((y) => (
+              {years.map((y: any) => (
                 <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
@@ -396,7 +395,7 @@ export function PartisipasiClient({ initialReport, initialYear, templateConfig }
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredMembers.map((m) => (
+                      filteredMembers.map((m: any) => (
                         <TableRow key={m.memberId} className="hover:bg-slate-50/50">
                           <TableCell className="font-medium py-3.5">
                             <div className="font-bold text-slate-800 dark:text-slate-150">{m.memberName}</div>

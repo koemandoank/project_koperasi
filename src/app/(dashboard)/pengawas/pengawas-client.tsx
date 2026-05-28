@@ -240,7 +240,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
               <SelectValue placeholder="Pilih Tahun" />
             </SelectTrigger>
             <SelectContent>
-              {years.map((y) => (
+              {years.map((y: any) => (
                 <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
@@ -305,7 +305,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
               </div>
               
               <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                {findings.map((f, idx) => {
+                {findings.map((f: any, idx: any) => {
                   const AnomalyIcon = f.type === "danger" ? XCircle : AlertTriangle
                   const iconColor = f.type === "danger" ? "text-rose-500" : "text-amber-500"
                   const bgColor = f.type === "danger" ? "bg-rose-50/20 dark:bg-rose-950/5" : "bg-amber-50/20 dark:bg-amber-950/5"
@@ -379,7 +379,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
               { label: "Total Kewajiban", value: formatCurrency(ratios.totalKewajiban), color: "text-amber-600" },
               { label: "Total Ekuitas", value: formatCurrency(ratios.totalEkuitas), color: "text-emerald-600" },
               { label: "SHU Bersih Tahun Ini", value: formatCurrency(ratios.shuBersih), color: "text-violet-600" },
-            ].map((item) => (
+            ].map((item: any) => (
               <Card key={item.label} className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">{item.label}</p>
@@ -413,7 +413,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
                   { label: `Kurang Lancar (${collectibility.kurangLancar})`, color: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400" },
                   { label: `Diragukan (${collectibility.diragukan})`, color: "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400" },
                   { label: `Macet (${collectibility.macet})`, color: "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400" },
-                ].map((b) => (
+                ].map((b: any) => (
                   <Badge key={b.label} className={`${b.color} border-0 font-semibold text-xs px-3 py-1`}>{b.label}</Badge>
                 ))}
               </div>
@@ -426,7 +426,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
                 { label: "Nilai Kurang Lancar", value: collectibility.totalNilaiKurangLancar, color: "text-amber-600" },
                 { label: "Nilai Diragukan", value: collectibility.totalNilaiDiragukan, color: "text-orange-600" },
                 { label: "Nilai Macet (NPL)", value: collectibility.totalNilaiMacet, color: "text-rose-600" },
-              ].map((s) => (
+              ].map((s: any) => (
                 <div key={s.label} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                   <p className="text-xs text-slate-400 font-medium">{s.label}</p>
                   <p className={`text-sm font-extrabold ${s.color}`}>{formatCurrency(s.value)}</p>
@@ -456,7 +456,7 @@ Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara 
                     </TableCell>
                   </TableRow>
                 ) : (
-                  collectibility.items.map((item) => (
+                  collectibility.items.map((item: any) => (
                     <TableRow
                       key={item.loanId}
                       className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${item.kategori === "Macet" ? "bg-rose-50/20 dark:bg-rose-950/10" : ""}`}

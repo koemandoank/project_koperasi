@@ -120,7 +120,7 @@ export async function getTransactionFormOptions() {
       orderBy: { code: "asc" }
     })
 
-    const mapped = allCoa.map(c => ({
+    const mapped = allCoa.map((c: any) => ({
       id: Number(c.id),
       code: c.code,
       name: c.name,
@@ -130,9 +130,9 @@ export async function getTransactionFormOptions() {
 
     return {
       success: true,
-      accounts: mapped.filter(a => a.type === "asset" && !a.code.startsWith("12")),
-      categoriesExpense: mapped.filter(a => a.type === "expense"),
-      categoriesIncome: mapped.filter(a => a.type === "revenue")
+      accounts: mapped.filter((a: any) => a.type === "asset" && !a.code.startsWith("12")),
+      categoriesExpense: mapped.filter((a: any) => a.type === "expense"),
+      categoriesIncome: mapped.filter((a: any) => a.type === "revenue")
     }
   } catch (error: any) {
     console.error("[getTransactionFormOptions] Error details:", error)
@@ -176,7 +176,7 @@ export async function createAdditionalAccount(name: string, type: "asset" | "rev
     })
 
     let maxNum = 3 // default starting offset
-    siblingAccounts.forEach(a => {
+    siblingAccounts.forEach((a: any) => {
       const suffix = parseInt(a.code.substring(3))
       if (!isNaN(suffix) && suffix > maxNum) {
         maxNum = suffix
@@ -268,7 +268,7 @@ export async function createManualTransaction(input: TransactionInput) {
     const txDescription = input.notes || `${category.name} via ${account.name}`
 
     // Perform Double-Entry accounting in a Prisma Transaction block
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // 1. Create the Journal Entry
       const entry = await tx.journal_entries.create({
         data: {
@@ -492,7 +492,7 @@ async function ensureDefaultTransactions(): Promise<void> {
     const randomSuffix = String(Math.floor(1000 + Math.random() * 9000))
     const entryNo = `TX-${dateStr}-${randomSuffix}`
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const entry = await tx.journal_entries.create({
         data: {
           unit_id: unitId,
@@ -590,8 +590,8 @@ export async function getRecentTransactions(limit = 10): Promise<{ success: bool
 
     for (const e of entries) {
       // Manual entries have exactly 2 lines: one Debit, one Credit
-      const debitLine = e.journal_lines.find(l => Number(l.debit) > 0)
-      const creditLine = e.journal_lines.find(l => Number(l.credit) > 0)
+      const debitLine = e.journal_lines.find((l: any) => Number(l.debit) > 0)
+      const creditLine = e.journal_lines.find((l: any) => Number(l.credit) > 0)
 
       if (!debitLine || !creditLine) continue
 

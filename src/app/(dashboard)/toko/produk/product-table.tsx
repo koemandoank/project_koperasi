@@ -37,7 +37,7 @@ export function ProductTable({
 }) {
   const [search, setSearch] = useState("")
 
-  const filteredProducts = products.filter(p =>
+  const filteredProducts = products.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.category_name || "").toLowerCase().includes(search.toLowerCase())
   )
@@ -75,7 +75,7 @@ export function ProductTable({
 
       {/* ── Card Grid (2-col on mobile, 3-col on md+) ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {filteredProducts.map((p) => (
+        {filteredProducts.map((p: any) => (
           <div
             key={p.id}
             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col"

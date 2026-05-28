@@ -116,7 +116,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
 
       // 5. Daily series per date — HPP riil dihitung via LEFT JOIN subquery untuk mencegah inflasi omzet
       //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
-      prisma.$queryRaw<{ date: string; omzet: number; cogs: number }[]>`
+      prisma.$queryRaw`
         SELECT 
           \`do\`.date,
           \`do\`.omzet,
@@ -156,7 +156,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
     ])
 
     // ── Fetch historical COGS for top products ────────────────
-    const soldIds = itemGroups.map(p => p.product_id)
+    const soldIds = itemGroups.map((p: any) => p.product_id)
     const topOrderItems = await prisma.order_items.findMany({
       where: {
         product_id: { in: soldIds },
@@ -176,7 +176,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
     }
 
     // ── Build top products with margin ───────────────────────
-    const topProducts = itemGroups.map(p => {
+    const topProducts = itemGroups.map((p: any) => {
       const qty     = p._sum.qty ?? 0
       const revenue = Number(p._sum.subtotal ?? 0)
       const cogs    = cogsMap.get(Number(p.product_id)) ?? 0
@@ -193,7 +193,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
     })
 
     // ── Calculate total real COGS from all sold items ─────────
-    const totalRealCogs = allSoldItems.reduce((sum, item) => {
+    const totalRealCogs = allSoldItems.reduce((sum: any, item: any) => {
       const price = Number(item.purchase_price ?? 0)
       return sum + (item.qty * price)
     }, 0)
@@ -205,7 +205,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
     const txCount = revAgg._count
 
     // dailySeries menggunakan HPP riil per hari dari SQL JOIN (bukan estimasi rasio)
-    const dailySeries = (dailyRaw as any[]).map(row => ({
+    const dailySeries = (dailyRaw as any[]).map((row: any) => ({
       date:  String(row.date),
       omzet: Number(row.omzet),
       cogs:  Number(row.cogs ?? 0),
@@ -220,13 +220,13 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         transaction_count: txCount,
         avg_transaction:   txCount > 0 ? Math.round(omzet / txCount) : 0,
       },
-      byPaymentMethod: byPayment.map(g => ({
+      byPaymentMethod: byPayment.map((g: any) => ({
         method: g.payment_method,
         total:  Number(g._sum.grand_total ?? 0),
         count:  g._count,
       })),
       topProducts,
-      slowMoving: slowRaw.map(p => ({
+      slowMoving: slowRaw.map((p: any) => ({
         id:             Number(p.id),
         name:           p.name,
         stock:          p.stock,

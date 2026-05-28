@@ -230,7 +230,7 @@ function mapMembersToShuProjection(
   jasaUsahaTotal: number,
   config: ShuConfig
 ): MemberShuProjection[] {
-  return tempMembersData.map((m) => {
+  return tempMembersData.map((m: any) => {
     const savingsWeight = totalSimpananSeluruh > 0 ? (m.savingsBalance / totalSimpananSeluruh) : 0;
     const jasaModal = savingsWeight * jasaModalTotal;
 
@@ -474,7 +474,7 @@ export async function distributeSHUMassal(year: number): Promise<{ success: bool
 
     const labaRugi = await getLabaRugi(year);
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await validateDistributionPeriod(tx, unitId, year);
       const sukarelaType = await getSukarelaSavingType(tx);
 
@@ -509,7 +509,7 @@ export async function distributeSHUMassal(year: number): Promise<{ success: bool
       }
 
       // Automate general ledger journal posting for SHU mass distribution
-      const totalDistributed = report.members.reduce((sum, m) => sum + (m.totalShu > 0 ? m.totalShu : 0), 0);
+      const totalDistributed = report.members.reduce((sum: any, m: any) => sum + (m.totalShu > 0 ? m.totalShu : 0), 0);
       if (totalDistributed > 0) {
         // 1. Find or create Liability account for Simpanan Sukarela
         let liabilityCoa = await tx.chart_of_accounts.findFirst({

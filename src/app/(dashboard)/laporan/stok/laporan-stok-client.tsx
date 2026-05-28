@@ -106,7 +106,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
       ws.getColumn(9).width = 30
       ws.getColumn(10).width = 20
 
-      data.forEach((m, index) => {
+      data.forEach((m: any, index: any) => {
         const row = ws.addRow([
           new Date(m.created_at).toLocaleString('id-ID'),
           m.product_sku,
@@ -151,11 +151,11 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
 
   // Summary
   const totalIn  = data
-    .filter(m => m.type === 'in' || m.type === 'return' || (m.type === 'adjustment' && m.quantity > 0))
-    .reduce((s, m) => s + Math.abs(m.quantity), 0)
+    .filter((m: any) => m.type === 'in' || m.type === 'return' || (m.type === 'adjustment' && m.quantity > 0))
+    .reduce((s: any, m: any) => s + Math.abs(m.quantity), 0)
   const totalOut = data
-    .filter(m => m.type === 'out' || (m.type === 'adjustment' && m.quantity < 0))
-    .reduce((s, m) => s + Math.abs(m.quantity), 0)
+    .filter((m: any) => m.type === 'out' || (m.type === 'adjustment' && m.quantity < 0))
+    .reduce((s: any, m: any) => s + Math.abs(m.quantity), 0)
 
   return (
     <div className="space-y-4">
@@ -181,7 +181,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
                 <SelectTrigger id="product-select"><SelectValue placeholder="Semua Produk" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Produk</SelectItem>
-                  {products.map(p => (
+                  {products.map((p: any) => (
                     <SelectItem key={p.id} value={p.id.toString()}>{p.sku} – {p.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -279,7 +279,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    data.map(m => (
+                    data.map((m: any) => (
                       <TableRow key={m.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(m.created_at).toLocaleString('id-ID')}

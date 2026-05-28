@@ -136,11 +136,11 @@ export async function getLaporanMingguanData(params: {
       cur.setDate(cur.getDate() + 1)
     }
 
-    const totCashHpp   = rows.reduce((s, r) => s + r.hppCash, 0)
-    const totCashJual  = rows.reduce((s, r) => s + r.jualCash, 0)
+    const totCashHpp   = rows.reduce((s: any, r: any) => s + r.hppCash, 0)
+    const totCashJual  = rows.reduce((s: any, r: any) => s + r.jualCash, 0)
     const totCashLaba  = totCashJual - totCashHpp
-    const totKrdHpp    = rows.reduce((s, r) => s + r.hppKredit, 0)
-    const totKrdJual   = rows.reduce((s, r) => s + r.jualKredit, 0)
+    const totKrdHpp    = rows.reduce((s: any, r: any) => s + r.hppKredit, 0)
+    const totKrdJual   = rows.reduce((s: any, r: any) => s + r.jualKredit, 0)
     const totKrdLaba   = totKrdJual - totKrdHpp
     const grandHpp     = totCashHpp  + totKrdHpp
     const grandJual    = totCashJual + totKrdJual

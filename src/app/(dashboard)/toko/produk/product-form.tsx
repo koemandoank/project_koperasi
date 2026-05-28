@@ -196,7 +196,7 @@ export function ProductForm({
                   <Select value={formData.category_id} onValueChange={v => setFormData({...formData, category_id: v})}>
                     <SelectTrigger className="h-12"><SelectValue placeholder="Kategori" /></SelectTrigger>
                     <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                      {categories.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

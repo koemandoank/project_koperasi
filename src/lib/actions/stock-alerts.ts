@@ -41,7 +41,7 @@ export async function getRestockAlerts() {
       },
       orderBy: { name: 'asc' }
     })
-    return products.map(p => ({
+    return products.map((p: any) => ({
       ...p,
       id: Number(p.id),
       purchase_price: Number(p.purchase_price),
@@ -74,11 +74,11 @@ export async function createPOFromRestock(
     const poNo       = `PO-${Date.now()}`
     const today      = new Date()
     const expDate    = new Date(expectedDate)
-    const subtotal   = items.reduce((s, i) => s + i.qtyOrdered * i.unitPrice, 0)
+    const subtotal   = items.reduce((s: any, i: any) => s + i.qtyOrdered * i.unitPrice, 0)
     const taxAmount  = subtotal * 0.1
     const totalAmount = subtotal + taxAmount
 
-    const po = await prisma.$transaction(async tx => {
+    const po = await prisma.$transaction(async (tx: any) => {
       const newPO = await tx.purchase_orders.create({
         data: {
           supplier_id:       BigInt(supplierId),
@@ -93,7 +93,7 @@ export async function createPOFromRestock(
           created_by:        BigInt(session.user.id),
           po_items: {
             createMany: {
-              data: items.map(i => ({
+              data: items.map((i: any) => ({
                 product_id:  BigInt(i.productId),
                 qty_ordered: i.qtyOrdered,
                 unit_price:  i.unitPrice,
@@ -106,7 +106,7 @@ export async function createPOFromRestock(
 
       // Reset restock_requested flag for all processed products
       await tx.products.updateMany({
-        where: { id: { in: items.map(i => i.productId) } },
+        where: { id: { in: items.map((i: any) => i.productId) } },
         data:  { restock_requested: false }
       })
 

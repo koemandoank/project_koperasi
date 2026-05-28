@@ -188,7 +188,7 @@ export async function getStockReorderAlerts(unitId: bigint) {
       },
     })
 
-    const filtered = alerts.filter((a) => a.products !== null)
+    const filtered = alerts.filter((a: any) => a.products !== null)
 
     return { success: true, data: filtered }
   } catch (error) {
@@ -228,7 +228,7 @@ export async function createStockTransferOrder(
         notes,
         transfer_items: {
           createMany: {
-            data: items.map((item) => ({
+            data: items.map((item: any) => ({
               product_id: item.productId,
               qty_requested: item.qtyRequested,
             })),
@@ -307,7 +307,7 @@ export async function receiveStockTransfer(transferId: bigint) {
     if (!transfer) throw new Error('Transfer order not found')
 
     await Promise.all(
-      transfer.transfer_items.map(async (item) => {
+      transfer.transfer_items.map(async (item: any) => {
         await prisma.stock_balances.update({
           where: {
             product_id_location_id: {
@@ -443,7 +443,7 @@ export async function approveStockOpname(opnameId: bigint) {
     const userId = BigInt(session.user.id)
 
     // Execute in a transaction to ensure all stock changes and movements are reconciled atomically
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // 1. Update the stock opname status to approved
       const updated = await tx.stock_opname.update({
         where: { id: opnameId },

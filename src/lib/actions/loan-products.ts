@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
@@ -9,7 +9,7 @@ export async function getLoanProducts() {
     const products = await prisma.loan_products.findMany({
       orderBy: { created_at: "desc" }
     });
-    return products.map(p => ({
+    return products.map((p: any) => ({
       id: Number(p.id),
       code: p.code,
       name: p.name,

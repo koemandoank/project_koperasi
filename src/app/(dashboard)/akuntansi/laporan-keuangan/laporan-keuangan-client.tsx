@@ -89,14 +89,14 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
         // ASET
         [{ content: '1. ASET (AKTIVA)', colSpan: 2, styles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' } }],
         [{ content: 'ASET LANCAR', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.assets.currentAssets.map(item => [
+        ...neraca.assets.currentAssets.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
         [{ content: 'Total Aset Lancar', styles: { fontStyle: 'bold' } }, { content: formatCurrency(neraca.assets.totalCurrentAssets), styles: { fontStyle: 'bold' } }],
         
         [{ content: 'ASET TETAP', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.assets.fixedAssets.map(item => [
+        ...neraca.assets.fixedAssets.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
@@ -107,12 +107,12 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
         // KEWAJIBAN
         [{ content: '2. KEWAJIBAN (PASIVA)', colSpan: 2, styles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontStyle: 'bold' } }],
         [{ content: 'KEWAJIBAN JANGKA PENDEK', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.liabilities.currentLiabilities.map(item => [
+        ...neraca.liabilities.currentLiabilities.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
         [{ content: 'KEWAJIBAN JANGKA PANJANG', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.liabilities.longTermLiabilities.map(item => [
+        ...neraca.liabilities.longTermLiabilities.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
@@ -121,12 +121,12 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
         // EKUITAS
         [{ content: '3. EKUITAS (MODAL SENDIRI)', colSpan: 2, styles: { fillColor: [5, 150, 105], textColor: [255, 255, 255], fontStyle: 'bold' } }],
         [{ content: 'SIMPANAN EKUITAS ANGGOTA', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.equity.memberSavings.map(item => [
+        ...neraca.equity.memberSavings.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
         [{ content: 'DANA CADANGAN & LAINNYA', colSpan: 2, styles: { fontStyle: 'bold', textColor: [100, 116, 139] } }],
-        ...neraca.equity.reservesAndOthers.map(item => [
+        ...neraca.equity.reservesAndOthers.map((item: any) => [
           `${item.code} - ${item.name}`,
           formatCurrency(item.balance)
         ]),
@@ -171,7 +171,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
         [{ content: 'III. SISA HASIL USAHA KOTOR (LABA KOTOR)', styles: { fontStyle: 'bold', fillColor: [238, 242, 255] } }, { content: formatCurrency(labaRugi.grossProfit), styles: { fontStyle: 'bold', fillColor: [238, 242, 255] } }],
 
         [{ content: 'IV. BEBAN OPERASIONAL KOPERASI', colSpan: 2, styles: { fontStyle: 'bold', textColor: [217, 119, 6] } }],
-        ...labaRugi.expenses.operationalExpenses.map(item => [
+        ...labaRugi.expenses.operationalExpenses.map((item: any) => [
           `${item.code} - ${item.name}`,
           `(${formatCurrency(item.balance)})`
         ]),
@@ -301,7 +301,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
       addExcelSubHeader(wsNeraca, currentN, "ASET LANCAR")
       currentN++
       
-      neraca.assets.currentAssets.forEach(item => {
+      neraca.assets.currentAssets.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
@@ -312,7 +312,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
       addExcelSubHeader(wsNeraca, currentN, "ASET TETAP")
       currentN++
       
-      neraca.assets.fixedAssets.forEach(item => {
+      neraca.assets.fixedAssets.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
@@ -329,14 +329,14 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
       
       addExcelSubHeader(wsNeraca, currentN, "KEWAJIBAN JANGKA PENDEK")
       currentN++
-      neraca.liabilities.currentLiabilities.forEach(item => {
+      neraca.liabilities.currentLiabilities.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
 
       addExcelSubHeader(wsNeraca, currentN, "KEWAJIBAN JANGKA PANJANG")
       currentN++
-      neraca.liabilities.longTermLiabilities.forEach(item => {
+      neraca.liabilities.longTermLiabilities.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
@@ -350,14 +350,14 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
       
       addExcelSubHeader(wsNeraca, currentN, "SIMPANAN EKUITAS ANGGOTA")
       currentN++
-      neraca.equity.memberSavings.forEach(item => {
+      neraca.equity.memberSavings.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
 
       addExcelSubHeader(wsNeraca, currentN, "DANA CADANGAN & LAINNYA")
       currentN++
-      neraca.equity.reservesAndOthers.forEach(item => {
+      neraca.equity.reservesAndOthers.forEach((item: any) => {
         addExcelRow(wsNeraca, currentN, `${item.code} - ${item.name}`, item.balance)
         currentN++
       })
@@ -432,7 +432,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
       // IV. BEBAN
       addExcelSectionHeader(wsPHU, currentP, "IV. BEBAN OPERASIONAL KOPERASI", "FFD97706")
       currentP++
-      labaRugi.expenses.operationalExpenses.forEach(item => {
+      labaRugi.expenses.operationalExpenses.forEach((item: any) => {
         addExcelRow(wsPHU, currentP, `${item.code} - ${item.name}`, -item.balance)
         currentP++
       })
@@ -493,7 +493,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <SelectValue placeholder="Pilih Tahun" />
               </SelectTrigger>
               <SelectContent>
-                {years.map((y) => (
+                {years.map((y: any) => (
                   <SelectItem key={y} value={y}>{y}</SelectItem>
                 ))}
               </SelectContent>
@@ -579,7 +579,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                       <h3 className="text-sm font-extrabold tracking-wider text-slate-400">ASET LANCAR</h3>
                       <Table>
                         <TableBody>
-                          {neraca.assets.currentAssets.map((item) => (
+                          {neraca.assets.currentAssets.map((item: any) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/50">
                               <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                               <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -603,7 +603,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                       <h3 className="text-sm font-extrabold tracking-wider text-slate-400">ASET TETAP</h3>
                       <Table>
                         <TableBody>
-                          {neraca.assets.fixedAssets.map((item) => (
+                          {neraca.assets.fixedAssets.map((item: any) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/50">
                               <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                               <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -646,7 +646,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                         <h3 className="text-sm font-extrabold tracking-wider text-slate-400">KEWAJIBAN JANGKA PENDEK</h3>
                         <Table>
                           <TableBody>
-                            {neraca.liabilities.currentLiabilities.map((item) => (
+                            {neraca.liabilities.currentLiabilities.map((item: any) => (
                               <TableRow key={item.id} className="hover:bg-slate-50/50 border-0">
                                 <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                                 <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -666,7 +666,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                         <h3 className="text-sm font-extrabold tracking-wider text-slate-400">KEWAJIBAN JANGKA PANJANG</h3>
                         <Table>
                           <TableBody>
-                            {neraca.liabilities.longTermLiabilities.map((item) => (
+                            {neraca.liabilities.longTermLiabilities.map((item: any) => (
                               <TableRow key={item.id} className="hover:bg-slate-50/50 border-0">
                                 <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                                 <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -702,7 +702,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                         <h3 className="text-sm font-extrabold tracking-wider text-slate-400">SIMPANAN EKUITAS ANGGOTA</h3>
                         <Table>
                           <TableBody>
-                            {neraca.equity.memberSavings.map((item) => (
+                            {neraca.equity.memberSavings.map((item: any) => (
                               <TableRow key={item.id} className="hover:bg-slate-50/50 border-0">
                                 <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                                 <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -717,7 +717,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                         <h3 className="text-sm font-extrabold tracking-wider text-slate-400">DANA CADANGAN & LAINNYA</h3>
                         <Table>
                           <TableBody>
-                            {neraca.equity.reservesAndOthers.map((item) => (
+                            {neraca.equity.reservesAndOthers.map((item: any) => (
                               <TableRow key={item.id} className="hover:bg-slate-50/50 border-0">
                                 <TableCell className="py-2.5 font-medium text-slate-600 dark:text-slate-350">{item.code} - {item.name}</TableCell>
                                 <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{formatCurrency(item.balance)}</TableCell>
@@ -813,7 +813,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                     <h3 className="text-sm font-extrabold tracking-wider text-amber-500">IV. BEBAN OPERASIONAL KOPERASI</h3>
                     <Table>
                       <TableBody>
-                        {labaRugi.expenses.operationalExpenses.map((item) => (
+                        {labaRugi.expenses.operationalExpenses.map((item: any) => (
                           <TableRow key={item.id} className="hover:bg-slate-50/50 border-0">
                             <TableCell className="py-2.5 font-medium text-slate-700 dark:text-slate-300 pl-4">{item.code} - {item.name}</TableCell>
                             <TableCell className="py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">({formatCurrency(item.balance)})</TableCell>
@@ -999,7 +999,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                       <h3 className="text-sm font-extrabold tracking-wider text-emerald-600">PENAMBAHAN EKUITAS</h3>
                       <Table>
                         <TableBody>
-                          {perubahanEkuitas.penambahan.items.map((item, i) => (
+                          {perubahanEkuitas.penambahan.items.map((item: any, i: any) => (
                             <TableRow key={i} className="hover:bg-slate-50/50 border-0">
                               <TableCell className="py-2.5 font-medium text-slate-700 dark:text-slate-300 pl-4">{item.keterangan}</TableCell>
                               <TableCell className="py-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(item.jumlah)}</TableCell>
@@ -1018,7 +1018,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                       <h3 className="text-sm font-extrabold tracking-wider text-rose-500">PENGURANGAN EKUITAS</h3>
                       <Table>
                         <TableBody>
-                          {perubahanEkuitas.pengurangan.items.map((item, i) => (
+                          {perubahanEkuitas.pengurangan.items.map((item: any, i: any) => (
                             <TableRow key={i} className="hover:bg-slate-50/50 border-0">
                               <TableCell className="py-2.5 font-medium text-slate-700 dark:text-slate-300 pl-4">{item.keterangan}</TableCell>
                               <TableCell className="py-2.5 text-right font-semibold text-rose-600 dark:text-rose-400">({formatCurrency(item.jumlah)})</TableCell>
@@ -1089,7 +1089,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">ASET LANCAR</td>
                 </tr>
-                {neraca.assets.currentAssets.map(item => (
+                {neraca.assets.currentAssets.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1107,7 +1107,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">ASET TETAP</td>
                 </tr>
-                {neraca.assets.fixedAssets.map(item => (
+                {neraca.assets.fixedAssets.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1134,7 +1134,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">KEWAJIBAN JANGKA PENDEK</td>
                 </tr>
-                {neraca.liabilities.currentLiabilities.map(item => (
+                {neraca.liabilities.currentLiabilities.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1143,7 +1143,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">KEWAJIBAN JANGKA PANJANG</td>
                 </tr>
-                {neraca.liabilities.longTermLiabilities.map(item => (
+                {neraca.liabilities.longTermLiabilities.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1161,7 +1161,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">SIMPANAN EKUITAS ANGGOTA</td>
                 </tr>
-                {neraca.equity.memberSavings.map(item => (
+                {neraca.equity.memberSavings.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1170,7 +1170,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-4 py-1.5 text-left text-slate-500">DANA CADANGAN & LAINNYA</td>
                 </tr>
-                {neraca.equity.reservesAndOthers.map(item => (
+                {neraca.equity.reservesAndOthers.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">{formatCurrency(item.balance)}</td>
@@ -1284,7 +1284,7 @@ export function LaporanKeuanganClient({ initialNeraca, initialLabaRugi, initialA
                 <tr className="bg-transparent font-bold">
                   <td colSpan={2} className="border border-slate-300 px-3 py-1.5 text-left uppercase text-amber-600">IV. BEBAN OPERASIONAL KOPERASI</td>
                 </tr>
-                {labaRugi.expenses.operationalExpenses.map(item => (
+                {labaRugi.expenses.operationalExpenses.map((item: any) => (
                   <tr key={item.id} className="border-b border-slate-300">
                     <td className="border border-slate-300 px-5 py-1 text-left text-slate-800">{item.code} - {item.name}</td>
                     <td className="border border-slate-300 px-3 py-1 text-right font-medium text-slate-900">({formatCurrency(item.balance)})</td>

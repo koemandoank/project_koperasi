@@ -216,14 +216,14 @@ export function LogClient({
     ws.columns = COLS
     const startRow = generateExcelHeader(ws, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, COLS.length, templateConfig)
     const hdr = ws.getRow(startRow)
-    hdr.values = COLS.map((c) => c.header)
+    hdr.values = COLS.map((c: any) => c.header)
     hdr.font   = { bold: true, color: { argb: "FFFFFFFF" } }
     hdr.eachCell((cell) => {
       cell.fill   = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } }
       cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } }
     })
     let cur = startRow + 1
-    data.forEach((r, i) => {
+    data.forEach((r: any, i: any) => {
       const row = ws.getRow(cur++)
       row.values = {
         no: i + 1, time: fmt(r.created_at),
@@ -250,7 +250,7 @@ export function LogClient({
   const handleExportPDF = () => {
     const doc    = new jsPDF({ orientation: "landscape" })
     const startY = generatePdfHeader(doc, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, templateConfig)
-    const rows   = data.map((r, i) => [
+    const rows   = data.map((r: any, i: any) => [
       i + 1, fmt(r.created_at),
       r.user?.full_name ?? r.user?.username ?? "-",
       r.user?.nik ?? "-",
@@ -379,7 +379,7 @@ export function LogClient({
             Terapkan
           </Button>
           <span className="text-xs text-muted-foreground">Preset:</span>
-          {(["hari", "minggu", "bulan"] as const).map((p) => (
+          {(["hari", "minggu", "bulan"] as const).map((p: any) => (
             <Button key={p} variant="outline" size="sm" className="h-8 text-xs" onClick={() => setPreset(p)}>
               {p === "hari" ? "Hari Ini" : p === "minggu" ? "Minggu Ini" : "Bulan Ini"}
             </Button>
@@ -397,7 +397,7 @@ export function LogClient({
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({  id, label, icon: Icon  }: any) => (
           <button
             key={id}
             onClick={() => switchTab(id)}
@@ -459,7 +459,7 @@ export function LogClient({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.map((log) => <LogDetailRow key={log.id} log={log} />)
+                  data.map((log: any) => <LogDetailRow key={log.id} log={log} />)
                 )}
               </TableBody>
             </Table>

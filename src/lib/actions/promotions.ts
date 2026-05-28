@@ -42,9 +42,9 @@ function mapRow(p: any): Promotion {
  */
 export async function getPromotions(): Promise<Promotion[]> {
   try {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const rows = await prisma.$queryRawUnsafe(
       "SELECT * FROM promotions ORDER BY sort_order ASC"
-    );
+    ) as any[];
     return rows.map(mapRow);
   } catch (error) {
     console.error("Error fetching promotions:", error);
@@ -73,9 +73,9 @@ export async function createPromotion(
       data.sort_order
     );
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const rows = await prisma.$queryRawUnsafe(
       "SELECT * FROM promotions ORDER BY id DESC LIMIT 1"
-    );
+    ) as any[];
     const promotion = mapRow(rows[0]);
 
     await logAudit({
@@ -125,9 +125,9 @@ export async function updatePromotion(
       ...values
     );
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(
+    const rows = await prisma.$queryRawUnsafe(
       "SELECT * FROM promotions WHERE id = ? LIMIT 1", id
-    );
+    ) as any[];
     const promotion = mapRow(rows[0]);
 
     await logAudit({

@@ -123,7 +123,7 @@ export function validateShuConfig(cfg: ShuConfig): string | null {
   const round2 = (n: number) => Math.round(n * 100) / 100;
 
   // A: Total alokasi harus 100%
-  const totalAlokasi = round2(Object.values(cfg.alokasi).reduce((a, b) => a + b, 0));
+  const totalAlokasi = round2(Object.values(cfg.alokasi).reduce((a: any, b: any) => a + b, 0));
   if (Math.abs(totalAlokasi - 100) > 0.01)
     return `Total alokasi SHU = ${totalAlokasi}%, harus tepat 100%.`;
 

@@ -28,13 +28,13 @@ export default async function KonsinyasiPage() {
   const payables = payablesRes.success ? (payablesRes.data as any[]) : [];
 
   const suppliers = suppliersRes.success
-    ? (suppliersRes.data as any[]).map((s) => ({
+    ? (suppliersRes.data as any[]).map((s: any) => ({
         id: Number(s.id),
         supplier_name: s.supplier_name,
       }))
     : [];
 
-  const products = productsRaw.map((p) => ({
+  const products = productsRaw.map((p: any) => ({
     id: Number(p.id),
     name: p.name,
     category: (p as any).product_categories?.name ?? "",
