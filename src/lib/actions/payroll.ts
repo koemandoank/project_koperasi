@@ -41,10 +41,33 @@ export async function processMonthlyPayrollBatch({
     // Format label periode untuk referensi transaksi (misal: "202605" untuk Mei 2026)
     const periodCode = `${startDate.getFullYear()}${(startDate.getMonth() + 1).toString().padStart(2, "0")}`
 
-    // 2. Ambil Saving Type Simpanan Wajib (SW)
-    const swType = await prisma.saving_types.findFirst({
-      where: { code: "SW" }
-    })
+    // 2. Ambil Saving Type Simpanan Wajib (SW) dengan proteksi kegagalan koneksi (stale pool)
+    let swType = null
+    try {
+      swType = await prisma.saving_types.findFirst({
+        where: { code: "SW" }
+      })
+    } catch (dbErr: any) {
+      console.warn("[Payroll Batch] Mendeteksi kegagalan koneksi awal (stale pool), mencoba menghubungkan kembali...", dbErr?.message)
+      try {
+        await prisma.$disconnect()
+        await prisma.$connect()
+        swType = await prisma.saving_types.findFirst({
+          where: { code: "SW" }
+        })
+      } catch (retryErr) {
+        console.error("[Payroll Batch] Gagal menghubungkan kembali:", retryErr)
+        return {
+          success: false,
+          savingsCount: 0,
+          savingsAmount: 0,
+          loansCount: 0,
+          loansAmount: 0,
+          error: "Koneksi database terputus. Silakan muat ulang halaman (refresh) dan coba lagi."
+        }
+      }
+    }
+
     if (!swType) {
       return { success: false, savingsCount: 0, savingsAmount: 0, loansCount: 0, loansAmount: 0, error: "Tipe Simpanan Wajib (SW) tidak ditemukan di database." }
     }
