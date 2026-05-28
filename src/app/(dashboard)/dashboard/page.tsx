@@ -23,7 +23,11 @@ export default async function DashboardPage() {
   const settings = await getAppSettings()
   const companyName = settings?.company_name ?? "Koperasi"
 
-  if (["superadmin", "pengurus", "petugas_akuntan", "pengawas"].includes(role)) {
+  if (role === "pengawas") {
+    redirect("/pengawas")
+  }
+
+  if (["superadmin", "pengurus", "petugas_akuntan"].includes(role)) {
     const [data, suppliersResult] = await Promise.all([
       getAdminStats(),
       getSuppliers(true)

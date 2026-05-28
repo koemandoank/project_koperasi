@@ -14,8 +14,8 @@ export default async function PengawasPage() {
   const session = await auth()
   const role = session?.user?.role || ""
 
-  // Proteksi server-side: hanya superadmin yang dapat membuka halaman ini
-  if (role !== "superadmin") {
+  // Proteksi server-side: hanya superadmin dan pengawas yang dapat membuka halaman ini
+  if (role !== "superadmin" && role !== "pengawas") {
     redirect("/dashboard")
   }
 
