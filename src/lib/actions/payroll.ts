@@ -247,6 +247,9 @@ export async function processMonthlyPayrollBatch({
         loansCount,
         loansAmount
       }
+    }, {
+      maxWait: 15000,
+      timeout: 30000
     })
 
     // Log ke audit trail

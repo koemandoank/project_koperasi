@@ -76,6 +76,7 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/akuntansi/aset-tetap",  label: "Aset Tetap",        icon: Landmark },
       { href: "/akuntansi/pembagian-shu", label: "Penyaluran SHU RAT", icon: Coins },
       { href: "/pengaturan/shu",        label: "SHU & Distribusi",  icon: TrendingUp },
+      { href: "/laporan/potongan-gaji", label: "Potongan Gaji",     icon: Receipt },
     ],
   },
 
@@ -111,7 +112,6 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/laporan/harian",        label: "Laporan Harian",         icon: FileText },
       { href: "/laporan/po-konsinyasi", label: "Laporan PO & Konsinyasi",  icon: FileText },
       { href: "/laporan/stok",          label: "Riwayat Keluar Masuk Stok", icon: Package },
-      { href: "/laporan/potongan-gaji", label: "Laporan Gaji",             icon: FileText },
     ],
   },
 

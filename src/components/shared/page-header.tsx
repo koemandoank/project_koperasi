@@ -55,7 +55,7 @@ const ROUTE_MAP: Array<{
   { match: "/laporan/harian",                      label: "Laporan Harian",             Icon: FileText,        color: "text-slate-600" },
   { match: "/laporan/po-konsinyasi",               label: "Laporan PO & Konsinyasi",    Icon: FileText,        color: "text-slate-600" },
   { match: "/laporan/stok",                        label: "Riwayat Stok",               Icon: Package,         color: "text-slate-600" },
-  { match: "/laporan/potongan-gaji",               label: "Laporan Gaji",               Icon: FileText,        color: "text-slate-600" },
+  { match: "/laporan/potongan-gaji",               label: "Potongan Gaji",              Icon: Receipt,         color: "text-red-600" },
 
   // Toko — urutan spesifik dulu
   { match: "/toko/kasir/sesi",                     label: "Sesi Kasir",                 Icon: Unlock,          color: "text-orange-600" },

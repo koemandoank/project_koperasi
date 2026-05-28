@@ -294,6 +294,7 @@ function MenuGridPengurus({ role }: { role: string }) {
         { href: "/akuntansi/aset-tetap",  icon: <Landmark className="h-6 w-6 text-white" />,       label: "Aset Tetap" },
         { href: "/akuntansi/pembagian-shu", icon: <Coins className="h-6 w-6 text-white" />,        label: "Penyaluran SHU" },
         { href: "/pengaturan/shu",        icon: <TrendingUp className="h-6 w-6 text-white" />,     label: "SHU & Dist." },
+        { href: "/laporan/potongan-gaji",  icon: <Receipt className="h-6 w-6 text-white" />,    label: "Potongan Gaji" },
       ],
     },
     {
@@ -319,7 +320,6 @@ function MenuGridPengurus({ role }: { role: string }) {
         { href: "/laporan/harian",         icon: <FileText className="h-6 w-6 text-white" />,   label: "Laporan Harian" },
         { href: "/laporan/po-konsinyasi",  icon: <ScrollText className="h-6 w-6 text-white" />, label: "Lap. PO" },
         { href: "/laporan/stok",           icon: <History className="h-6 w-6 text-white" />,    label: "Riwayat Stok" },
-        { href: "/laporan/potongan-gaji",  icon: <Receipt className="h-6 w-6 text-white" />,    label: "Laporan Gaji" },
         { href: "/akuntansi/buku-besar",   icon: <BookOpen className="h-6 w-6 text-white" />,   label: "Buku Besar" },
         { href: "/akuntansi/tutup-buku",   icon: <ClipboardList className="h-6 w-6 text-white" />, label: "Tutup Buku" },
       ],

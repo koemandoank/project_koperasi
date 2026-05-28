@@ -47,7 +47,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/laporan/analitik":        "Laporan Keuangan",
   "/laporan/po-konsinyasi":   "Laporan PO & Konsinyasi",
   "/laporan/stok":            "Riwayat Stok",
-  "/laporan/potongan-gaji":   "Laporan Gaji",
+  "/laporan/potongan-gaji":   "Potongan Gaji",
   "/laporan/partisipasi-anggota": "Partisipasi Anggota RAT",
   "/akuntansi/transaksi":     "Transaksi",
   "/akuntansi/anggaran":      "Anggaran",
