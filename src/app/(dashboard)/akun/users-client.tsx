@@ -9,7 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield, BookOpen, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -283,24 +282,20 @@ export function UsersClient({
 
             <div className="space-y-1">
               <Label className="font-semibold text-sm">Role / Hak Akses</Label>
-              <Select
+              <select
                 value={form.role}
-                onValueChange={(v) => setForm({ ...form, role: v ?? "pengurus" })}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="flex w-full rounded-lg border border-input bg-white dark:bg-slate-900 px-3 py-2 text-base h-12 outline-none focus:border-ring focus:ring-3 focus:ring-ring/50 dark:text-slate-100"
               >
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Pilih Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentRole === "superadmin" && (
-                    <SelectItem value="superadmin">Super Admin</SelectItem>
-                  )}
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="pengurus">Pengurus Koperasi</SelectItem>
-                  <SelectItem value="kasir">Kasir Toko</SelectItem>
-                  <SelectItem value="petugas_akuntan">Petugas Akuntan</SelectItem>
-                  <SelectItem value="pengawas">Pengawas Koperasi</SelectItem>
-                </SelectContent>
-              </Select>
+                {currentRole === "superadmin" && (
+                  <option value="superadmin">Super Admin</option>
+                )}
+                <option value="admin">Administrator</option>
+                <option value="pengurus">Pengurus Koperasi</option>
+                <option value="kasir">Kasir Toko</option>
+                <option value="petugas_akuntan">Petugas Akuntan</option>
+                <option value="pengawas">Pengawas Koperasi</option>
+              </select>
             </div>
 
             <div className="space-y-1">
