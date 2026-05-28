@@ -474,16 +474,28 @@ export function KelolaPinjamanClient({ initialLoans }: { initialLoans: Loan[] })
                             const nextUnpaid = l.schedules.find((s) => s.status !== "paid")
                             const nextDueDate = nextUnpaid ? nextUnpaid.due_date : null
                             return nextDueDate ? (
-                              <span
-                                className={cn(
-                                  "text-xs font-semibold px-2.5 py-1 rounded-md border inline-block whitespace-nowrap",
-                                  l.status === "overdue"
-                                    ? "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450"
-                                    : "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-slate-300"
+                              <div className="flex flex-col items-center gap-1">
+                                <span
+                                  className={cn(
+                                    "text-xs font-semibold px-2.5 py-1 rounded-md border inline-block whitespace-nowrap",
+                                    l.status === "overdue"
+                                      ? "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450"
+                                      : "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800/40 dark:border-slate-800 dark:text-slate-300"
+                                  )}
+                                >
+                                  {formatDueDate(nextDueDate)}
+                                </span>
+                                {canPayBulk && (
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 px-2 py-0.5 rounded-full inline-block">
+                                    Belum Diproses
+                                  </span>
                                 )}
-                              >
-                                {formatDueDate(nextDueDate)}
-                              </span>
+                                {!canPayBulk && l.status === "active" && (
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 px-2 py-0.5 rounded-full inline-block">
+                                    Sudah Diproses
+                                  </span>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-slate-400 dark:text-slate-600 font-mono">-</span>
                             )
