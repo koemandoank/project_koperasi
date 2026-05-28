@@ -85,6 +85,15 @@ export async function processMonthlyPayrollBatch({
 
     const membersNeedingSw: typeof activeMembers = []
     for (const member of activeMembers) {
+      // Abaikan akun sistem yang bukan anggota koperasi asli
+      const isSystemAccount =
+        member.nik.startsWith("ADM") ||
+        member.nik.startsWith("SAD") ||
+        member.nik.startsWith("KAS") ||
+        member.nik.startsWith("PEN") ||
+        member.nik.startsWith("KET")
+      if (isSystemAccount) continue
+
       // Periksa apakah transaksi 'salary_cut' untuk Simpanan Wajib bulan ini sudah ada
       const existingTrx = await prisma.saving_transactions.findFirst({
         where: {

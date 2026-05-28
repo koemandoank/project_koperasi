@@ -382,6 +382,15 @@ export async function getMonthlyDeductionReport(
     }
 
     for (const saving of mandatorySavings) {
+      // Abaikan akun sistem yang bukan anggota koperasi asli
+      const isSystemAccount =
+        saving.members.nik.startsWith("ADM") ||
+        saving.members.nik.startsWith("SAD") ||
+        saving.members.nik.startsWith("KAS") ||
+        saving.members.nik.startsWith("PEN") ||
+        saving.members.nik.startsWith("KET")
+      if (isSystemAccount) continue
+
       const typeCode = saving.saving_types.code
       const joinDate = saving.members.join_date
       const monthlyAmount = Number(saving.saving_types.monthly_amount)
