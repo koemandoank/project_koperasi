@@ -7,13 +7,16 @@ const ROLE_ROUTES: Record<string, string[]> = {
   pengurus: [
     "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
     "/akuntansi", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/inventaris", "/toko/konsinyasi",
-    "/pembelian", "/pengaturan", "/log",
+    "/pembelian", "/pengaturan", "/log", "/keuangan", "/pengawas",
   ],
   ketua: [
     "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
-    "/akuntansi", "/pengaturan/shu", "/log",
+    "/akuntansi", "/pengaturan/shu", "/log", "/pengawas",
   ],
-  kasir: ["/dashboard", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/konsinyasi", "/laporan/harian", "/laporan/stok"],
+  kasir: [
+    "/dashboard", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/konsinyasi", "/laporan/harian", "/laporan/stok",
+    "/keuangan", "/akuntansi/transaksi", "/akuntansi/anggaran", "/akuntansi/aset-tetap", "/laporan/analitik",
+  ],
   anggota: ["/dashboard", "/simpanan", "/pinjaman", "/toko"],
 };
 
