@@ -19,20 +19,35 @@ export async function GET(
       include: { members: true }
     })
 
-    if (!user?.members) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 })
-    }
+    const isAdmin = ["superadmin", "admin", "pengurus"].includes(session.user.role || "")
 
-    const loan = await prisma.loans.findFirst({
-      where: {
-        id: BigInt(resolvedParams.id),
-        member_id: user.members.id
-      },
-      include: {
-        loan_schedules: { orderBy: { due_date: "asc" } },
-        loan_applications: { include: { loan_products: true } }
+    let loan;
+    if (isAdmin) {
+      loan = await prisma.loans.findFirst({
+        where: {
+          id: BigInt(resolvedParams.id),
+        },
+        include: {
+          loan_schedules: { orderBy: { due_date: "asc" } },
+          loan_applications: { include: { loan_products: true } }
+        }
+      })
+    } else {
+      if (!user?.members) {
+        return NextResponse.json({ error: "Member not found" }, { status: 404 })
       }
-    })
+
+      loan = await prisma.loans.findFirst({
+        where: {
+          id: BigInt(resolvedParams.id),
+          member_id: user.members.id
+        },
+        include: {
+          loan_schedules: { orderBy: { due_date: "asc" } },
+          loan_applications: { include: { loan_products: true } }
+        }
+      })
+    }
 
     if (!loan) {
       return NextResponse.json({ error: "Loan not found" }, { status: 404 })
