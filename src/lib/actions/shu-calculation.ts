@@ -65,7 +65,7 @@ async function getShuConfig(): Promise<ShuConfig> {
  * @param {string[]} komponen Komponen simpanan (pokok, wajib, sukarela_berjangka)
  * @returns {Promise<number>} Total simpanan anggota
  */
-async function getMemberSavingsForShu(memberId: bigint, komponen: string[]): Promise<number> {
+async function getMemberSavingsForShu(memberId: bigint, komponen: string[], endDate: Date): Promise<number> {
   try {
     const savings = await prisma.savings.findMany({
       where: { member_id: memberId },
@@ -81,12 +81,28 @@ async function getMemberSavingsForShu(memberId: bigint, komponen: string[]): Pro
       const isWajib = code.includes("wajib") || name.includes("wajib");
       const isSukarela = code.includes("sukarela") || name.includes("sukarela") || code.includes("berjangka") || name.includes("berjangka");
 
+      let isIncluded = false;
       if (isPokok && komponen.includes("pokok")) {
-        total += Number(s.balance);
+        isIncluded = true;
       } else if (isWajib && komponen.includes("wajib")) {
-        total += Number(s.balance);
+        isIncluded = true;
       } else if (isSukarela && komponen.includes("sukarela_berjangka")) {
-        total += Number(s.balance);
+        isIncluded = true;
+      }
+
+      if (isIncluded) {
+        // Cari transaksi terakhir untuk akun simpanan ini sebelum atau pada endDate
+        const lastTx = await prisma.saving_transactions.findFirst({
+          where: {
+            savings_id: s.id,
+            transaction_at: { lte: endDate },
+          },
+          orderBy: { id: "desc" },
+        });
+
+        if (lastTx) {
+          total += Number(lastTx.balance_after);
+        }
       }
     }
     return total;
@@ -180,7 +196,7 @@ async function calculateIndividualMemberProjection(
   startDate: Date,
   endDate: Date
 ) {
-  const savingsBalance = await getMemberSavingsForShu(member.id, config.formula_jasa_modal.komponen_simpanan);
+  const savingsBalance = await getMemberSavingsForShu(member.id, config.formula_jasa_modal.komponen_simpanan, endDate);
   const bungaPaid = await getMemberActivityInterestPaid(member.id, startDate, endDate);
   const belanjaPaid = await getMemberActivityStorePaid(member.id, startDate, endDate);
 

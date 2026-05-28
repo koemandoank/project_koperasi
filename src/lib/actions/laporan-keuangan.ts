@@ -150,7 +150,12 @@ async function calculateJournalRevenueForPeriod(startDate: Date, endDate: Date):
           is_posted: true,
           entry_date: { gte: startDate, lte: endDate },
         },
-        chart_of_accounts: { type: "revenue" },
+        chart_of_accounts: { 
+          type: "revenue",
+          code: {
+            notIn: ["40101", "40102", "40104"]
+          }
+        },
       },
       _sum: { debit: true, credit: true },
     });
