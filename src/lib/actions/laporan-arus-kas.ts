@@ -272,7 +272,7 @@ async function calculateSimpananMasuk(
 ): Promise<number> {
   try {
     const whereClause: any = {
-      type: "deposit",
+      type: { in: ["deposit", "salary_cut"] },
       transaction_at: { gte: startDate, lte: endDate },
     };
     if (typeId) {

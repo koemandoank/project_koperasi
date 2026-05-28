@@ -491,6 +491,115 @@ export async function distributeSHUMassal(year: number): Promise<{ success: bool
         if (m.totalShu <= 0) continue;
         await processIndividualMemberShu(tx, m, period.id, sukarelaType.id, year, BigInt(userId));
       }
+
+      // Automate general ledger journal posting for SHU mass distribution
+      const totalDistributed = report.members.reduce((sum, m) => sum + (m.totalShu > 0 ? m.totalShu : 0), 0);
+      if (totalDistributed > 0) {
+        // 1. Find or create Liability account for Simpanan Sukarela
+        let liabilityCoa = await tx.chart_of_accounts.findFirst({
+          where: {
+            unit_id: unitId,
+            type: "liability",
+            OR: [
+              { name: { contains: "Sukarela" } },
+              { code: { startsWith: "2" } }
+            ]
+          }
+        });
+        if (!liabilityCoa) {
+          liabilityCoa = await tx.chart_of_accounts.create({
+            data: {
+              unit_id: unitId,
+              code: "20101",
+              name: "Simpanan Sukarela Anggota",
+              type: "liability",
+              normal_balance: "credit",
+              level: 1,
+              is_header: false,
+              is_active: true,
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+        }
+
+        // 2. Find or create Equity account for Laba Ditahan / SHU
+        let equityCoa = await tx.chart_of_accounts.findFirst({
+          where: {
+            unit_id: unitId,
+            type: "equity",
+            OR: [
+              { name: { contains: "SHU" } },
+              { name: { contains: "Laba Ditahan" } },
+              { code: "30101" }
+            ]
+          }
+        });
+        if (!equityCoa) {
+          equityCoa = await tx.chart_of_accounts.create({
+            data: {
+              unit_id: unitId,
+              code: "30201",
+              name: "SHU Didistribusikan",
+              type: "equity",
+              normal_balance: "credit",
+              level: 1,
+              is_header: false,
+              is_active: true,
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+        }
+
+        // 3. Create unique journal entry reference
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const randomSuffix = String(Math.floor(1000 + Math.random() * 9000));
+        const entryNo = `JV-SHU-${year}-${dateStr}-${randomSuffix}`;
+
+        // 4. Create the Journal Entry
+        const journalEntry = await tx.journal_entries.create({
+          data: {
+            unit_id: unitId,
+            entry_no: entryNo,
+            entry_date: new Date(year, 11, 31), // Year-end date for RAT period
+            description: `Pembagian SHU Massal Tahun Buku ${year} ke Simpanan Sukarela Anggota`,
+            reference: `SHU-${year}`,
+            source: "shu",
+            posted_by: BigInt(userId),
+            posted_at: new Date(),
+            is_posted: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          }
+        });
+
+        // 5. Debit Equity (decreasing SHU / Retained Earnings)
+        await tx.journal_lines.create({
+          data: {
+            journal_id: journalEntry.id,
+            account_id: equityCoa.id,
+            debit: totalDistributed,
+            credit: 0,
+            description: `Distribusi SHU Tahun Buku ${year} (Debit Ekuitas)`,
+            created_at: new Date(),
+            updated_at: new Date()
+          }
+        });
+
+        // 6. Credit Liability (increasing members' Simpanan Sukarela)
+        await tx.journal_lines.create({
+          data: {
+            journal_id: journalEntry.id,
+            account_id: liabilityCoa.id,
+            debit: 0,
+            credit: totalDistributed,
+            description: `Penyaluran SHU Massal ke Simpanan Sukarela (Kredit Kewajiban)`,
+            created_at: new Date(),
+            updated_at: new Date()
+          }
+        });
+      }
     });
 
     revalidatePath("/akuntansi/pembagian-shu");

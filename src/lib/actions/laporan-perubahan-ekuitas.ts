@@ -99,7 +99,7 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
     if (typePOKOK) {
       const agg = await prisma.saving_transactions.aggregate({
         where: {
-          type: "deposit",
+          type: { in: ["deposit", "salary_cut"] },
           transaction_at: { gte: startDate, lte: endDate },
           savings: { saving_type_id: typePOKOK.id },
         },
@@ -122,7 +122,7 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
     if (typeWAJIB) {
       const agg = await prisma.saving_transactions.aggregate({
         where: {
-          type: "deposit",
+          type: { in: ["deposit", "salary_cut"] },
           transaction_at: { gte: startDate, lte: endDate },
           savings: { saving_type_id: typeWAJIB.id },
         },

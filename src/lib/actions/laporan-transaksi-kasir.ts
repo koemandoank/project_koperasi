@@ -77,7 +77,6 @@ export async function getTransaksiKasirDetail(params: {
           include: {
             products: {
               select: {
-                purchase_price: true,
                 product_categories: {
                   select: { slug: true }
                 }
@@ -113,7 +112,7 @@ export async function getTransaksiKasirDetail(params: {
       for (const item of order.order_items) {
         const hargaJual    = Number(item.unit_price ?? 0)
         const totHargaJual = Number(item.subtotal ?? 0)
-        const hpp          = Number((item.products as any)?.purchase_price ?? 0)
+        const hpp          = Number(item.purchase_price ?? 0)
         const totHpp       = hpp * item.qty
         const laba         = totHargaJual - totHpp
         const categorySlug = (item.products as any)?.product_categories?.slug ?? 'umum'

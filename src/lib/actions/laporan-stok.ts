@@ -120,6 +120,58 @@ export async function getMonitoringStockReport(params: {
       orderBy: { id: 'asc' },
     })
 
+    // Get all sold items in range to calculate actual revenue
+    const soldItems = await prisma.order_items.findMany({
+      where: {
+        orders: {
+          payment_status: 'paid',
+          OR: [
+            { paid_at: { gte: start, lte: end } },
+            { paid_at: null, ordered_at: { gte: start, lte: end } },
+          ],
+        },
+      },
+      select: {
+        product_id: true,
+        qty: true,
+        subtotal: true,
+        orders: {
+          select: {
+            paid_at: true,
+            ordered_at: true,
+          },
+        },
+      },
+    })
+
+    type SalesValuation = {
+      m1: number
+      m2: number
+      m3: number
+      m4: number
+      m5: number
+      totPenjualan: number
+    }
+    const salesMap = new Map<number, SalesValuation>()
+
+    for (const item of soldItems) {
+      const pid = Number(item.product_id)
+      const orderDate = (item.orders.paid_at ?? item.orders.ordered_at) as Date
+      const day = orderDate.getDate()
+      const subtotal = Number(item.subtotal ?? 0)
+
+      if (!salesMap.has(pid)) {
+        salesMap.set(pid, { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, totPenjualan: 0 })
+      }
+      const val = salesMap.get(pid)!
+      val.totPenjualan += subtotal
+      if (day <= 7)       val.m1 += subtotal
+      else if (day <= 14) val.m2 += subtotal
+      else if (day <= 21) val.m3 += subtotal
+      else if (day <= 28) val.m4 += subtotal
+      else                val.m5 += subtotal
+    }
+
     // Get all approved stock opname details in range
     const opnameDetails = await prisma.stock_opname_details.findMany({
       where: {
@@ -167,7 +219,6 @@ export async function getMonitoringStockReport(params: {
       const pid = Number(p.id)
       const pMovements = prodMovementsMap.get(pid) || []
       const purchasePrice = Number(p.purchase_price || 0)
-      const sellingPrice = Number(p.price || 0)
 
       // Calculate Stock Awal:
       // If there are movements in the range, the stock_before of the first movement
@@ -188,16 +239,9 @@ export async function getMonitoringStockReport(params: {
       let pembelianQty = 0
       let qtyReturQty = 0
       let adjustmentQty = 0
-      let m1Qty = 0
-      let m2Qty = 0
-      let m3Qty = 0
-      let m4Qty = 0
-      let m5Qty = 0
 
       pMovements.forEach(m => {
         const qty = m.qty
-        const date = m.created_at ? new Date(m.created_at) : new Date()
-        const day = date.getDate()
 
         if (m.type === 'in') {
           pembelianQty += qty
@@ -205,27 +249,24 @@ export async function getMonitoringStockReport(params: {
           qtyReturQty += qty
         } else if (m.type === 'adjustment') {
           adjustmentQty += qty
-        } else if (m.type === 'out') {
-          if (day <= 7) m1Qty += qty
-          else if (day <= 14) m2Qty += qty
-          else if (day <= 21) m3Qty += qty
-          else if (day <= 28) m4Qty += qty
-          else m5Qty += qty
         }
       })
 
-      const totPenjualanQty = m1Qty + m2Qty + m3Qty + m4Qty + m5Qty
       const stockOpnameQty = opnameMap.get(pid) ?? null
 
       // Convert quantities to financial values
       const stockAwal = stockAwalQty * purchasePrice
       const pembelian = pembelianQty * purchasePrice
-      const m1 = m1Qty * sellingPrice
-      const m2 = m2Qty * sellingPrice
-      const m3 = m3Qty * sellingPrice
-      const m4 = m4Qty * sellingPrice
-      const m5 = m5Qty * sellingPrice
-      const totPenjualan = totPenjualanQty * sellingPrice
+      
+      // Pull actual historical sales from salesMap
+      const salesVal = salesMap.get(pid) ?? { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, totPenjualan: 0 }
+      const m1 = salesVal.m1
+      const m2 = salesVal.m2
+      const m3 = salesVal.m3
+      const m4 = salesVal.m4
+      const m5 = salesVal.m5
+      const totPenjualan = salesVal.totPenjualan
+
       const stockAkhir = stockAkhirQty * purchasePrice
       const stockOpname = stockOpnameQty !== null ? stockOpnameQty * purchasePrice : null
       const qtyRetur = qtyReturQty * purchasePrice
