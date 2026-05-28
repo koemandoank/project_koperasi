@@ -7,13 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Download, FileText, Search, Filter, ChevronDown, ChevronRight } from "lucide-react"
+import { Download, FileText, Search, Filter, ChevronDown, ChevronRight, Play, AlertTriangle, Loader2, CheckCircle } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
 import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 import type { MemberDeductionRow } from "@/lib/actions/reports"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { processMonthlyPayrollBatch } from "@/lib/actions/payroll"
+import { toast } from "sonner"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -136,6 +139,35 @@ export function ReportClient({
   const [search, setSearch] = useState(q)
   const [dateFrom, setDateFrom] = useState(from)
   const [dateTo, setDateTo] = useState(to)
+
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false)
+  const [processing, setProcessing] = useState(false)
+
+  const handleRunBatchPayroll = async () => {
+    if (!dateFrom || !dateTo) {
+      toast.error("Silakan tentukan rentang tanggal filter periode terlebih dahulu.")
+      return
+    }
+    setProcessing(true)
+    try {
+      const res = await processMonthlyPayrollBatch({
+        from: dateFrom,
+        to: dateTo,
+      })
+      if (res.success) {
+        toast.success(`Sukses memproses potongan gaji massal! SW diproses: ${res.savingsCount} orang (${fmt(res.savingsAmount)}), Angsuran diproses: ${res.loansCount} cicilan (${fmt(res.loansAmount)}).`)
+        setBatchDialogOpen(false)
+        router.refresh()
+      } else {
+        toast.error(res.error || "Gagal memproses potongan gaji massal bulanan.")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Terjadi kesalahan sistem saat memproses.")
+    } finally {
+      setProcessing(false)
+    }
+  }
 
   const periodLabel = dateFrom && dateTo ? `${dateFrom} s/d ${dateTo}` : "Semua Waktu"
 
@@ -354,6 +386,14 @@ export function ReportClient({
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-lg">Rincian per Anggota</h3>
         <div className="flex gap-2">
+          {totals.total > 0 && (
+            <Button
+              onClick={() => setBatchDialogOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold h-9 px-4 rounded-lg border-0 shadow-sm flex items-center gap-1.5"
+            >
+              <Play className="h-4 w-4" /> Proses Gaji Massal
+            </Button>
+          )}
           <Button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 h-9">
             <Download className="mr-2 h-4 w-4" /> Excel
           </Button>
@@ -418,6 +458,93 @@ export function ReportClient({
         ))}
         <span className="text-[11px] text-muted-foreground flex items-center">← Klik baris untuk lihat detail</span>
       </div>
+
+      {/* ── Batch Payroll Dialog ───────────────────────────────────────── */}
+      <Dialog open={batchDialogOpen} onOpenChange={(open) => { if (!processing) setBatchDialogOpen(open) }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Play className="h-5 w-5 text-emerald-600 animate-pulse" />
+              Proses Potongan Gaji Massal
+            </DialogTitle>
+            <DialogDescription>
+              Mengeksekusi semua pemotongan gaji (Simpanan Wajib & Cicilan Pinjaman) secara massal untuk periode berjalan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ringkasan Potongan Periode Ini</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-slate-400">Periode</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{periodLabel}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Anggota</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{data.length} Orang</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Simpanan Wajib</p>
+                  <p className="font-bold text-emerald-600">{fmt(totals.simpanan_wajib)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Cicilan Pinjaman</p>
+                  <p className="font-bold text-blue-600">{fmt(totals.pinjaman_uang + totals.pinjaman_barang + totals.pinjaman_kilat)}</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-sm font-semibold text-slate-700">Total Keseluruhan</span>
+                <span className="text-base font-extrabold text-destructive">{fmt(totals.total)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800 dark:text-amber-350 leading-relaxed font-medium">
+                <strong>PENTING:</strong> Tindakan ini akan memotong gaji bulanan semua anggota terdaftar secara otomatis di sistem. Seluruh saldo tabungan anggota dan sisa pinjaman akan langsung ter-update secara instan.
+              </p>
+            </div>
+
+            {processing && (
+              <div className="flex flex-col items-center justify-center py-4 gap-2.5 bg-slate-50/50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800 rounded-xl">
+                <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+                <p className="text-xs font-semibold text-slate-500 animate-pulse">Menghubungkan ke server & memproses transaksi...</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2 gap-2 md:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-11"
+              onClick={() => setBatchDialogOpen(false)}
+              disabled={processing}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={processing}
+              className="h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold flex items-center gap-1.5 px-6 shadow-sm border-0"
+              onClick={handleRunBatchPayroll}
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Konfirmasi & Proses
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
