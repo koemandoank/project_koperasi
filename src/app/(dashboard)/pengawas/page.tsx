@@ -1,6 +1,8 @@
-import { getFinancialRatios, getLoanCollectibility } from "@/lib/actions/pengawas"
+import { getFinancialRatios, getLoanCollectibility, runCooperativeAudit } from "@/lib/actions/pengawas"
 import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { PengawasClient } from "./pengawas-client"
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
 
 /**
  * Server page untuk Portal Pengawas Koperasi.
@@ -9,17 +11,27 @@ import { PengawasClient } from "./pengawas-client"
  * @returns {JSX.Element} Halaman dashboard pengawas
  */
 export default async function PengawasPage() {
+  const session = await auth()
+  const role = session?.user?.role || ""
+
+  // Proteksi server-side: hanya superadmin yang dapat membuka halaman ini
+  if (role !== "superadmin") {
+    redirect("/dashboard")
+  }
+
   const currentYear = new Date().getFullYear()
 
   let ratios = null
   let collectibility = null
   let templateConfig = null
+  let auditFindings: any[] = []
 
   try {
-    ;[ratios, collectibility, templateConfig] = await Promise.all([
+    ;[ratios, collectibility, templateConfig, auditFindings] = await Promise.all([
       getFinancialRatios(currentYear),
       getLoanCollectibility(),
       getReportTemplateConfig(),
+      runCooperativeAudit()
     ])
   } catch (error) {
     console.error("Error loading pengawas page:", error)
@@ -39,6 +51,8 @@ export default async function PengawasPage() {
         initialCollectibility={collectibility}
         initialYear={currentYear}
         templateConfig={templateConfig}
+        role={role}
+        initialFindings={auditFindings}
       />
     </div>
   )

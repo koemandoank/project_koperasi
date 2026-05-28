@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getFinancialRatios, getLoanCollectibility, FinancialRatios, LoanCollectibilityReport } from "@/lib/actions/pengawas"
+import { getFinancialRatios, getLoanCollectibility, runCooperativeAudit, FinancialRatios, LoanCollectibilityReport, AuditFinding } from "@/lib/actions/pengawas"
 import { toast } from "sonner"
 import {
   ShieldCheck, TrendingUp, AlertTriangle, CheckCircle, XCircle,
-  Banknote, BarChart3, Users, RefreshCw
+  Banknote, BarChart3, Users, RefreshCw, Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -22,6 +22,8 @@ interface Props {
   initialCollectibility: LoanCollectibilityReport | null
   initialYear: number
   templateConfig?: any
+  role?: string
+  initialFindings?: AuditFinding[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,11 +112,78 @@ function RatioCard({ title, value, description, benchmark, health, icon: Icon, d
  * @param {Props} props - Props dari server page
  * @returns {JSX.Element} Dashboard pengawas
  */
-export function PengawasClient({ initialRatios, initialCollectibility, initialYear, templateConfig }: Props) {
+export function PengawasClient({ initialRatios, initialCollectibility, initialYear, templateConfig, role, initialFindings }: Props) {
   const [year, setYear] = useState(initialYear.toString())
   const [ratios, setRatios] = useState<FinancialRatios | null>(initialRatios)
   const [collectibility, setCollectibility] = useState<LoanCollectibilityReport | null>(initialCollectibility)
+  const [findings, setFindings] = useState<AuditFinding[]>(initialFindings || [])
   const [loading, setLoading] = useState(false)
+
+  const fallbackCopyText = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea")
+      textArea.value = text
+      textArea.style.top = "0"
+      textArea.style.left = "0"
+      textArea.style.position = "fixed"
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      const successful = document.execCommand("copy")
+      document.body.removeChild(textArea)
+      
+      if (successful) {
+        toast.success("Prompt audit akuntansi berhasil disalin ke clipboard!")
+      } else {
+        toast.error("Gagal menyalin ke clipboard. Silakan salin secara manual.")
+      }
+    } catch (err) {
+      console.error("Fallback copy failed: ", err)
+      toast.error("Gagal menyalin ke clipboard. Silakan salin secara manual.")
+    }
+  }
+
+  const handleCopyPrompt = () => {
+    const promptText = `Kamu adalah Asisten AI Coding (seperti Antigravity/Gemini) yang bertindak sebagai Auditor Sistem Informasi & Akuntansi Koperasi Digital Sulfindo.
+
+Tugasmu adalah melakukan audit database dan verifikasi integritas sistem secara berulang dengan mengikuti langkah-langkah berikut:
+
+1. **Jalankan Script Audit Database Utama**:
+   Eksekusi script pemindaian menyeluruh yang telah disediakan di workspace menggunakan perintah:
+   \`npx tsx scratch/run-full-audit.ts\`
+
+2. **Analisis Output Scan**:
+   Periksa hasil output log yang dihasilkan di terminal. Identifikasi setiap baris temuan berstatus:
+   - ❌ **CRITICAL**: Kesalahan fatal seperti jurnal tidak seimbang, saldo outstanding negatif, tabungan negatif, atau duplikasi jenis pinjaman aktif anggota.
+   - ⚠️ **WARNING**: Anomali data seperti transaksi payroll di akun sementara 40104, anggota aktif tanpa user login, anggota tanpa Simpanan Pokok (SP), atau ketidakcocokan antara buku pembantu piutang vs buku besar (GL 10201).
+
+3. **Buat Script Perbaikan (Data Repair)**:
+   - Untuk setiap temuan kritis/peringatan yang terdeteksi, analisis database menggunakan query Prisma/SQL.
+   - Buat script perbaikan otomatis berbasis TypeScript di dalam folder \`scratch/\` (misal: \`scratch/repair-issue.ts\`) menggunakan Prisma Client.
+   - **PENTING**: Pastikan untuk tidak melakukan penghapusan hutang secara permanen atau sepihak (refactoring/penyesuaian tenor dan produk lebih diutamakan).
+
+4. **Verifikasi Fungsionalitas Laporan & UI**:
+   - Pastikan Laporan Potongan Gaji bulan berjalan menjumlahkan seluruh pinjaman aktif anggota secara akumulatif.
+   - Periksa filter tanggal pada laporan menggunakan timezone Asia/Jakarta (WIB) agar tanggal penarikan data tidak bergeser.
+   - Buka portal anggota dan pastikan deskripsi produk pinjaman (LP-001/LP-002/LP-003) dinamis sesuai database, bukan teks hardcoded.
+
+5. **Laporkan Hasil**:
+   Buat ringkasan perbaikan yang telah dilakukan dan status kesehatan sistem saat ini (Critical & Warning count).`
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(promptText)
+        .then(() => {
+          toast.success("Prompt audit akuntansi berhasil disalin ke clipboard!")
+        })
+        .catch((err) => {
+          console.error("Gagal menyalin: ", err)
+          fallbackCopyText(promptText)
+        })
+    } else {
+      fallbackCopyText(promptText)
+    }
+  }
 
   const handleYearChange = async (selectedYear: string | null) => {
     if (!selectedYear) return
@@ -122,12 +191,14 @@ export function PengawasClient({ initialRatios, initialCollectibility, initialYe
     setLoading(true)
     try {
       const y = parseInt(selectedYear)
-      const [rData, cData] = await Promise.all([
+      const [rData, cData, fData] = await Promise.all([
         getFinancialRatios(y),
         getLoanCollectibility(),
+        runCooperativeAudit()
       ])
       setRatios(rData)
       setCollectibility(cData)
+      setFindings(fData)
       toast.success(`Data pengawas tahun ${selectedYear} berhasil dimuat.`)
     } catch (error) {
       console.error(error)
@@ -140,12 +211,16 @@ export function PengawasClient({ initialRatios, initialCollectibility, initialYe
   const handleRefreshCollectibility = async () => {
     setLoading(true)
     try {
-      const cData = await getLoanCollectibility()
+      const [cData, fData] = await Promise.all([
+        getLoanCollectibility(),
+        runCooperativeAudit()
+      ])
       setCollectibility(cData)
-      toast.success("Data kolektibilitas pinjaman diperbarui.")
+      setFindings(fData)
+      toast.success("Data pengawas diperbarui.")
     } catch (error) {
       console.error(error)
-      toast.error("Gagal memperbarui kolektibilitas.")
+      toast.error("Gagal memperbarui data pengawas.")
     } finally {
       setLoading(false)
     }
@@ -179,9 +254,77 @@ export function PengawasClient({ initialRatios, initialCollectibility, initialYe
           id="refresh-collectibility-btn"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Perbarui Kolektibilitas
+          Perbarui Data Pengawas
         </Button>
       </div>
+
+      {/* Integritas & Audit Sistem */}
+      <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
+        <CardHeader className="bg-slate-50 dark:bg-slate-900 rounded-t-2xl p-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <span className="bg-violet-100 dark:bg-violet-950 text-violet-600 p-1.5 rounded-lg">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
+                Pemindaian Integritas Data & Audit Akuntansi
+              </CardTitle>
+              <CardDescription>
+                Pemeriksaan otomatis terhadap anomali data transaksi, saldo tabungan/pinjaman negatif, dan jurnal tidak seimbang di database.
+              </CardDescription>
+            </div>
+            {role === "superadmin" && (
+              <Button
+                onClick={handleCopyPrompt}
+                className="rounded-xl h-10 flex items-center gap-2 text-sm bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium shadow-sm transition-all duration-200"
+                id="copy-recommendation-prompt-btn"
+              >
+                <Sparkles className="h-4 w-4" />
+                Salin Prompt Rekomendasi Audit (AI)
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 space-y-4">
+          {findings.length === 0 ? (
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">
+              <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="text-sm">
+                <p className="font-bold">Status Database: BERSIH / SEHAT</p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400/80 mt-0.5">Tidak ditemukan adanya kejanggalan akuntansi, saldo negatif, atau ketidakseimbangan jurnal pada basis data saat ini.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold">Ditemukan {findings.length} Indikasi Masalah / Anomali Data</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">Tinjau temuan berikut dan salin prompt rekomendasi di atas untuk mendapatkan langkah-langkah atau script perbaikan otomatis oleh AI.</p>
+                </div>
+              </div>
+              
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                {findings.map((f, idx) => {
+                  const AnomalyIcon = f.type === "danger" ? XCircle : AlertTriangle
+                  const iconColor = f.type === "danger" ? "text-rose-500" : "text-amber-500"
+                  const bgColor = f.type === "danger" ? "bg-rose-50/20 dark:bg-rose-950/5" : "bg-amber-50/20 dark:bg-amber-950/5"
+                  
+                  return (
+                    <div key={idx} className={`p-3.5 flex items-start gap-3 text-sm ${bgColor}`}>
+                      <AnomalyIcon className={`h-4.5 w-4.5 ${iconColor} shrink-0 mt-0.5`} />
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{f.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{f.description}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 4 Kartu Rasio */}
       {ratios && (

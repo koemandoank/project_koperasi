@@ -83,7 +83,7 @@ export default async function PinjamanPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-mono font-semibold text-lg text-blue-700 dark:text-blue-400">
-                        {l.loan_applications?.loan_products?.name || "Pinjaman Uang"}
+                        {l.product?.name || l.loan_applications?.loan_products?.name || "Pinjaman"}
                       </p>
                       <p className="font-mono text-sm">{l.loan_no}</p>
                       <p className="text-sm text-muted-foreground mt-1">

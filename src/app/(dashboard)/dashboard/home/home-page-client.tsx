@@ -268,7 +268,7 @@ function MenuGridPengurus({ role }: { role: string }) {
     "/akuntansi/rat-absensi":       ["superadmin", "admin", "pengurus"],
     "/akuntansi/buku-besar":        ["superadmin", "admin"],
     "/akuntansi/tutup-buku":        ["superadmin", "admin"],
-    "/pengawas":                    ["superadmin", "admin", "pengurus"],
+    "/pengawas":                    ["superadmin"],
     "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
     "/pengaturan/promosi":          ["superadmin", "admin"],
     "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],

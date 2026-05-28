@@ -7,11 +7,11 @@ const ROLE_ROUTES: Record<string, string[]> = {
   pengurus: [
     "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
     "/akuntansi", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/inventaris", "/toko/konsinyasi",
-    "/pembelian", "/pengaturan", "/log", "/keuangan", "/pengawas",
+    "/pembelian", "/pengaturan", "/log", "/keuangan",
   ],
   ketua: [
     "/dashboard", "/anggota", "/simpanan", "/pinjaman", "/laporan",
-    "/akuntansi", "/pengaturan/shu", "/log", "/pengawas",
+    "/akuntansi", "/pengaturan/shu", "/log",
   ],
   kasir: [
     "/dashboard", "/toko/kasir", "/toko/produk", "/toko/pesanan", "/toko/konsinyasi", "/laporan/harian", "/laporan/stok",
@@ -21,6 +21,11 @@ const ROLE_ROUTES: Record<string, string[]> = {
 };
 
 function canAccess(role: string, pathname: string): boolean {
+  // Hanya superadmin yang boleh mengakses menu pengawas
+  if (pathname.startsWith("/pengawas") && role !== "superadmin") {
+    return false;
+  }
+  
   const allowed = ROLE_ROUTES[role];
   if (!allowed) return false;
   if (allowed[0] === "*") return true;

@@ -146,14 +146,30 @@ export async function getMonthlyDeductionReport(
   search?: string
 ): Promise<MemberDeductionRow[]> {
   const now = new Date()
-  const startDate = from
-    ? new Date(from)
-    : new Date(now.getFullYear(), now.getMonth(), 1)
-  const endDate = to
-    ? new Date(to)
-    : new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  
+  // Dapatkan komponen tanggal sekarang dalam timezone Asia/Jakarta (WIB)
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+  const parts = formatter.formatToParts(now)
+  const partMap = Object.fromEntries(parts.map(p => [p.type, p.value]))
+  const wibYear = parseInt(partMap.year)
+  const wibMonth = parseInt(partMap.month) - 1 // 0-indexed
 
-  endDate.setHours(23, 59, 59, 999)
+  const startDate = from
+    ? new Date(`${from}T00:00:00+07:00`)
+    : new Date(`${wibYear}-${String(wibMonth + 1).padStart(2, "0")}-01T00:00:00+07:00`)
+
+  let endDate: Date
+  if (to) {
+    endDate = new Date(`${to}T23:59:59.999+07:00`)
+  } else {
+    const lastDay = new Date(wibYear, wibMonth + 1, 0).getDate()
+    endDate = new Date(`${wibYear}-${String(wibMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+07:00`)
+  }
 
   try {
     const memberMap = new Map<number, MemberDeductionRow>()
@@ -161,9 +177,17 @@ export async function getMonthlyDeductionReport(
     // ── 1–3. CICILAN PINJAMAN (salary_cut) ────────────────────────────────────
     const loanSchedules = await prisma.loan_schedules.findMany({
       where: {
-        due_date: { gte: startDate, lte: endDate },
-        status: { in: ["pending", "partial", "overdue"] },
         loans: { repayment_method: "salary_cut" },
+        OR: [
+          {
+            due_date: { gte: startDate, lte: endDate },
+            status: { in: ["pending", "partial", "overdue"] },
+          },
+          {
+            paid_at: { gte: startDate, lte: endDate },
+            status: "paid",
+          }
+        ]
       },
       include: {
         loans: {
@@ -185,10 +209,12 @@ export async function getMonthlyDeductionReport(
       const product = loan.loan_applications?.loan_products
 
       const memberId = Number(loan.member_id)
-      const amountDue =
-        Number(schedule.total_due) -
-        Number(schedule.principal_paid) -
-        Number(schedule.interest_paid)
+      
+      const isPaid = schedule.status === "paid"
+      
+      const amountDue = isPaid
+        ? (Number(schedule.principal_paid) + Number(schedule.interest_paid))
+        : (Number(schedule.total_due) - Number(schedule.principal_paid) - Number(schedule.interest_paid))
 
       if (amountDue <= 0) continue
 
@@ -212,13 +238,14 @@ export async function getMonthlyDeductionReport(
       }
 
       // Calculate principal and interest due remaining
-      const interestDue = Math.max(0, Number(schedule.interest_due) - Number(schedule.interest_paid))
-      const interestDueRemaining = Math.min(amountDue, interestDue)
+      const interestDueRemaining = isPaid
+        ? Number(schedule.interest_paid)
+        : Math.min(amountDue, Math.max(0, Number(schedule.interest_due) - Number(schedule.interest_paid)))
       const principalDueRemaining = Math.max(0, amountDue - interestDueRemaining)
 
       row.details.push({
         category,
-        label: `${categoryLabels[category]} — Angsuran ke-${schedule.installment_no}`,
+        label: `${categoryLabels[category]} — Angsuran ke-${schedule.installment_no}${isPaid ? ' (Lunas)' : ''}`,
         reference: loan.loan_no,
         installment_no: schedule.installment_no,
         amount: amountDue,

@@ -59,7 +59,10 @@ const PRESETS = [
 
 function getPresetDates(days: number): { start: string; end: string } {
   const today = new Date()
-  const fmt = (d: Date) => d.toISOString().split('T')[0]
+  const fmt = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0")
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  }
   if (days === 0) return { start: fmt(today), end: fmt(today) }
   if (days === -1) {
     return {
@@ -96,8 +99,8 @@ function parseTanggal(s: string): Date {
 
 export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: ReportTemplateConfig }) {
   const now = new Date()
-  const [startDate, setStartDate]     = useState(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-  const [endDate, setEndDate]         = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0])
+  const [startDate, setStartDate]     = useState(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`)
+  const [endDate, setEndDate]         = useState(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`)
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1))
   const [selectedYear, setSelectedYear]   = useState<string>(String(now.getFullYear()))
   const [payMethod, setPayMethod]     = useState('all')
@@ -150,7 +153,10 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
     const m = parseInt(month, 10) - 1
     const y = parseInt(year, 10)
     
-    const fmt = (d: Date) => d.toISOString().split('T')[0]
+    const fmt = (d: Date) => {
+      const pad = (n: number) => n.toString().padStart(2, "0")
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    }
     const firstDay = new Date(y, m, 1)
     const lastDay = new Date(y, m + 1, 0)
     

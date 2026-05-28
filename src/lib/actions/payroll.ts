@@ -34,9 +34,8 @@ export async function processMonthlyPayrollBatch({
     const session = await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"])
     const userId = session.user.id
 
-    const startDate = new Date(from)
-    const endDate = new Date(to)
-    endDate.setHours(23, 59, 59, 999)
+    const startDate = new Date(`${from}T00:00:00+07:00`)
+    const endDate = new Date(`${to}T23:59:59.999+07:00`)
 
     // Format label periode untuk referensi transaksi (misal: "202605" untuk Mei 2026)
     const periodCode = `${startDate.getFullYear()}${(startDate.getMonth() + 1).toString().padStart(2, "0")}`
@@ -178,6 +177,9 @@ export async function processMonthlyPayrollBatch({
       }
 
       // B. Proses Angsuran Pinjaman Massal
+      let totalPrincipal = 0
+      let totalInterest = 0
+
       for (const schedule of pendingSchedules) {
         const loan = schedule.loans
         const remainingAmount = Number(schedule.total_due) - Number(schedule.principal_paid) - Number(schedule.interest_paid)
@@ -238,6 +240,143 @@ export async function processMonthlyPayrollBatch({
 
         loansCount++
         loansAmount += remainingAmount
+        totalPrincipal += safePrincipalPortion
+        totalInterest += interestPortion
+      }
+
+      // C. Otomatisasi Posting ke Buku Besar (General Ledger)
+      const totalCollected = savingsAmount + totalPrincipal + totalInterest
+
+      if (totalCollected > 0) {
+        const unit = await tx.unit.findFirst()
+        const unitId = unit ? unit.id : BigInt(1)
+
+        // Helper untuk memastikan COA exist
+        const getOrCreateCoa = async (code: string, name: string, type: "asset" | "liability" | "equity" | "revenue" | "expense", normal_balance: "debit" | "credit") => {
+          let account = await tx.chart_of_accounts.findFirst({
+            where: { unit_id: unitId, code: code }
+          })
+          if (!account) {
+            account = await tx.chart_of_accounts.create({
+              data: {
+                unit_id: unitId,
+                code,
+                name,
+                type,
+                normal_balance,
+                level: 1,
+                is_header: false,
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            })
+          }
+          return account
+        }
+
+        const coaAssetReceivable = await getOrCreateCoa("10201", "Piutang Pinjaman Anggota", "asset", "debit")
+        const coaLiabilitySw = await getOrCreateCoa("20102", "Simpanan Wajib Anggota", "liability", "credit")
+        
+        const coaBankMandiri = await tx.chart_of_accounts.findFirst({ where: { unit_id: unitId, code: "10104" } }) 
+          || await tx.chart_of_accounts.findFirst({ where: { unit_id: unitId, code: "10102" } })
+          || await tx.chart_of_accounts.findFirst({ where: { unit_id: unitId, type: "asset" } })
+
+        const coaJasaKoperasi = await tx.chart_of_accounts.findFirst({ where: { unit_id: unitId, code: "40101" } })
+          || await tx.chart_of_accounts.findFirst({ where: { unit_id: unitId, type: "revenue" } })
+
+        if (coaBankMandiri && coaJasaKoperasi) {
+          const entryNo = `TX-PAYROLL-${periodCode}`
+
+          // Bersihkan entri lama jika sudah ada (retry safety)
+          const existingEntry = await tx.journal_entries.findUnique({
+            where: { entry_no: entryNo }
+          })
+          if (existingEntry) {
+            await tx.journal_lines.deleteMany({
+              where: { journal_id: existingEntry.id }
+            })
+            await tx.journal_entries.delete({
+              where: { id: existingEntry.id }
+            })
+          }
+
+          // Buat entri jurnal baru
+          const journalEntry = await tx.journal_entries.create({
+            data: {
+              unit_id: unitId,
+              entry_no: entryNo,
+              entry_date: payrollDate,
+              description: `Otomatis: Penerimaan Potongan Gaji Massal — Periode ${periodCode}`,
+              reference: `PAYROLL-${periodCode}`,
+              source: "loan_payment",
+              is_posted: true,
+              posted_by: BigInt(userId),
+              posted_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          })
+
+          // Tambahkan baris jurnal ledger
+          // DEBIT: Bank
+          await tx.journal_lines.create({
+            data: {
+              journal_id: journalEntry.id,
+              account_id: coaBankMandiri.id,
+              debit: totalCollected,
+              credit: 0,
+              description: `Penerimaan Kas Potongan Gaji Massal — Periode ${periodCode}`,
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          })
+
+          // KREDIT: Simpanan Wajib (jika ada)
+          if (savingsAmount > 0) {
+            await tx.journal_lines.create({
+              data: {
+                journal_id: journalEntry.id,
+                account_id: coaLiabilitySw.id,
+                debit: 0,
+                credit: savingsAmount,
+                description: `Setoran Simpanan Wajib Massal Anggota — Periode ${periodCode}`,
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            })
+          }
+
+          // KREDIT: Piutang Pinjaman Anggota (jika ada)
+          if (totalPrincipal > 0) {
+            await tx.journal_lines.create({
+              data: {
+                journal_id: journalEntry.id,
+                account_id: coaAssetReceivable.id,
+                debit: 0,
+                credit: totalPrincipal,
+                description: `Pelunasan Pokok Pinjaman Anggota Massal — Periode ${periodCode}`,
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            })
+          }
+
+          // KREDIT: Pendapatan Bunga Jasa Koperasi (jika ada)
+          if (totalInterest > 0) {
+            await tx.journal_lines.create({
+              data: {
+                journal_id: journalEntry.id,
+                account_id: coaJasaKoperasi.id,
+                debit: 0,
+                credit: totalInterest,
+                description: `Pendapatan Jasa Koperasi (Bunga) Massal — Periode ${periodCode}`,
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            })
+          }
+        }
       }
 
       return {

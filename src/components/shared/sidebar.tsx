@@ -119,7 +119,7 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Pengawas Koperasi",
     icon: ShieldCheck,
-    roles: ["superadmin", "admin", "pengurus"],
+    roles: ["superadmin"],
     items: [
       { href: "/pengawas", label: "Dashboard Pengawas", icon: ShieldCheck },
     ],
@@ -193,7 +193,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/akuntansi/buku-besar":        ["superadmin", "admin"],
   "/akuntansi/tutup-buku":        ["superadmin", "admin"],
   // Pengawas
-  "/pengawas":                    ["superadmin", "admin", "pengurus"],
+  "/pengawas":                    ["superadmin"],
   // Pengaturan
   "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
   "/pengaturan/promosi":          ["superadmin", "admin"],

@@ -360,3 +360,119 @@ export async function getLoanCollectibility(): Promise<LoanCollectibilityReport>
     throw error
   }
 }
+
+export interface AuditFinding {
+  type: "warning" | "danger" | "info"
+  title: string
+  description: string
+  code: string
+}
+
+/**
+ * Memindai basis data koperasi untuk mendeteksi anomali finansial dan integritas data.
+ *
+ * @returns {Promise<AuditFinding[]>} Daftar temuan audit
+ */
+export async function runCooperativeAudit(): Promise<AuditFinding[]> {
+  const findings: AuditFinding[] = []
+
+  try {
+    // 1. Deteksi jurnal yang tidak seimbang (debit !== kredit)
+    const entries = await prisma.journal_entries.findMany({
+      include: {
+        journal_lines: true
+      }
+    })
+
+    for (const entry of entries) {
+      let totalDebit = 0
+      let totalCredit = 0
+      for (const line of entry.journal_lines) {
+        totalDebit += Number(line.debit)
+        totalCredit += Number(line.credit)
+      }
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        findings.push({
+          type: "danger",
+          title: "Jurnal Tidak Seimbang (Unbalanced Journal)",
+          description: `Jurnal ${entry.entry_no} (${entry.description || "Tanpa Deskripsi"}) tidak seimbang. Total Debit: Rp ${totalDebit.toLocaleString("id-ID")}, Total Kredit: Rp ${totalCredit.toLocaleString("id-ID")}.`,
+          code: "UNBALANCED_JOURNAL"
+        })
+      }
+    }
+
+    // 2. Deteksi akun pendapatan sementara 40104 yang masih menyimpan dana
+    const misclassifiedLines = await prisma.journal_lines.findMany({
+      where: {
+        chart_of_accounts: {
+          code: "40104"
+        }
+      },
+      include: {
+        journal_entries: true
+      }
+    })
+    if (misclassifiedLines.length > 0) {
+      findings.push({
+        type: "warning",
+        title: "Akun Pendapatan Sementara Digunakan",
+        description: `Terdapat ${misclassifiedLines.length} baris jurnal yang mengkreditkan dana ke akun pendapatan sementara 40104 (PAYROLL-MEI-2026). Ini menggelembungkan SHU dan seharusnya dialokasikan ke Simpanan atau Piutang Pinjaman.`,
+        code: "MISCLASSIFIED_PAYROLL_ACCOUNT"
+      })
+    }
+
+    // 3. Deteksi sisa pinjaman negatif (outstanding_principal < 0)
+    const negativeLoans = await prisma.loans.findMany({
+      where: {
+        outstanding_principal: { lt: 0 }
+      },
+      include: {
+        members: true
+      }
+    })
+    for (const loan of negativeLoans) {
+      findings.push({
+        type: "danger",
+        title: "Sisa Pokok Pinjaman Negatif",
+        description: `Kontrak ${loan.loan_no} atas nama ${loan.members.full_name} memiliki sisa pokok pinjaman negatif (${Number(loan.outstanding_principal).toLocaleString("id-ID")}).`,
+        code: "NEGATIVE_OUTSTANDING_PRINCIPAL"
+      })
+    }
+
+    // 4. Deteksi saldo tabungan negatif (balance < 0)
+    const negativeSavings = await prisma.savings.findMany({
+      where: {
+        balance: { lt: 0 }
+      },
+      include: {
+        members: true,
+        saving_types: true
+      }
+    })
+    for (const s of negativeSavings) {
+      findings.push({
+        type: "danger",
+        title: "Saldo Tabungan Negatif",
+        description: `Tabungan ${s.saving_types.name} atas nama ${s.members.full_name} bernilai negatif (${Number(s.balance).toLocaleString("id-ID")}).`,
+        code: "NEGATIVE_SAVINGS_BALANCE"
+      })
+    }
+
+    // 5. Deteksi entri jurnal yang belum diposting (is_posted === false)
+    const unpostedEntries = await prisma.journal_entries.count({
+      where: { is_posted: false }
+    })
+    if (unpostedEntries > 0) {
+      findings.push({
+        type: "warning",
+        title: "Entri Jurnal Draft (Belum Di-posting)",
+        description: `Terdapat ${unpostedEntries} entri jurnal transaksi yang masih berstatus draft/belum di-posting ke Buku Besar.`,
+        code: "UNPOSTED_JOURNAL_ENTRIES"
+      })
+    }
+  } catch (error) {
+    console.error("Error in runCooperativeAudit:", error)
+  }
+
+  return findings
+}
