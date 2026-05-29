@@ -38,29 +38,32 @@ export function MatrixRain({ color = "rgba(15, 76, 58, 0.08)", fontSize = 14 }: 
     }
 
     const draw = () => {
-      // Draw semi-transparent background to create trail effect
-      // We use a light cream trailing background to match the cream theme background
-      ctx.fillStyle = "rgba(253, 251, 247, 0.06)";
+      // Gunakan destination-out untuk menghapus frame secara perlahan (trail effect)
+      // tanpa membuat canvas menjadi solid / menutupi background CSS.
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Mengatur panjang ekor/trail (nilai lebih kecil = trail lebih panjang)
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Kembalikan ke mode normal untuk menggambar text
+      ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = color;
       ctx.font = `${fontSize}px monospace`;
 
       for (let i = 0; i < rainDrops.length; i++) {
-        // Only draw numbers (Matrix numbers theme)
+        // Hanya angka (tema Matrix angka)
         const text = Math.floor(Math.random() * 10).toString();
         const x = i * fontSize;
         const y = rainDrops[i] * fontSize;
 
-        // Draw character
+        // Gambar karakter angka
         ctx.fillText(text, x, y);
 
-        // Reset drop to top randomly once it hits the bottom
+        // Reset drop ke atas layar acak ketika mencapai bawah
         if (y > canvas.height && Math.random() > 0.975) {
           rainDrops[i] = 0;
         }
 
-        // Move drop down
+        // Jalankan ke bawah
         rainDrops[i]++;
       }
 

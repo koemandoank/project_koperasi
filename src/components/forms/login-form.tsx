@@ -97,7 +97,7 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
     return (
       <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden">
         {/* Matrix Rain effect */}
-        <MatrixRain color="rgba(15, 76, 58, 0.05)" />
+        <MatrixRain color="rgba(15, 76, 58, 0.2)" />
 
         {/* Ambient glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-amber-100/40 blur-[120px] pointer-events-none" />
@@ -151,7 +151,7 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
   return (
     <div className="min-h-screen w-full flex items-center justify-between bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden px-8 md:px-16 lg:px-24">
       {/* Matrix Rain effect */}
-      <MatrixRain color="rgba(15, 76, 58, 0.06)" />
+      <MatrixRain color="rgba(15, 76, 58, 0.2)" />
 
       {/* Ambient glows */}
       <div className="absolute top-[-15%] left-[20%] w-[500px] h-[500px] rounded-full bg-amber-100/30 blur-[150px] pointer-events-none" />
