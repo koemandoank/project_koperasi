@@ -149,7 +149,7 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
 
   // ─── DESKTOP LAYOUT ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen w-full flex items-center justify-between bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden pl-8 md:pl-16 lg:pl-24 pr-2 md:pr-4 lg:pr-6">
+    <div className="min-h-screen w-full flex items-center justify-between bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden px-8 md:px-16 lg:px-24">
       {/* Matrix Rain effect */}
       <MatrixRain color="rgba(15, 76, 58, 0.2)" />
 
@@ -175,7 +175,7 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
       </div>
 
       {/* ── Login card — sisi kanan ── */}
-      <div className="w-full max-w-[360px] ml-auto mr-0 lg:mr-2 bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_rgba(139,115,85,0.18)] ring-1 ring-black/5 relative z-10 transition-all duration-300">
+      <div className="w-full max-w-[360px] ml-auto mr-4 md:mr-[12%] lg:mr-[14%] xl:mr-[16%] bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_rgba(139,115,85,0.18)] ring-1 ring-black/5 relative z-10 transition-all duration-300">
         <div className="space-y-6 relative z-20">
           {/* Logo & Branding */}
           <div className="flex flex-col items-center justify-center text-center">
