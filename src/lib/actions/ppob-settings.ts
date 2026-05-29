@@ -171,7 +171,7 @@ export async function executePpobTransactionPaylater(data: {
         admin_fee: data.adminFee,
         total_amount: data.totalAmount,
         payment_method: "paylater", // strictly paylater as requested!
-        provider_ref: data.providerRef || "TRIPAY-" + Math.floor(100000 + Math.random() * 900000),
+        provider_ref: data.providerRef || "BILLER-" + Math.floor(100000 + Math.random() * 900000),
         sn: data.sn || null,
         status: "success",
         transacted_at: new Date(),

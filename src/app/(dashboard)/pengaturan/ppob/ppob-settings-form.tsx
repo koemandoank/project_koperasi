@@ -206,9 +206,9 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                             <Key className="h-6 w-6" />
                           </div>
                           <div>
-                            <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100">Kredensial API & Biller</CardTitle>
+                            <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100">Kredensial API Biller PPOB</CardTitle>
                             <CardDescription className="text-sm mt-1">
-                              Konfigurasikan kunci otentikasi Biller / Payment Gateway Anda. Harap simpan data ini secara rahasia.
+                              Konfigurasikan kunci otentikasi Biller PPOB (seperti Digiflazz / Mobilepulsa) Anda. Harap simpan data ini secara rahasia.
                             </CardDescription>
                           </div>
                         </div>
@@ -452,9 +452,9 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                             <LinkIcon className="h-6 w-6" />
                           </div>
                           <div>
-                            <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100">Konfigurasi Webhook Callback</CardTitle>
+                            <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100">Konfigurasi Webhook Biller</CardTitle>
                             <CardDescription className="text-sm mt-1">
-                              Konfigurasikan URL penerimaan status transaksi PPOB secara real-time dari Biller / Payment Gateway.
+                              Konfigurasikan URL penerimaan status transaksi PPOB secara real-time dari Biller PPOB.
                             </CardDescription>
                           </div>
                         </div>
@@ -525,7 +525,7 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
 
                             <div className="w-full md:w-1/3 bg-[#0f4c3a]/5 dark:bg-[#0f4c3a]/10 border border-[#0f4c3a]/30 rounded-xl p-3.5 text-center shadow-xs">
                               <p className="text-xs font-bold text-[#0f4c3a] dark:text-[#22c55e]">3. Webhook Koperasi</p>
-                              <p className="text-[11px] text-slate-400 mt-1">Saldo & status anggota terupdate</p>
+                              <p className="text-[11px] text-slate-400 mt-1">Limit & tagihan Paylater anggota terupdate</p>
                             </div>
                           </div>
                         </div>
