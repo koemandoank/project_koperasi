@@ -95,7 +95,7 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
   // ─── MOBILE LAYOUT ──────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden">
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden px-4">
         {/* Matrix Rain effect */}
         <MatrixRain color="rgba(15, 76, 58, 0.2)" />
 
@@ -103,46 +103,45 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-amber-100/40 blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[250px] h-[250px] rounded-full bg-emerald-50/40 blur-[100px] pointer-events-none" />
 
-        {/* Top branding section */}
-        <div className="flex flex-col items-center justify-center pt-16 pb-8 px-6 relative z-10">
-          {/* Logo */}
-          <div className="relative h-28 w-28 mb-5 drop-shadow-[0_8px_20px_rgba(139,115,85,0.15)]">
-            <Image
-              src={logoSrc}
-              alt="Logo Koperasi"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
+        {/* Center Card */}
+        <div className="w-full max-w-[360px] bg-white/80 backdrop-blur-xl border border-white rounded-3xl p-6 sm:p-7 shadow-[0_25px_60px_rgba(139,115,85,0.18)] ring-1 ring-black/5 relative z-10">
+          <div className="space-y-6">
+            {/* Logo & Branding */}
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="relative h-24 w-24 transition-transform duration-500 hover:scale-105">
+                <Image
+                  src={logoSrc}
+                  alt="Logo Koperasi"
+                  fill
+                  className="object-contain filter drop-shadow-[0_4px_8px_rgba(139,115,85,0.15)]"
+                  priority
+                />
+              </div>
+              <div className="space-y-1 mt-3">
+                <h1 className="text-xl font-bold tracking-tight text-slate-800">
+                  {companyName}
+                </h1>
+                <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-normal">
+                  Wujudkan budaya keterbukaan dan transparansi melalui transformasi digital.
+                </p>
+              </div>
+            </div>
 
-          {/* Name & tagline */}
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight text-center">{companyName}</h1>
-          <p className="text-xs text-slate-500 mt-1.5 text-center max-w-[260px] leading-relaxed">
-            Wujudkan budaya keterbukaan dan transparansi melalui transformasi digital.
-          </p>
+            {/* Divider */}
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[#e6dfd3]" />
+              <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Masuk Akun</span>
+              <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[#e6dfd3]" />
+            </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 mt-8 w-full max-w-[320px]">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[#e6dfd3]" />
-            <span className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">Masuk Akun</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[#e6dfd3]" />
-          </div>
-        </div>
-
-        {/* Form section — takes remaining space, card at bottom */}
-        <div className="flex-1 flex items-start justify-center px-5 relative z-10">
-          <div className="w-full max-w-[400px] bg-white/70 backdrop-blur-xl border border-white rounded-3xl p-6 shadow-[0_20px_50px_rgba(139,115,85,0.15)]">
             {formFields}
 
             {/* Footer */}
-            <p className="text-center text-[10px] text-slate-400 mt-5">
+            <p className="text-center text-[10px] text-slate-400 mt-2">
               Versi APK Android — Koperasi Sulfindo © {new Date().getFullYear()}
             </p>
           </div>
         </div>
-
-        <div className="h-8" />
       </div>
     );
   }
