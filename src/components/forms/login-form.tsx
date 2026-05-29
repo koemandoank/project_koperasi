@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, LogIn, Clock, ShieldAlert } from "lucide-react";
+import { MatrixRain } from "@/components/shared/matrix-rain";
 
 type LoginFormProps = {
   settings?: { company_name?: string | null; logo_url?: string | null } | null;
@@ -95,6 +96,9 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
   if (isMobile) {
     return (
       <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden">
+        {/* Matrix Rain effect */}
+        <MatrixRain color="rgba(15, 76, 58, 0.05)" />
+
         {/* Ambient glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-amber-100/40 blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[250px] h-[250px] rounded-full bg-emerald-50/40 blur-[100px] pointer-events-none" />
@@ -146,6 +150,8 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
   // ─── DESKTOP LAYOUT ─────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full flex items-center justify-between bg-gradient-to-br from-[#fdfbf7] via-[#f7f2e8] to-[#eee5d3] relative overflow-hidden px-8 md:px-16 lg:px-24">
+      {/* Matrix Rain effect */}
+      <MatrixRain color="rgba(15, 76, 58, 0.06)" />
 
       {/* Ambient glows */}
       <div className="absolute top-[-15%] left-[20%] w-[500px] h-[500px] rounded-full bg-amber-100/30 blur-[150px] pointer-events-none" />
