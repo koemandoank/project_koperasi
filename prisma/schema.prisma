@@ -474,7 +474,7 @@ model ppob_transactions {
   amount         Decimal                          @db.Decimal(15, 2)
   admin_fee      Decimal                          @default(0.00) @db.Decimal(15, 2)
   total_amount   Decimal                          @db.Decimal(15, 2)
-  payment_method ppob_transactions_payment_method @default(saving_deduct)
+  payment_method ppob_transactions_payment_method @default(paylater)
   provider_ref   String?                          @db.VarChar(100)
   sn             String?                          @db.VarChar(255)
   status         ppob_transactions_status         @default(pending)
@@ -826,6 +826,7 @@ enum ppob_transactions_payment_method {
   saving_deduct
   cash
   transfer
+  paylater
 }
 
 enum shu_periods_status {
@@ -883,6 +884,26 @@ model app_settings {
   updated_at   DateTime? @db.Timestamp(0)
 
   @@map("app_settings")
+}
+
+model ppob_settings {
+  id                       BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  api_key                  String    @db.VarChar(255)
+  private_key              String    @db.VarChar(255)
+  merchant_code            String    @db.VarChar(100)
+  environment              String    @default("sandbox") @db.VarChar(20)
+  default_margin           Decimal   @default(0.00) @db.Decimal(15, 2)
+  shu_percentage           Decimal   @default(0.00) @db.Decimal(5, 2)
+  dynamic_pricing_by_level Boolean   @default(true)
+  webhook_url              String?   @db.VarChar(255)
+  enable_pulsa             Boolean   @default(true)
+  enable_pln               Boolean   @default(true)
+  enable_ewallet           Boolean   @default(true)
+  enable_bills             Boolean   @default(true)
+  created_at               DateTime? @db.Timestamp(0)
+  updated_at               DateTime? @db.Timestamp(0)
+
+  @@map("ppob_settings")
 }
 
 model monthly_closures {

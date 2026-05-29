@@ -9,7 +9,8 @@ import {
   BookOpen, PieChart, ChevronRight, ShoppingBag, Inbox,
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
   Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
-  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck, CalendarCheck
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck, CalendarCheck,
+  Smartphone
 } from "lucide-react"
 
 
@@ -89,6 +90,7 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/toko/kasir/sesi", label: "Sesi Kasir",      icon: Unlock },
       { href: "/toko/kasir",      label: "Mesin Kasir (POS)", icon: Store },
       { href: "/toko",           label: "Belanja Online",   icon: ShoppingBag },
+      { href: "/ppob",           label: "Transaksi PPOB",   icon: Smartphone },
       { href: "/toko/produk",    label: "Katalog Produk",   icon: Package },
       { href: "/toko/pesanan",   label: "Pesanan Online",   icon: Inbox },
       { href: "/toko/inventaris",label: "Inventaris",       icon: ClipboardCheck },
@@ -145,6 +147,7 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/pengaturan/promosi", label: "Promosi", icon: Megaphone },
       { href: "/pengaturan/dashboard-anggota", label: "Dashboard Anggota", icon: LayoutDashboard },
       { href: "/pengaturan/kop-surat", label: "Kop & TTD Laporan", icon: Printer },
+      { href: "/pengaturan/ppob", label: "Pengaturan PPOB", icon: CreditCard },
       { href: "/pengaturan", label: "Pengaturan Umum", icon: Settings },
     ],
   },
@@ -171,6 +174,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/toko/kasir/sesi":             ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/kasir":                  ["superadmin", "admin", "pengurus", "kasir"],
   "/toko":                        ["anggota"],
+  "/ppob":                        ["superadmin", "admin", "pengurus", "kasir", "anggota"],
   "/toko/produk":                 ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/pesanan":                ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/inventaris":             ["superadmin", "admin", "pengurus", "kasir"],
@@ -199,6 +203,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/pengaturan/promosi":          ["superadmin", "admin"],
   "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
   "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
+  "/pengaturan/ppob":             ["superadmin", "admin", "pengurus"],
   "/pengaturan":                  ["superadmin", "admin"],
 }
 
