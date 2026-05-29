@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { LogOut, User as UserIcon, Bell, Search, Menu, CreditCard, ShoppingBag } from "lucide-react"
-import { logout } from "@/lib/actions/auth"
+import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { Sidebar } from "./sidebar"
 import { PageHeader } from "./page-header"
@@ -130,15 +130,19 @@ export function HeaderClient({
             <Link href="/profil" className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md ring-2 ring-indigo-100 dark:ring-indigo-900/50 hover:ring-indigo-300 transition-all cursor-pointer">
               <UserIcon className="h-5 w-5" />
             </Link>
-            <form action={logout}>
-              <button
-                type="submit"
-                title="Logout"
-                className="ml-1 p-2 rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </form>
+            <button
+              onClick={async () => {
+                if (confirm("Apakah Anda yakin ingin keluar?")) {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  await signOut({ callbackUrl: "/login" });
+                }
+              }}
+              title="Logout"
+              className="ml-1 p-2 rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>

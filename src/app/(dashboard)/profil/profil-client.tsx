@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Upload, User, Lock, Save } from "lucide-react"
 import { getMyProfile, updatePhoto, changePassword } from "@/lib/actions/profile"
-import { logout } from "@/lib/actions/auth"
+import { signOut } from "next-auth/react"
 
 /** Rejects local /uploads/ paths — only displays verified external URLs */
 function isValidPhotoUrl(path: string | null | undefined): boolean {
@@ -119,7 +119,9 @@ export function ProfilClient() {
               variant="destructive"
               onClick={async () => {
                 if (confirm("Apakah Anda yakin ingin keluar?")) {
-                  await logout()
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  await signOut({ callbackUrl: "/login" });
                 }
               }}
               className="w-full rounded-full"
