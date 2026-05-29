@@ -60,7 +60,7 @@ async function writeLoginAudit({
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 }, // absolute max 24 jam; idle 1 jam ditangani di authorized callback
   providers: [
     Credentials({
       async authorize(credentials) {

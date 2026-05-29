@@ -1,5 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
+const IDLE_TIMEOUT_SECONDS = 60 * 60; // 1 jam dalam detik
+
 // Route access map per role
 const ROLE_ROUTES: Record<string, string[]> = {
   superadmin: ["*"], // all
@@ -65,6 +67,19 @@ export const authConfig = {
         return Response.redirect(new URL("/login", nextUrl));
       }
 
+      // ─── Idle Timeout Check ───────────────────────────────────────────
+      // token.lastActivity disimpan sebagai detik Unix
+      const lastActivity = (auth as any)?.lastActivity as number | undefined;
+      if (lastActivity) {
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const idleSeconds = nowSeconds - lastActivity;
+        if (idleSeconds > IDLE_TIMEOUT_SECONDS) {
+          // Sesi idle > 1 jam → paksa logout ke login page dengan info
+          console.log(`[Idle Timeout] User ${auth?.user?.id} idle ${idleSeconds}s > ${IDLE_TIMEOUT_SECONDS}s. Redirecting.`);
+          return Response.redirect(new URL("/login?reason=idle", nextUrl));
+        }
+      }
+
       const role = String(auth?.user?.role || "anggota");
 
       // Bypas RBAC untuk halaman profil & home dashboard agar dapat diakses semua user
@@ -87,7 +102,7 @@ export const authConfig = {
 
       return true;
     },
-    jwt({ token, user }) {
+    jwt({ token, user, trigger }) {
       if (user) {
         const u = user as { role?: unknown; id?: unknown; sessionToken?: string };
         if (u.role !== undefined) token.role = String(u.role);
@@ -98,7 +113,16 @@ export const authConfig = {
         if (u.sessionToken !== undefined) {
           token.sessionToken = u.sessionToken;
         }
+        // Set lastActivity saat login pertama
+        token.lastActivity = Math.floor(Date.now() / 1000);
       }
+
+      // Update lastActivity setiap kali token diakses (setiap request)
+      // Ini yang membuat idle timeout bekerja: activity = reset timer
+      if (!user && trigger !== "signIn") {
+        token.lastActivity = Math.floor(Date.now() / 1000);
+      }
+
       return token;
     },
     session({ session, token }) {
@@ -113,8 +137,13 @@ export const authConfig = {
       if (session.user && token.sessionToken) {
         session.user.sessionToken = String(token.sessionToken);
       }
+      // Expose lastActivity ke session untuk client-side awareness
+      if (token.lastActivity) {
+        (session as any).lastActivity = token.lastActivity;
+      }
       return session;
     },
   },
   providers: [],
 } satisfies NextAuthConfig;
+

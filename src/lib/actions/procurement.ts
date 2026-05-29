@@ -301,6 +301,15 @@ export async function receiveGoodsFromPO(
     })
 
     await prisma.$transaction(async (tx: any) => {
+      // 0. Pre-load semua product data sekaligus SEBELUM loop
+      //    agar tidak ada serial findUnique per-item di dalam transaksi
+      const productIds = itemsBigInt.map((i: any) => i.productId)
+      const productsBatch = await tx.products.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, stock: true },
+      })
+      const productMap = new Map(productsBatch.map((p: any) => [p.id.toString(), p]))
+
       // 1. Create Good Receipt header
       const gr = await tx.good_receipts.create({
         data: {
@@ -325,12 +334,13 @@ export async function receiveGoodsFromPO(
         },
       })
 
-      // 2. For each accepted item: update products.stock, stock_balances, stock_movements
+      // 2. Untuk setiap item yang diterima: update stok, stock_balances, stock_movements
+      // Gunakan data dari productMap (sudah di-preload) agar tidak ada findUnique berulang
       for (const item of itemsBigInt) {
+        const productData = productMap.get(item.productId.toString())
+
         if (item.qtyAccepted > 0) {
-          // Get current product stock
-          const product = await tx.products.findUnique({ where: { id: item.productId } })
-          const stockBefore = product?.stock ?? 0
+          const stockBefore = productData?.stock ?? 0
           const stockAfter  = stockBefore + item.qtyAccepted
 
           // Update products.stock
@@ -338,6 +348,8 @@ export async function receiveGoodsFromPO(
             where: { id: item.productId },
             data:  { stock: stockAfter },
           })
+          // Update local cache agar perhitungan rejected tepat
+          if (productData) productData.stock = stockAfter
 
           // Upsert stock_balances (per location)
           if (defaultLocation) {
@@ -364,7 +376,7 @@ export async function receiveGoodsFromPO(
             })
           }
 
-          // Log stock_movements for accepted qty
+          // Log stock_movements untuk qty yang diterima
           await tx.stock_movements.create({
             data: {
               product_id:   item.productId,
@@ -380,10 +392,9 @@ export async function receiveGoodsFromPO(
           })
         }
 
-        // 3. Log stock_movements for rejected/return qty
+        // 3. Log stock_movements untuk barang yang ditolak/retur
         if (item.qtyRejected > 0) {
-          const product = await tx.products.findUnique({ where: { id: item.productId } })
-          const stockNow = product?.stock ?? 0
+          const stockNow = productData?.stock ?? 0
           await tx.stock_movements.create({
             data: {
               product_id:   item.productId,
@@ -469,6 +480,9 @@ export async function receiveGoodsFromPO(
       }
 
       return gr
+    }, {
+      timeout: 30000,  // 30 detik — cukup untuk PO dengan banyak item
+      maxWait: 10000,  // tunggu slot koneksi maksimal 10 detik
     })
 
     await logAudit({
