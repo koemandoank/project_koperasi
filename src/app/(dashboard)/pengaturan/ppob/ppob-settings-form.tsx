@@ -191,8 +191,8 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
           {/* AnimatePresence makes tab changes look very fluid */}
           <div className="relative min-h-[400px]">
             <AnimatePresence mode="wait">
-              {activeTab === "api" && (
-                <TabsContent value="api" key="api">
+              <TabsContent value="api" key="api">
+                {activeTab === "api" && (
                   <motion.div
                     variants={tabContentVariants}
                     initial="hidden"
@@ -335,11 +335,11 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                       </CardContent>
                     </Card>
                   </motion.div>
-                </TabsContent>
-              )}
+                )}
+              </TabsContent>
 
-              {activeTab === "margin" && (
-                <TabsContent value="margin" key="margin">
+              <TabsContent value="margin" key="margin">
+                {activeTab === "margin" && (
                   <motion.div
                     variants={tabContentVariants}
                     initial="hidden"
@@ -434,11 +434,11 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                       </CardContent>
                     </Card>
                   </motion.div>
-                </TabsContent>
-              )}
+                )}
+              </TabsContent>
 
-              {activeTab === "webhook" && (
-                <TabsContent value="webhook" key="webhook">
+              <TabsContent value="webhook" key="webhook">
+                {activeTab === "webhook" && (
                   <motion.div
                     variants={tabContentVariants}
                     initial="hidden"
@@ -532,11 +532,11 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                       </CardContent>
                     </Card>
                   </motion.div>
-                </TabsContent>
-              )}
+                )}
+              </TabsContent>
 
-              {activeTab === "layanan" && (
-                <TabsContent value="layanan" key="layanan">
+              <TabsContent value="layanan" key="layanan">
+                {activeTab === "layanan" && (
                   <motion.div
                     variants={tabContentVariants}
                     initial="hidden"
@@ -664,8 +664,8 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
                       </CardContent>
                     </Card>
                   </motion.div>
-                </TabsContent>
-              )}
+                )}
+              </TabsContent>
             </AnimatePresence>
           </div>
         </Tabs>
