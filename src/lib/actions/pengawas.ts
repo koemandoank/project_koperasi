@@ -468,6 +468,89 @@ export async function runCooperativeAudit(): Promise<AuditFinding[]> {
         code: "UNPOSTED_JOURNAL_ENTRIES"
       })
     }
+
+    // 6. Deteksi ketidakcocokan stok global vs stok per lokasi (Toko)
+    const products = await prisma.products.findMany({
+      where: { deleted_at: null },
+      include: { stock_balances: true }
+    })
+    let stockMismatchCount = 0
+    for (const product of products) {
+      const globalStock = product.stock
+      const sumLocationStock = product.stock_balances.reduce((sum: number, bal: any) => sum + (bal.qty_on_hand ?? 0), 0)
+      if (globalStock !== sumLocationStock) {
+        stockMismatchCount++
+      }
+    }
+    if (stockMismatchCount > 0) {
+      findings.push({
+        type: "warning",
+        title: "Selisih Stok Toko (Global vs Lokasi)",
+        description: `Terdapat ${stockMismatchCount} barang yang memiliki ketidakcocokan jumlah antara stok global (katalog) dengan akumulasi stok per lokasi gudang/kasir.`,
+        code: "STOCK_LOCATION_MISMATCH"
+      })
+    }
+
+    // 7. Deteksi anomali perhitungan barang konsinyasi
+    const consignmentItems = await prisma.consignment_items.findMany({
+      include: { products: true }
+    })
+    
+    const consignmentProductMap = new Map<number, { received: number; returned: number; stock: number }>()
+    for (const item of consignmentItems) {
+      if (item.products) {
+        const pId = Number(item.product_id)
+        if (!consignmentProductMap.has(pId)) {
+          consignmentProductMap.set(pId, {
+            received: 0,
+            returned: 0,
+            stock: Number(item.products.stock)
+          })
+        }
+        const entry = consignmentProductMap.get(pId)!
+        entry.received += item.qty_received
+        entry.returned += item.qty_returned
+      }
+    }
+
+    let consignmentLogicErrorCount = 0
+    for (const [pId, entry] of consignmentProductMap.entries()) {
+      const netReceived = entry.received - entry.returned
+      if (entry.stock > netReceived) {
+        consignmentLogicErrorCount++
+      }
+    }
+
+    if (consignmentLogicErrorCount > 0) {
+      findings.push({
+        type: "danger",
+        title: "Anomali Penjualan Barang Konsinyasi",
+        description: `Terdapat ${consignmentLogicErrorCount} barang titipan yang terdeteksi tidak logis karena total stok fisik di katalog melebihi jumlahan penerimaan bersih konsinyasi dari supplier.`,
+        code: "CONSIGNMENT_LOGIC_ERROR"
+      })
+    }
+
+    // 8. Deteksi transaksi lunas tanpa rincian detail pembayaran
+    const paidOrders = await prisma.orders.findMany({
+      where: { payment_status: "paid" },
+      include: { order_payments: true }
+    })
+    let paymentMismatchCount = 0
+    for (const order of paidOrders) {
+      const grandTotal = Number(order.grand_total)
+      const paymentSum = order.order_payments.reduce((sum: number, pay: any) => sum + Number(pay.amount), 0)
+      if (Math.abs(grandTotal - paymentSum) > 0.01) {
+        paymentMismatchCount++
+      }
+    }
+    if (paymentMismatchCount > 0) {
+      findings.push({
+        type: "warning",
+        title: "Transaksi Lunas Tanpa Rincian Pembayaran",
+        description: `Terdapat ${paymentMismatchCount} transaksi kasir berstatus Lunas (Paid) yang datanya tidak sinkron atau tidak memiliki entri rincian pembayaran di database.`,
+        code: "PAID_ORDER_PAYMENT_MISMATCH"
+      })
+    }
   } catch (error) {
     console.error("Error in runCooperativeAudit:", error)
   }

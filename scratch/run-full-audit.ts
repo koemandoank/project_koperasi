@@ -241,6 +241,87 @@ async function main() {
     console.log("  ⚠️ Cannot perform GL comparison: Chart of account '10201' not found.\n")
   }
 
+  // 11. Toko POS Global vs Location Stock Mismatch
+  console.log("--- SCAN 11: Checking for Store Stock Mismatches (Global vs Location) ---")
+  const products = await prisma.products.findMany({
+    where: { deleted_at: null },
+    include: { stock_balances: true }
+  })
+  let stockMismatchCount = 0
+  for (const product of products) {
+    const globalStock = product.stock
+    const sumLocationStock = product.stock_balances.reduce((sum, bal) => sum + bal.qty_on_hand, 0)
+    if (globalStock !== sumLocationStock) {
+      stockMismatchCount++
+      totalWarning++
+      if (stockMismatchCount <= 5) {
+        console.log(`  ⚠️ WARNING: Stock mismatch on SKU: ${product.sku} | Name: ${product.name} | Global: ${globalStock} | Locations sum: ${sumLocationStock} (Diff: ${globalStock - sumLocationStock})`)
+      }
+    }
+  }
+  if (stockMismatchCount === 0) console.log("  ✅ Clean: All global stocks match location-based stocks.\n")
+  else console.log(`  ⚠️ Total mismatching product stocks found: ${stockMismatchCount} (Showing first 5)\n`)
+
+  // 12. Consignment Sales Calculation Anomalies
+  console.log("--- SCAN 12: Checking for Negative Consignment Sales (Logic Errors) ---")
+  const consignmentItems = await prisma.consignment_items.findMany({
+    include: { products: true }
+  })
+  
+  const consignmentProductMap = new Map<number, { received: number; returned: number; stock: number; sku: string; name: string }>()
+  for (const item of consignmentItems) {
+    if (item.products) {
+      const pId = Number(item.product_id)
+      if (!consignmentProductMap.has(pId)) {
+        consignmentProductMap.set(pId, {
+          received: 0,
+          returned: 0,
+          stock: item.products.stock,
+          sku: item.products.sku,
+          name: item.products.name
+        })
+      }
+      const entry = consignmentProductMap.get(pId)!
+      entry.received += item.qty_received
+      entry.returned += item.qty_returned
+    }
+  }
+
+  let consignmentErrors = 0
+  for (const [pId, entry] of consignmentProductMap.entries()) {
+    const netReceived = entry.received - entry.returned
+    if (entry.stock > netReceived) {
+      consignmentErrors++
+      totalCritical++
+      if (consignmentErrors <= 5) {
+        console.log(`  ❌ CRITICAL: Consignment stock logic error on Product [${entry.sku}] - ${entry.name} | Total Net Received: ${netReceived} | Actual Global Stock: ${entry.stock}`)
+      }
+    }
+  }
+  if (consignmentErrors === 0) console.log("  ✅ Clean: No consignment logical anomalies found.\n")
+  else console.log(`  ⚠️ Total consignment calculation anomalies found: ${consignmentErrors} (Showing first 5)\n`)
+
+  // 13. Paid Orders vs Recorded Payments
+  console.log("--- SCAN 13: Checking for Paid POS Orders without recorded payments ---")
+  const paidOrders = await prisma.orders.findMany({
+    where: { payment_status: "paid" },
+    include: { order_payments: true }
+  })
+  let paymentMismatches = 0
+  for (const order of paidOrders) {
+    const grandTotal = Number(order.grand_total)
+    const paymentSum = order.order_payments.reduce((sum, pay) => sum + Number(pay.amount), 0)
+    if (Math.abs(grandTotal - paymentSum) > 0.01) {
+      paymentMismatches++
+      totalWarning++
+      if (paymentMismatches <= 5) {
+        console.log(`  ⚠️ WARNING: Paid Order [${order.order_no}] has mismatch. Grand Total: Rp ${grandTotal.toLocaleString("id-ID")} | Payments Sum: Rp ${paymentSum.toLocaleString("id-ID")}`)
+      }
+    }
+  }
+  if (paymentMismatches === 0) console.log("  ✅ Clean: All paid orders have corresponding payments.\n")
+  else console.log(`  ⚠️ Total paid order mismatches found: ${paymentMismatches} (Showing first 5)\n`)
+
   console.log("=======================================================================")
   console.log("=== AUDIT SUMMARY ===")
   console.log(`  Critical Errors (Need immediate fix)  : ${totalCritical}`)
