@@ -145,19 +145,32 @@ export function LoginForm({ settings, isMobile = false, idleLogout = false }: Lo
 
   // ─── DESKTOP LAYOUT ─────────────────────────────────────────────────────────
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center md:justify-end bg-[#020e24] bg-cover bg-center relative overflow-hidden p-4 sm:p-6 md:p-12 lg:p-20"
-      style={{ backgroundImage: "url('/login-bg.jpg')" }}
-    >
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-[#020e24]/40 z-0 pointer-events-none" />
+    <div className="min-h-screen w-full flex items-center justify-between bg-[#020e24] relative overflow-hidden px-8 md:px-16 lg:px-24">
 
       {/* Ambient glows */}
-      <div className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] rounded-full bg-[#134074]/30 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-[#0b2545]/40 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-15%] left-[20%] w-[500px] h-[500px] rounded-full bg-[#134074]/20 blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[350px] h-[350px] rounded-full bg-[#0b2545]/40 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] left-[-5%] w-[300px] h-[300px] rounded-full bg-[#1d5c96]/10 blur-[100px] pointer-events-none" />
 
-      {/* Floating card */}
-      <div className="w-full max-w-[360px] md:mr-12 lg:mr-20 bg-[#020e24]/85 md:bg-[#020e24]/90 backdrop-blur-xl border border-[#134074]/40 rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.7)] ring-1 ring-white/5 relative z-10 transition-all duration-300">
+      {/* ── Mascot image — sisi kiri, posisi tengah vertikal ── */}
+      <div className="hidden md:flex flex-col items-center justify-center relative z-10 flex-shrink-0" style={{ marginLeft: "-2rem" }}>
+        <div className="relative w-[420px] h-[420px] lg:w-[500px] lg:h-[500px] xl:w-[560px] xl:h-[560px] drop-shadow-[0_20px_60px_rgba(19,64,116,0.4)]">
+          <Image
+            src="/login-mascot.png"
+            alt="Koperasi Sulfindo"
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
+        {/* Subtle tagline di bawah mascot */}
+        <p className="text-slate-500 text-xs tracking-widest uppercase mt-4 text-center">
+          Sistem Manajemen Koperasi Digital
+        </p>
+      </div>
+
+      {/* ── Login card — sisi kanan ── */}
+      <div className="w-full max-w-[360px] ml-auto mr-4 md:mr-8 lg:mr-12 bg-[#020e24]/90 backdrop-blur-xl border border-[#134074]/40 rounded-3xl p-6 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.8)] ring-1 ring-white/5 relative z-10 transition-all duration-300">
         <div className="space-y-6 relative z-20">
           {/* Logo & Branding */}
           <div className="flex flex-col items-center justify-center text-center">
