@@ -308,7 +308,9 @@ export async function receiveGoodsFromPO(
         where: { id: { in: productIds } },
         select: { id: true, stock: true },
       })
-      const productMap = new Map(productsBatch.map((p: any) => [p.id.toString(), p]))
+      const productMap = new Map<string, { id: bigint; stock: number }>(
+        productsBatch.map((p: any) => [p.id.toString(), { id: p.id, stock: Number(p.stock ?? 0) }])
+      )
 
       // 1. Create Good Receipt header
       const gr = await tx.good_receipts.create({
