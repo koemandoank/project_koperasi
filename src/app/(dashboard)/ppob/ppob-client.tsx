@@ -20,7 +20,8 @@ import {
   ChevronRight,
   Info,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Contact
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,6 +121,36 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
 
   // Active Category State
   const [activeCategory, setActiveCategory] = useState<"pulsa" | "pln" | "ewallet" | "tagihan">("pulsa");
+
+  // Contact Picker support state
+  const [isContactSupported, setIsContactSupported] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (navigator as any).contacts && (navigator as any).contacts.select) {
+      setIsContactSupported(true);
+    }
+  }, []);
+
+  // Helper function to pick contact using Web Contact Picker API
+  const handlePickContact = async (): Promise<string | null> => {
+    try {
+      const opts = { multiple: false };
+      const contacts = await (navigator as any).contacts.select(["tel"], opts);
+      if (contacts && contacts.length > 0 && contacts[0].tel && contacts[0].tel.length > 0) {
+        const rawNumber = contacts[0].tel[0];
+        // Bersihkan karakter selain angka
+        const cleanNumber = rawNumber.replace(/[^0-9]/g, "");
+        // Ubah kode negara Indonesia (62) ke format lokal (0)
+        if (cleanNumber.startsWith("62")) {
+          return "0" + cleanNumber.slice(2);
+        }
+        return cleanNumber;
+      }
+    } catch (error) {
+      console.error("Gagal memilih kontak:", error);
+    }
+    return null;
+  };
 
   // Pulsa state
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -519,7 +550,22 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                   <CardContent className="p-6 space-y-6">
                     {/* Input HP */}
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNo" className="font-bold text-slate-700 dark:text-slate-300 text-sm">Nomor HP</Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="phoneNo" className="font-bold text-slate-700 dark:text-slate-300 text-sm">Nomor HP</Label>
+                        {isContactSupported && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const num = await handlePickContact();
+                              if (num) setPhoneNumber(num);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#0f4c3a] dark:text-emerald-450 hover:underline cursor-pointer"
+                          >
+                            <Contact className="h-3.5 w-3.5" />
+                            Pilih dari Kontak
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <Smartphone className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
                         <Input
@@ -758,7 +804,22 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
 
                     {/* Input No HP E-wallet */}
                     <div className="space-y-2">
-                      <Label htmlFor="walletPhoneNo" className="font-bold text-slate-700 dark:text-slate-300 text-sm">Nomor HP E-Wallet</Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="walletPhoneNo" className="font-bold text-slate-700 dark:text-slate-300 text-sm">Nomor HP E-Wallet</Label>
+                        {isContactSupported && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const num = await handlePickContact();
+                              if (num) setWalletPhoneNo(num);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#0f4c3a] dark:text-emerald-450 hover:underline cursor-pointer"
+                          >
+                            <Contact className="h-3.5 w-3.5" />
+                            Pilih dari Kontak
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <Smartphone className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
                         <Input
