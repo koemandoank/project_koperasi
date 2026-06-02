@@ -31,6 +31,20 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { executePpobTransactionPaylater } from "@/lib/actions/ppob-settings";
 
+// Capacitor & Native Contacts
+import { Capacitor } from "@capacitor/core";
+import { Contacts } from "@capacitor-community/contacts";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerBody,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
+
 // ─── TYPES & INTERFACES ────────────────────────────────────────────────────────
 interface PPOBClientProps {
   memberData: {
@@ -125,13 +139,22 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
   // Contact Picker support state
   const [isContactSupported, setIsContactSupported] = useState(false);
 
+  // Native Contacts states
+  const [contactsList, setContactsList] = useState<any[]>([]);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [searchContactQuery, setSearchContactQuery] = useState("");
+  const [activeContactTarget, setActiveContactTarget] = useState<"pulsa" | "ewallet">("pulsa");
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+
   useEffect(() => {
-    if (typeof window !== "undefined" && (navigator as any).contacts && (navigator as any).contacts.select) {
-      setIsContactSupported(true);
+    if (typeof window !== "undefined") {
+      if (Capacitor.isNativePlatform() || ((navigator as any).contacts && (navigator as any).contacts.select)) {
+        setIsContactSupported(true);
+      }
     }
   }, []);
 
-  // Helper function to pick contact using Web Contact Picker API
+  // Helper function to pick contact using Web Contact Picker API (Fallback)
   const handlePickContact = async (): Promise<string | null> => {
     try {
       const opts = { multiple: false };
@@ -147,10 +170,92 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
         return cleanNumber;
       }
     } catch (error) {
-      console.error("Gagal memilih kontak:", error);
+      console.error("Gagal memilih kontak web:", error);
     }
     return null;
   };
+
+  // Open contact picker (native drawer or web picker fallback)
+  const handleOpenContactPicker = async (target: "pulsa" | "ewallet") => {
+    setActiveContactTarget(target);
+    setSearchContactQuery("");
+
+    if (!Capacitor.isNativePlatform()) {
+      // Fallback ke browser web picker API
+      const num = await handlePickContact();
+      if (num) {
+        if (target === "pulsa") {
+          setPhoneNumber(num);
+        } else {
+          setWalletPhoneNo(num);
+        }
+      }
+      return;
+    }
+
+    // Menggunakan plugin Native Capacitor
+    setIsLoadingContacts(true);
+    setIsContactModalOpen(true);
+    try {
+      const permissionStatus = await Contacts.requestPermissions();
+      if (permissionStatus.contacts === "granted") {
+        const result = await Contacts.getContacts({
+          projection: {
+            name: true,
+            phones: true,
+          },
+        });
+        
+        // Bersihkan data dan urutkan
+        const list = (result.contacts || [])
+          .filter((c) => {
+            const displayName = c.name?.display || "";
+            const hasPhone = c.phones && c.phones.length > 0 && c.phones.some((p) => p.number);
+            return displayName.trim() !== "" && hasPhone;
+          })
+          .sort((a, b) => {
+            const nameA = (a.name?.display || "").toLowerCase();
+            const nameB = (b.name?.display || "").toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        
+        setContactsList(list);
+      } else {
+        toast.error("Izin akses kontak ditolak. Silakan berikan izin di pengaturan Android Anda.");
+        setIsContactModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Gagal memproses kontak native:", error);
+      toast.error("Gagal membuka kontak perangkat");
+      setIsContactModalOpen(false);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  };
+
+  const handleSelectContactNumber = (rawNumber: string) => {
+    const cleanNumber = rawNumber.replace(/[^0-9]/g, "");
+    let finalNumber = cleanNumber;
+    if (finalNumber.startsWith("62")) {
+      finalNumber = "0" + finalNumber.slice(2);
+    }
+
+    if (activeContactTarget === "pulsa") {
+      setPhoneNumber(finalNumber);
+    } else {
+      setWalletPhoneNo(finalNumber);
+    }
+    setIsContactModalOpen(false);
+    toast.success("Kontak disalin");
+  };
+
+  // Computed filtered contacts
+  const filteredContacts = contactsList.filter((c) => {
+    const name = (c.name?.display || "").toLowerCase();
+    const query = searchContactQuery.toLowerCase();
+    const hasMatchingPhone = c.phones?.some((p: any) => (p.number || "").replace(/[^0-9]/g, "").includes(query));
+    return name.includes(query) || hasMatchingPhone;
+  });
 
   // Pulsa state
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -555,10 +660,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                         {isContactSupported && (
                           <button
                             type="button"
-                            onClick={async () => {
-                              const num = await handlePickContact();
-                              if (num) setPhoneNumber(num);
-                            }}
+                            onClick={() => handleOpenContactPicker("pulsa")}
                             className="flex items-center gap-1.5 text-xs font-bold text-[#0f4c3a] dark:text-emerald-450 hover:underline cursor-pointer"
                           >
                             <Contact className="h-3.5 w-3.5" />
@@ -809,10 +911,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                         {isContactSupported && (
                           <button
                             type="button"
-                            onClick={async () => {
-                              const num = await handlePickContact();
-                              if (num) setWalletPhoneNo(num);
-                            }}
+                            onClick={() => handleOpenContactPicker("ewallet")}
                             className="flex items-center gap-1.5 text-xs font-bold text-[#0f4c3a] dark:text-emerald-450 hover:underline cursor-pointer"
                           >
                             <Contact className="h-3.5 w-3.5" />
@@ -1264,6 +1363,104 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Drawer Pilihan Kontak Telepon */}
+      <Drawer open={isContactModalOpen} onOpenChange={setIsContactModalOpen}>
+        <DrawerContent className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Contact className="h-5 w-5 text-emerald-600 dark:text-emerald-450" />
+              Pilih dari Kontak Telepon
+            </DrawerTitle>
+            <DrawerDescription className="text-slate-500 dark:text-slate-400 text-xs">
+              Pilih kontak telepon Anda untuk mengisi nomor tujuan transaksi dengan cepat.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          {/* Search bar */}
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Cari nama atau nomor telepon..."
+                value={searchContactQuery}
+                onChange={(e) => setSearchContactQuery(e.target.value)}
+                className="pl-9 pr-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-lg text-sm focus-visible:ring-emerald-500 text-slate-800 dark:text-slate-200"
+              />
+              {searchContactQuery && (
+                <button
+                  onClick={() => setSearchContactQuery("")}
+                  className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          <DrawerBody className="max-h-[50vh] overflow-y-auto min-h-[200px] px-4">
+            {isLoadingContacts ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-emerald-650 dark:text-emerald-400" />
+                <p className="text-xs">Sedang memuat daftar kontak...</p>
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400 gap-2">
+                <Search className="h-8 w-8 stroke-1 text-slate-300 dark:text-slate-600" />
+                <p className="text-sm font-semibold">Kontak tidak ditemukan</p>
+                <p className="text-xs text-center">Pastikan kata kunci pencarian Anda benar atau izin kontak aktif.</p>
+              </div>
+            ) : (
+              <div className="space-y-1 divide-y divide-slate-100 dark:divide-slate-850">
+                {filteredContacts.map((contact) => {
+                  const name = contact.name?.display || "Tanpa Nama";
+                  const phones = contact.phones || [];
+                  const initials = name.charAt(0).toUpperCase();
+
+                  return (
+                    <div key={contact.contactId} className="py-2.5 flex items-start gap-3 border-b border-slate-100 dark:border-slate-850/50 last:border-b-0">
+                      {/* Avatar Bubble */}
+                      <div className="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-900/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold text-sm flex-shrink-0">
+                        {initials}
+                      </div>
+
+                      {/* Info & Number Button */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">{name}</h4>
+                        <div className="mt-1 space-y-1">
+                          {phones.map((phone: any, idx: number) => {
+                            const num = phone.number || "";
+                            if (!num) return null;
+                            const label = phone.label ? ` (${phone.label})` : "";
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => handleSelectContactNumber(num)}
+                                className="w-full text-left px-2.5 py-1.5 rounded bg-white dark:bg-slate-950 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-150 dark:border-slate-850 flex items-center justify-between text-xs text-slate-600 dark:text-slate-350 transition-all cursor-pointer group"
+                              >
+                                <span className="font-mono group-hover:text-emerald-700 dark:group-hover:text-emerald-400">{num}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-medium">{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </DrawerBody>
+
+          <DrawerFooter className="border-t border-slate-200 dark:border-slate-800 pt-3 flex flex-row justify-end">
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full sm:w-auto text-xs py-1.5 h-8">
+                Batal
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
