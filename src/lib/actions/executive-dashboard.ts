@@ -276,11 +276,11 @@ async function getMembershipStats(): Promise<MembershipStats> {
       }),
       prisma.$queryRaw`
         SELECT
-          DATE_FORMAT(created_at, '%Y-%m') AS month,
-          COUNT(*) AS new_members
+          to_char(created_at, 'YYYY-MM') AS month,
+          COUNT(*)::integer AS new_members
         FROM members
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        WHERE created_at >= NOW() - INTERVAL '12 months'
+        GROUP BY to_char(created_at, 'YYYY-MM')
         ORDER BY month ASC
       `,
     ])
@@ -314,50 +314,50 @@ async function getCashFlowMonthly(): Promise<CashFlowPoint[]> {
   try {
     const cashFlowRaw = await prisma.$queryRaw`
       SELECT
-        DATE_FORMAT(bulan, '%Y-%m') AS month,
+        SUBSTR(bulan, 1, 7)         AS month,
         SUM(pemasukan)              AS pemasukan,
         SUM(pengeluaran)            AS pengeluaran
       FROM (
-        SELECT DATE_FORMAT(paid_at, '%Y-%m-01') AS bulan,
+        SELECT to_char(paid_at, 'YYYY-MM-01') AS bulan,
                SUM(principal_paid + interest_paid + COALESCE(penalty_paid, 0)) AS pemasukan,
                0 AS pengeluaran
         FROM loan_schedules
         WHERE paid_at IS NOT NULL
-          AND paid_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(paid_at, '%Y-%m-01')
+          AND paid_at >= NOW() - INTERVAL '12 months'
+        GROUP BY to_char(paid_at, 'YYYY-MM-01')
 
         UNION ALL
 
-        SELECT DATE_FORMAT(transaction_at, '%Y-%m-01') AS bulan,
+        SELECT to_char(transaction_at, 'YYYY-MM-01') AS bulan,
                SUM(amount) AS pemasukan,
                0 AS pengeluaran
         FROM saving_transactions
         WHERE type = 'deposit'
-          AND transaction_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(transaction_at, '%Y-%m-01')
+          AND transaction_at >= NOW() - INTERVAL '12 months'
+        GROUP BY to_char(transaction_at, 'YYYY-MM-01')
 
         UNION ALL
 
-        SELECT DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-01') AS bulan,
+        SELECT to_char(COALESCE(paid_at, ordered_at), 'YYYY-MM-01') AS bulan,
                SUM(grand_total) AS pemasukan,
                0 AS pengeluaran
         FROM orders
         WHERE payment_status = 'paid'
           AND payment_method != 'paylater'
-          AND COALESCE(paid_at, ordered_at) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-01')
+          AND COALESCE(paid_at, ordered_at) >= NOW() - INTERVAL '12 months'
+        GROUP BY to_char(COALESCE(paid_at, ordered_at), 'YYYY-MM-01')
 
         UNION ALL
 
-        SELECT DATE_FORMAT(disbursed_at, '%Y-%m-01') AS bulan,
+        SELECT to_char(disbursed_at, 'YYYY-MM-01') AS bulan,
                0 AS pemasukan,
                SUM(principal) AS pengeluaran
         FROM loans
         WHERE disbursed_at IS NOT NULL
-          AND disbursed_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(disbursed_at, '%Y-%m-01')
+          AND disbursed_at >= NOW() - INTERVAL '12 months'
+        GROUP BY to_char(disbursed_at, 'YYYY-MM-01')
       ) t
-      GROUP BY DATE_FORMAT(bulan, '%Y-%m')
+      GROUP BY SUBSTR(bulan, 1, 7)
       ORDER BY month ASC
     `
 

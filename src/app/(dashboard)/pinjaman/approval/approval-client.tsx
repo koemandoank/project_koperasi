@@ -156,9 +156,16 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
                     <User className="h-3 w-3" /> NIK: {app.member_nik}
                   </p>
                 </div>
-                <Badge className={`${status.className} shrink-0 text-xs border`}>
-                  {status.label}
-                </Badge>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <Badge className={`${status.className} text-xs border`}>
+                    {status.label}
+                  </Badge>
+                  {app.status === "approved" && app.queue_number && (
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 text-emerald-700 dark:text-emerald-450 whitespace-nowrap">
+                      Antrean #{app.queue_number}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Rule Violations Alert Box */}

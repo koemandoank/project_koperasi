@@ -102,6 +102,14 @@ export async function getMyPinjaman() {
       orderBy: { ordered_at: "desc" }
     })
 
+    // Fetch all approved applications to calculate dynamic queue numbers
+    const approvedApps = await prisma.loan_applications.findMany({
+      where: { status: "approved" },
+      orderBy: { approved_at: "asc" },
+      select: { id: true }
+    })
+    const approvedIds = approvedApps.map((a: any) => Number(a.id))
+
     return {
       member_name: member.full_name,
       member_id: Number(member.id),
@@ -157,6 +165,7 @@ export async function getMyPinjaman() {
           submitted_at: a.submitted_at?.toISOString() || null,
           rule_violations: violations,
           rejection_note: a.rejection_note,
+          queue_number: a.status === "approved" ? approvedIds.indexOf(Number(a.id)) + 1 : null,
         };
       }))
     }

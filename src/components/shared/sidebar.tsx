@@ -10,7 +10,7 @@ import {
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
   Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
   ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck, CalendarCheck,
-  Smartphone
+  Smartphone, Server
 } from "lucide-react"
 
 
@@ -148,6 +148,7 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/pengaturan/dashboard-anggota", label: "Dashboard Anggota", icon: LayoutDashboard },
       { href: "/pengaturan/kop-surat", label: "Kop & TTD Laporan", icon: Printer },
       { href: "/pengaturan/ppob", label: "Pengaturan PPOB", icon: CreditCard },
+      { href: "/pengaturan/cache", label: "Manajemen Cache", icon: Server },
       { href: "/pengaturan", label: "Pengaturan Umum", icon: Settings },
     ],
   },
@@ -204,6 +205,7 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
   "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
   "/pengaturan/ppob":             ["superadmin", "admin", "pengurus"],
+  "/pengaturan/cache":            ["superadmin", "admin"],
   "/pengaturan":                  ["superadmin", "admin"],
 }
 

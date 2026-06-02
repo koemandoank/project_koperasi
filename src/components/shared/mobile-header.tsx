@@ -60,6 +60,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/pengaturan/promosi":      "Promosi",
   "/pengaturan/dashboard-anggota": "Dashboard Anggota",
   "/pengaturan/kop-surat":    "Kop & TTD Laporan",
+  "/pengaturan/cache":        "Manajemen Cache",
   "/pengaturan":              "Pengaturan",
   "/profil":                  "Profil Saya",
   "/log":                     "Log Aktivitas",

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/actions/log-audit";
+import { remember, deleteCache } from "@/lib/cache";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // READ
@@ -14,34 +15,36 @@ import { logAudit } from "@/lib/actions/log-audit";
  * @throws {Error} Jika terjadi kegagalan saat membaca database
  */
 export async function getMembers() {
-  try {
-    const members = await prisma.member.findMany({
-      include: {
-        users: true,
-        units: true,
-      },
-      orderBy: { created_at: "desc" },
-    });
+  return remember("members:all", 600, async () => {
+    try {
+      const members = await prisma.member.findMany({
+        include: {
+          users: true,
+          units: true,
+        },
+        orderBy: { created_at: "desc" },
+      });
 
-    return members.map((m: any) => ({
-      id: Number(m.id),
-      member_code: m.member_code,
-      nik: m.nik,
-      full_name: m.full_name,
-      email: m.email,
-      phone: m.phone,
-      status: m.status,
-      unit_id: Number(m.unit_id),
-      unit_name: m.units?.name || "-",
-      unit_code: m.units?.code || "-",
-      role: m.users?.role || "anggota",
-      user_id: m.users ? Number(m.users.id) : null,
-      photo_path: m.photo_path,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch members:", error);
-    return [];
-  }
+      return members.map((m: any) => ({
+        id: Number(m.id),
+        member_code: m.member_code,
+        nik: m.nik,
+        full_name: m.full_name,
+        email: m.email,
+        phone: m.phone,
+        status: m.status,
+        unit_id: Number(m.unit_id),
+        unit_name: m.units?.name || "-",
+        unit_code: m.units?.code || "-",
+        role: m.users?.role || "anggota",
+        user_id: m.users ? Number(m.users.id) : null,
+        photo_path: m.photo_path,
+      }));
+    } catch (error) {
+      console.error("Failed to fetch members:", error);
+      return [];
+    }
+  });
 }
 
 export async function getUnits() {
@@ -192,6 +195,7 @@ export async function createMember(data: any) {
       },
     });
 
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error: any) {
@@ -290,6 +294,7 @@ export async function updateMember(id: number, data: any) {
       },
     });
 
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error: any) {
@@ -333,6 +338,7 @@ export async function deleteMember(memberId: number) {
       },
     });
 
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error) {

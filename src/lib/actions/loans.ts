@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { logAudit } from "@/lib/actions/log-audit";
 import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { deleteCache } from "@/lib/cache";
 import { z } from "zod";
 
 /** Check if a loan application violates any of the active loan rules */
@@ -141,6 +142,14 @@ export async function getLoanApplications(statusFilter?: string) {
       orderBy: { created_at: "desc" }
     });
 
+    // Fetch all approved applications to calculate dynamic queue numbers
+    const approvedApps = await prisma.loan_applications.findMany({
+      where: { status: "approved" },
+      orderBy: { approved_at: "asc" },
+      select: { id: true }
+    });
+    const approvedIds = approvedApps.map((a: any) => Number(a.id));
+
     const result = await Promise.all(
       apps.map(async (a: any) => {
         const violations = a.status === "pending"
@@ -161,6 +170,7 @@ export async function getLoanApplications(statusFilter?: string) {
           submitted_at: a.submitted_at?.toISOString() || null,
           created_at: a.created_at?.toISOString() || null,
           rule_violations: violations,
+          queue_number: a.status === "approved" ? approvedIds.indexOf(Number(a.id)) + 1 : null,
         };
       })
     );
@@ -312,6 +322,7 @@ export async function updateLoanStatus(
       },
     });
 
+    await deleteCache(["stats:admin", "stats:kredit", "stats:koperasi"]);
     return { success: true };
   } catch (error) {
     console.error("updateLoanStatus error:", error);
@@ -457,6 +468,7 @@ export async function submitLoanApplication(data: {
         },
       });
 
+      await deleteCache(["stats:admin", "stats:kredit"]);
       return { success: false, error: ruleViolationError };
     }
 
@@ -493,6 +505,7 @@ export async function submitLoanApplication(data: {
         },
       });
 
+      await deleteCache(["stats:admin", "stats:kredit"]);
       return { success: true };
     } catch (error) {
       console.error("submitLoanApplication error:", error);

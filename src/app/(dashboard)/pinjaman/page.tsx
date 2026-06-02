@@ -168,6 +168,11 @@ export default async function PinjamanPage() {
                     </div>
                     <div className="text-right">
                       <Badge className={STATUS_MAP[a.status]?.cls}>{STATUS_MAP[a.status]?.label}</Badge>
+                      {a.status === "approved" && a.queue_number && (
+                        <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-450 mt-1">
+                          Antrean #{a.queue_number}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('id-ID') : "-"}
                       </p>

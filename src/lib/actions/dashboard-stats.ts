@@ -1,10 +1,12 @@
 "use server"
 
 import { prisma } from "@/lib/db/prisma"
+import { remember } from "@/lib/cache"
 
 // Role 1: ADMINISTRATOR / PENGURUS
 export async function getAdminStats() {
-  try {
+  return remember("stats:admin", 300, async () => {
+    try {
     const totalMembers = await prisma.member.count()
     const activeMembers = await prisma.member.count({ where: { status: "active" } })
     const now = new Date()
@@ -95,15 +97,17 @@ export async function getAdminStats() {
       })).reverse(),
       restockAlerts: restockAlerts.map((p: any) => ({ ...p, id: Number(p.id) }))
     }
-  } catch (error) {
-    console.error("getAdminStats error:", error)
-    return null
-  }
+    } catch (error) {
+      console.error("getAdminStats error:", error)
+      return null
+    }
+  })
 }
 
 // Role 2: ADMIN KREDIT
 export async function getKreditStats() {
-  try {
+  return remember("stats:kredit", 300, async () => {
+    try {
     const activeLoans = await prisma.loans.aggregate({
       _sum: { outstanding_principal: true },
       where: { status: "active" }
@@ -150,15 +154,17 @@ export async function getKreditStats() {
       pendingApplications,
       savingsGrowth: Number(savingsGrowth._sum.amount || 0)
     }
-  } catch (error) {
-    console.error("getKreditStats error:", error)
-    return null
-  }
+    } catch (error) {
+      console.error("getKreditStats error:", error)
+      return null
+    }
+  })
 }
 
 // Role 3: KASIR / ADMIN TOKO
 export async function getKasirStats() {
-  try {
+  return remember("stats:kasir", 60, async () => {
+    try {
     const today = new Date()
     today.setHours(0,0,0,0)
     const tomorrow = new Date(today)
@@ -261,8 +267,9 @@ export async function getKasirStats() {
         revenue: Number(p._sum.subtotal || 0)
       }))
     }
-  } catch (error) {
-    console.error("getKasirStats error:", error)
-    return null
-  }
+    } catch (error) {
+      console.error("getKasirStats error:", error)
+      return null
+    }
+  })
 }

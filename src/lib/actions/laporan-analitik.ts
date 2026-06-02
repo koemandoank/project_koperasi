@@ -118,31 +118,31 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
       //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
       prisma.$queryRaw`
         SELECT 
-          \`do\`.date,
-          \`do\`.omzet,
-          COALESCE(\`dc\`.cogs, 0) AS cogs
+          do.date,
+          do.omzet,
+          COALESCE(dc.cogs, 0) AS cogs
         FROM (
           SELECT 
-            DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS date,
+            to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD') AS date,
             SUM(o.grand_total) AS omzet
           FROM orders o
           WHERE o.payment_status = 'paid'
             AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
             AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
-          GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
-        ) \`do\`
+          GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
+        ) do
         LEFT JOIN (
           SELECT 
-            DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d') AS date,
+            to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD') AS date,
             SUM(oi.qty * oi.purchase_price) AS cogs
           FROM orders o
           INNER JOIN order_items oi ON oi.order_id = o.id
           WHERE o.payment_status = 'paid'
             AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
             AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
-          GROUP BY DATE_FORMAT(COALESCE(o.paid_at, o.ordered_at), '%Y-%m-%d')
-        ) \`dc\` ON \`do\`.date = \`dc\`.date
-        ORDER BY \`do\`.date
+          GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
+        ) dc ON do.date = dc.date
+        ORDER BY do.date
       `,
 
       // 6. Fetch ALL sold items to compute exact COGS summary (no limit)

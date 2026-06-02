@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { logAudit } from "@/lib/actions/log-audit";
+import { deleteCache } from "@/lib/cache";
 
 import { z } from "zod";
 
@@ -173,6 +174,7 @@ export async function processPosCheckout(data: {
       }
     });
 
+    await deleteCache(["products:all", "stats:kasir", "stats:admin"]);
     revalidatePath("/toko/produk");
     revalidatePath("/dashboard");
 

@@ -64,12 +64,12 @@ export async function createPromotion(
   try {
     await prisma.$executeRawUnsafe(
       `INSERT INTO promotions (title, description, image_url, link_url, is_active, sort_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
       data.title,
       data.description ?? null,
       data.image_url,
       data.link_url ?? null,
-      data.is_active ? 1 : 0,
+      data.is_active,
       data.sort_order
     );
 
@@ -108,25 +108,26 @@ export async function updatePromotion(
   try {
     const fields: string[] = [];
     const values: any[] = [];
+    let paramIndex = 1;
 
-    if (data.title !== undefined)       { fields.push("title = ?");       values.push(data.title); }
-    if (data.description !== undefined) { fields.push("description = ?"); values.push(data.description); }
-    if (data.image_url !== undefined)   { fields.push("image_url = ?");   values.push(data.image_url); }
-    if (data.link_url !== undefined)    { fields.push("link_url = ?");    values.push(data.link_url); }
-    if (data.is_active !== undefined)   { fields.push("is_active = ?");   values.push(data.is_active ? 1 : 0); }
-    if (data.sort_order !== undefined)  { fields.push("sort_order = ?");  values.push(data.sort_order); }
+    if (data.title !== undefined)       { fields.push(`title = $${paramIndex++}`);       values.push(data.title); }
+    if (data.description !== undefined) { fields.push(`description = $${paramIndex++}`); values.push(data.description); }
+    if (data.image_url !== undefined)   { fields.push(`image_url = $${paramIndex++}`);   values.push(data.image_url); }
+    if (data.link_url !== undefined)    { fields.push(`link_url = $${paramIndex++}`);    values.push(data.link_url); }
+    if (data.is_active !== undefined)   { fields.push(`is_active = $${paramIndex++}`);   values.push(data.is_active); }
+    if (data.sort_order !== undefined)  { fields.push(`sort_order = $${paramIndex++}`);  values.push(data.sort_order); }
     fields.push("updated_at = NOW()");
 
     if (fields.length === 1) return null; // tidak ada yang diupdate
 
     values.push(id);
     await prisma.$executeRawUnsafe(
-      `UPDATE promotions SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE promotions SET ${fields.join(", ")} WHERE id = $${paramIndex}`,
       ...values
     );
 
     const rows = await prisma.$queryRawUnsafe(
-      "SELECT * FROM promotions WHERE id = ? LIMIT 1", id
+      "SELECT * FROM promotions WHERE id = $1 LIMIT 1", id
     ) as any[];
     const promotion = mapRow(rows[0]);
 
@@ -154,7 +155,7 @@ export async function updatePromotion(
  */
 export async function deletePromotion(id: number): Promise<boolean> {
   try {
-    await prisma.$executeRawUnsafe("DELETE FROM promotions WHERE id = ?", id);
+    await prisma.$executeRawUnsafe("DELETE FROM promotions WHERE id = $1", id);
 
     await logAudit({
       action: "DELETE",

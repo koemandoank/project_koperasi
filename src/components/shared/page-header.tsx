@@ -6,7 +6,7 @@ import {
   Lock, Unlock, Settings, Store, Package, ClipboardCheck,
   BookOpen, ShoppingBag, Inbox, Truck, Megaphone,
   Building2, Banknote, Receipt, ShieldAlert, Clock,
-  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, User, Printer
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, User, Printer, Server
 } from "lucide-react"
 
 // ─────────────────────────────────────────────────────────
@@ -74,6 +74,7 @@ const ROUTE_MAP: Array<{
   { match: "/pengaturan/promosi",                  label: "Promosi",                    Icon: Megaphone,       color: "text-pink-600" },
   { match: "/pengaturan/dashboard-anggota",        label: "Dashboard Anggota",          Icon: LayoutDashboard, color: "text-indigo-600" },
   { match: "/pengaturan/kop-surat",                label: "Kop & TTD Laporan",          Icon: Printer,         color: "text-blue-600" },
+  { match: "/pengaturan/cache",                    label: "Manajemen Cache",            Icon: Server,          color: "text-emerald-600" },
   { match: "/pengaturan",                          label: "Pengaturan Umum",            Icon: Settings,        color: "text-slate-600" },
 ]
 

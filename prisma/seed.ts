@@ -340,7 +340,7 @@ async function main() {
   console.log('🚀 Mempersiapkan tabel promosi jika belum ada...');
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS promotions (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      id BIGSERIAL PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT NULL,
       image_url VARCHAR(255) NOT NULL,
@@ -348,9 +348,8 @@ async function main() {
       is_active BOOLEAN NOT NULL DEFAULT true,
       sort_order INT NOT NULL DEFAULT 0,
       created_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id)
-    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      updated_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   console.log('🚀 Menambahkan 4 data promosi dummy...');
@@ -392,36 +391,36 @@ async function main() {
   for (const promo of promotionsData) {
     try {
       const existing = await prisma.$queryRawUnsafe<any[]>(
-        "SELECT id FROM promotions WHERE title = ? LIMIT 1",
+        "SELECT id FROM promotions WHERE title = $1 LIMIT 1",
         promo.title
       );
 
       if (existing.length === 0) {
         await prisma.$executeRawUnsafe(
           `INSERT INTO promotions (title, description, image_url, link_url, is_active, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
           promo.title,
           promo.description,
           promo.image_url,
           promo.link_url,
-          promo.is_active,
+          promo.is_active === 1,
           promo.sort_order
         );
         console.log(`✅ Ditambahkan promosi: ${promo.title}`);
       } else {
         await prisma.$executeRawUnsafe(
-          `UPDATE promotions SET description = ?, image_url = ?, link_url = ?, is_active = ?, sort_order = ?, updated_at = NOW() WHERE title = ?`,
+          `UPDATE promotions SET description = $1, image_url = $2, link_url = $3, is_active = $4, sort_order = $5, updated_at = NOW() WHERE title = $6`,
           promo.description,
           promo.image_url,
           promo.link_url,
-          promo.is_active,
+          promo.is_active === 1,
           promo.sort_order,
           promo.title
         );
         console.log(`♻️ Diperbarui promosi: ${promo.title}`);
       }
     } catch (e) {
-      console.warn(`⚠️ Warning seeding promotion '${promo.title}': Table 'promotions' might not exist yet.`);
+      console.warn(`⚠️ Warning seeding promotion '${promo.title}': Table 'promotions' might not exist yet.`, e);
     }
   }
 

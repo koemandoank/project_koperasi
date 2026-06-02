@@ -10,7 +10,7 @@ import {
   FileText, Package, BookOpen, Receipt, ShieldCheck, Truck,
   ClipboardList, Archive, History, UserCog, ScrollText, LogOut,
   ArrowLeftRight, Coins, TrendingUp, Calculator, Landmark,
-  CalendarCheck, Printer, LayoutDashboard,
+  CalendarCheck, Printer, LayoutDashboard, Smartphone,
 } from "lucide-react"
 import { getGlobalFinancialStats } from "@/lib/actions/global-financial-stats"
 
@@ -208,10 +208,11 @@ function MenuShortcutAnggota() {
     { href: "/simpanan",  icon: <Wallet      className="mb-1.5 h-7 w-7 text-blue-600" />,   label: "Simpanan" },
     { href: "/pinjaman",  icon: <CreditCard  className="mb-1.5 h-7 w-7 text-emerald-600" />, label: "Pinjaman" },
     { href: "/toko",      icon: <ShoppingBag className="mb-1.5 h-7 w-7 text-amber-600" />,   label: "Toko" },
+    { href: "/ppob",      icon: <Smartphone  className="mb-1.5 h-7 w-7 text-indigo-600" />,  label: "PPOB" },
     { href: "/profil",    icon: <User        className="mb-1.5 h-7 w-7 text-violet-600" />,  label: "Profil" },
   ]
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-5 gap-1.5">
       {menus.map(({  href, icon, label  }: any) => (
         <Link
           key={href}
@@ -219,7 +220,7 @@ function MenuShortcutAnggota() {
           className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white py-3 px-1 text-center shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950"
         >
           {icon}
-          <span className="text-xs font-semibold">{label}</span>
+          <span className="text-[10px] sm:text-xs font-semibold">{label}</span>
         </Link>
       ))}
     </div>
@@ -312,6 +313,7 @@ function MenuGridPengurus({ role }: { role: string }) {
         { href: "/toko/kasir/sesi",   icon: <Store className="h-6 w-6 text-white" />,      label: "Sesi Kasir" },
         { href: "/toko/produk",       icon: <Package className="h-6 w-6 text-white" />,    label: "Katalog Produk" },
         { href: "/toko/pesanan",      icon: <ShoppingBag className="h-6 w-6 text-white" />, label: "Pesanan Online" },
+        { href: "/ppob",              icon: <Smartphone className="h-6 w-6 text-white" />,  label: "PPOB" },
         { href: "/toko/inventaris",   icon: <Archive className="h-6 w-6 text-white" />,    label: "Inventaris" },
         { href: "/toko/konsinyasi",   icon: <ClipboardList className="h-6 w-6 text-white" />, label: "Konsinyasi" },
         { href: "/pembelian",         icon: <Truck className="h-6 w-6 text-white" />,      label: "Pembelian / PO" },
@@ -442,11 +444,12 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
         {isPengurus ? (
           <MenuGridPengurus role={role} />
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               { href: "/simpanan", icon: <Wallet className="mb-2 h-8 w-8 text-blue-600" />,      label: "Simpanan" },
               { href: "/pinjaman", icon: <CreditCard className="mb-2 h-8 w-8 text-emerald-600" />, label: "Pinjaman" },
               { href: "/toko",     icon: <ShoppingBag className="mb-2 h-8 w-8 text-amber-600" />,  label: "Toko" },
+              { href: "/ppob",     icon: <Smartphone className="mb-2 h-8 w-8 text-indigo-600" />,  label: "PPOB" },
               { href: "/profil",   icon: <User className="mb-2 h-8 w-8 text-violet-600" />,        label: "Profil" },
             ].map(({  href, icon, label  }: any) => (
               <Link key={href} href={href} className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-950">

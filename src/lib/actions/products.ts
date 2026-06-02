@@ -1,55 +1,60 @@
-﻿"use server"
+"use server"
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
 import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { remember, deleteCache } from "@/lib/cache";
 
 /** Role yang boleh memodifikasi katalog produk */
 const PRODUCT_ADMIN_ROLES = ["superadmin", "admin", "pengurus"] as const;
 
 export async function getProducts() {
-  try {
-    const products = await prisma.products.findMany({
-      include: {
-        product_categories: true,
-        units: true
-      },
-      orderBy: { created_at: "desc" }
-    });
+  return remember("products:all", 3600, async () => {
+    try {
+      const products = await prisma.products.findMany({
+        include: {
+          product_categories: true,
+          units: true
+        },
+        orderBy: { created_at: "desc" }
+      });
 
-    return products.map((p: any) => ({
-      id: Number(p.id),
-      sku: p.sku,
-      name: p.name,
-      purchase_price: Number(p.purchase_price),
-      price: Number(p.price),
-      member_price: p.member_price ? Number(p.member_price) : null,
-      stock: p.stock,
-      min_stock: p.min_stock ?? 0,
-      unit_measure: p.unit_measure,
-      category_id: Number(p.category_id),
-      category_name: p.product_categories?.name || "-",
-      unit_id: Number(p.unit_id),
-      unit_name: p.units?.name || "-",
-      is_active: p.is_active,
-      image_path: p.image_path || null,
-    }));
-  } catch (error) {
-    console.error("Get products error:", error);
-    return [];
-  }
+      return products.map((p: any) => ({
+        id: Number(p.id),
+        sku: p.sku,
+        name: p.name,
+        purchase_price: Number(p.purchase_price),
+        price: Number(p.price),
+        member_price: p.member_price ? Number(p.member_price) : null,
+        stock: p.stock,
+        min_stock: p.min_stock ?? 0,
+        unit_measure: p.unit_measure,
+        category_id: Number(p.category_id),
+        category_name: p.product_categories?.name || "-",
+        unit_id: Number(p.unit_id),
+        unit_name: p.units?.name || "-",
+        is_active: p.is_active,
+        image_path: p.image_path || null,
+      }));
+    } catch (error) {
+      console.error("Get products error:", error);
+      return [];
+    }
+  });
 }
 
 export async function getCategories() {
-  try {
-    const categories = await prisma.product_categories.findMany({
-      where: { is_active: true }
-    });
-    return categories.map((c: any) => ({ id: Number(c.id), name: c.name }));
-  } catch {
-    return [];
-  }
+  return remember("products:categories", 3600, async () => {
+    try {
+      const categories = await prisma.product_categories.findMany({
+        where: { is_active: true }
+      });
+      return categories.map((c: any) => ({ id: Number(c.id), name: c.name }));
+    } catch {
+      return [];
+    }
+  });
 }
 
 export async function createProduct(data: any) {
@@ -84,6 +89,7 @@ export async function createProduct(data: any) {
       newValues: { sku, name: data.name, price: data.price, purchase_price: data.purchase_price, stock: parseInt(data.stock) || 0 },
     });
 
+    await deleteCache(["products:all", "products:categories", "stats:admin", "stats:kasir"]);
     revalidatePath("/toko/produk");
     return { success: true };
   } catch (error: any) {
@@ -125,6 +131,7 @@ export async function updateProduct(id: number, data: any) {
       newValues: { sku: data.sku, name: data.name, price: data.price, purchase_price: data.purchase_price, stock: parseInt(data.stock) || 0 },
     });
 
+    await deleteCache(["products:all", "products:categories", "stats:admin", "stats:kasir"]);
     revalidatePath("/toko/produk");
     return { success: true };
   } catch (error) {
@@ -150,6 +157,7 @@ export async function deleteProduct(id: number) {
       oldValues: old ? { sku: old.sku, name: old.name, price: Number(old.price), stock: old.stock } : null,
     });
 
+    await deleteCache(["products:all", "products:categories", "stats:admin", "stats:kasir"]);
     revalidatePath("/toko/produk");
     return { success: true };
   } catch (error) {
