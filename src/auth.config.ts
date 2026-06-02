@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 
-const IDLE_TIMEOUT_SECONDS = 60 * 60; // 1 jam dalam detik
+const IDLE_TIMEOUT_SECONDS = 30 * 24 * 60 * 60; // 30 hari dalam detik
 
 // Route access map per role
 const ROLE_ROUTES: Record<string, string[]> = {
