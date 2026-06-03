@@ -118,8 +118,8 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
       //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
       prisma.$queryRaw`
         SELECT 
-          do.date,
-          do.omzet,
+          dom.date,
+          dom.omzet,
           COALESCE(dc.cogs, 0) AS cogs
         FROM (
           SELECT 
@@ -130,7 +130,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
             AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
             AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
           GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
-        ) do
+        ) dom
         LEFT JOIN (
           SELECT 
             to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD') AS date,
@@ -141,8 +141,8 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
             AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
             AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
           GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
-        ) dc ON do.date = dc.date
-        ORDER BY do.date
+        ) dc ON dom.date = dc.date
+        ORDER BY dom.date
       `,
 
       // 6. Fetch ALL sold items to compute exact COGS summary (no limit)
