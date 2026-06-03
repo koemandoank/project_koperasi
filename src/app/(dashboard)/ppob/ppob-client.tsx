@@ -21,7 +21,9 @@ import {
   Info,
   ShieldCheck,
   Loader2,
-  Contact
+  Contact,
+  Star,
+  Trash2
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +31,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { executePpobTransactionPaylater } from "@/lib/actions/ppob-settings";
+import { 
+  executePpobTransactionPaylater,
+  getPpobFavorites,
+  addPpobFavorite,
+  deletePpobFavorite
+} from "@/lib/actions/ppob-settings";
 
 // Capacitor & Native Contacts
 import { Capacitor } from "@capacitor/core";
@@ -146,12 +153,102 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
   const [activeContactTarget, setActiveContactTarget] = useState<"pulsa" | "ewallet">("pulsa");
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
 
+  // PPOB Favorites states
+  const [favoritesList, setFavoritesList] = useState<any[]>([]);
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [favoriteLabelInput, setFavoriteLabelInput] = useState("");
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
+
+  const fetchFavorites = async () => {
+    try {
+      const res = await getPpobFavorites();
+      if (res.success && res.favorites) {
+        setFavoritesList(res.favorites);
+      }
+    } catch (e) {
+      console.error("Failed to load favorites", e);
+    }
+  };
+
+  const handleSelectFavorite = (num: string) => {
+    if (activeCategory === "pulsa") {
+      setPhoneNumber(num);
+    } else if (activeCategory === "pln") {
+      setMeterNo(num);
+    } else if (activeCategory === "ewallet") {
+      setWalletPhoneNo(num);
+    } else if (activeCategory === "tagihan") {
+      setBillingNo(num);
+    }
+    toast.success("Nomor favorit dipilih");
+  };
+
+  const handleSaveFavorite = async () => {
+    let customerNo = "";
+    let productType = "";
+    
+    if (activeCategory === "pulsa") {
+      customerNo = phoneNumber;
+      productType = pulsaSubtype === "pulsa" ? "pulsa" : "data";
+    } else if (activeCategory === "pln") {
+      customerNo = meterNo;
+      productType = "listrik";
+    } else if (activeCategory === "ewallet") {
+      customerNo = walletPhoneNo;
+      productType = "ewallet";
+    } else if (activeCategory === "tagihan") {
+      customerNo = billingNo;
+      productType = "tagihan";
+    }
+    
+    if (!customerNo || !favoriteLabelInput.trim()) {
+      toast.error("Nomor atau label tidak boleh kosong.");
+      return;
+    }
+    
+    setIsSavingFavorite(true);
+    try {
+      const res = await addPpobFavorite({
+        label: favoriteLabelInput,
+        customerNo,
+        productType
+      });
+      if (res.success) {
+        toast.success(res.message || "Berhasil menyimpan ke favorit");
+        setShowSaveForm(false);
+        setFavoriteLabelInput("");
+        fetchFavorites();
+      } else {
+        toast.error(res.error || "Gagal menyimpan");
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsSavingFavorite(false);
+    }
+  };
+
+  const handleDeleteFavorite = async (id: number) => {
+    try {
+      const res = await deletePpobFavorite(id);
+      if (res.success) {
+        toast.success("Nomor favorit dihapus");
+        fetchFavorites();
+      } else {
+        toast.error(res.error || "Gagal menghapus");
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan sistem");
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (Capacitor.isNativePlatform() || ((navigator as any).contacts && (navigator as any).contacts.select)) {
         setIsContactSupported(true);
       }
     }
+    fetchFavorites();
   }, []);
 
   // Helper function to pick contact using Web Contact Picker API (Fallback)
@@ -490,6 +587,114 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
     });
   };
 
+  const renderFavorites = (category: "pulsa" | "pln" | "ewallet" | "tagihan", currentValue: string) => {
+    const currentFavorites = favoritesList.filter((fav) => {
+      if (category === "pulsa") return fav.product_type === "pulsa" || fav.product_type === "data";
+      if (category === "pln") return fav.product_type === "listrik";
+      if (category === "ewallet") return fav.product_type === "ewallet";
+      if (category === "tagihan") return fav.product_type === "tagihan";
+      return false;
+    });
+
+    const isAlreadySaved = currentFavorites.some((fav) => fav.customer_no === currentValue);
+    const isValidNumber =
+      (category === "pulsa" && currentValue.length >= 9) ||
+      (category === "pln" && currentValue.length >= 9) ||
+      (category === "ewallet" && currentValue.length >= 9) ||
+      (category === "tagihan" && currentValue.length >= 8);
+
+    return (
+      <div className="space-y-2 mt-2">
+        {currentFavorites.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <Star className="h-3 w-3 text-amber-500 fill-amber-500" /> Nomor & Kontak Favorit
+            </span>
+            <div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none scroll-smooth">
+              {currentFavorites.map((fav) => (
+                <div
+                  key={fav.id}
+                  onClick={() => handleSelectFavorite(fav.customer_no)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer shrink-0 select-none ${
+                    currentValue === fav.customer_no
+                      ? "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                      : "bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200/60 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <span>{fav.label}</span>
+                  <span className="opacity-50 text-[10px] font-medium font-mono">{fav.customer_no}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFavorite(fav.id);
+                    }}
+                    className="p-0.5 text-slate-400 hover:text-rose-500 rounded-full transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isValidNumber && !isAlreadySaved && (
+          <div className="flex justify-end">
+            {!showSaveForm ? (
+              <button
+                type="button"
+                onClick={() => setShowSaveForm(true)}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Star className="h-3 w-3" /> Simpan ke Favorit
+              </button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full p-3.5 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800 rounded-2xl space-y-3 mt-1"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="favoriteLabel" className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500">
+                    Label Nomor Favorit
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="favoriteLabel"
+                      type="text"
+                      placeholder="Contoh: HP Ibu, Listrik Kantor"
+                      value={favoriteLabelInput}
+                      onChange={(e) => setFavoriteLabelInput(e.target.value)}
+                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 focus:border-[#0f4c3a] focus:ring-[#0f4c3a]/10 rounded-xl font-bold"
+                    />
+                    <Button
+                      onClick={handleSaveFavorite}
+                      disabled={isSavingFavorite || !favoriteLabelInput.trim()}
+                      className="h-10 px-4 bg-[#0f4c3a] hover:bg-[#15614b] text-white text-xs font-bold rounded-xl shrink-0 cursor-pointer"
+                    >
+                      {isSavingFavorite ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowSaveForm(false);
+                        setFavoriteLabelInput("");
+                      }}
+                      className="h-10 px-3 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer"
+                    >
+                      Batal
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full space-y-6">
       {/* ─── HEADER & WALLET CARD (PAYLATER THEME) ───────────────────────────────── */}
@@ -559,7 +764,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
         {/* Category Side Navigation */}
         <div className="lg:col-span-3 flex flex-col gap-2">
           <button
-            onClick={() => { setActiveCategory("pulsa"); setSelectedProduct(null); }}
+            onClick={() => { setActiveCategory("pulsa"); setSelectedProduct(null); setShowSaveForm(false); setFavoriteLabelInput(""); }}
             className={`flex items-center gap-3.5 w-full text-left px-5 py-4 rounded-2xl font-bold transition-all border ${
               activeCategory === "pulsa"
                 ? "bg-[#0f4c3a] text-white border-[#0f4c3a] shadow-lg shadow-[#0f4c3a]/15"
@@ -577,7 +782,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
           </button>
 
           <button
-            onClick={() => { setActiveCategory("pln"); setSelectedProduct(null); }}
+            onClick={() => { setActiveCategory("pln"); setSelectedProduct(null); setShowSaveForm(false); setFavoriteLabelInput(""); }}
             className={`flex items-center gap-3.5 w-full text-left px-5 py-4 rounded-2xl font-bold transition-all border ${
               activeCategory === "pln"
                 ? "bg-[#0f4c3a] text-white border-[#0f4c3a] shadow-lg shadow-[#0f4c3a]/15"
@@ -595,7 +800,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
           </button>
 
           <button
-            onClick={() => { setActiveCategory("ewallet"); setSelectedProduct(null); }}
+            onClick={() => { setActiveCategory("ewallet"); setSelectedProduct(null); setShowSaveForm(false); setFavoriteLabelInput(""); }}
             className={`flex items-center gap-3.5 w-full text-left px-5 py-4 rounded-2xl font-bold transition-all border ${
               activeCategory === "ewallet"
                 ? "bg-[#0f4c3a] text-white border-[#0f4c3a] shadow-lg shadow-[#0f4c3a]/15"
@@ -613,7 +818,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
           </button>
 
           <button
-            onClick={() => { setActiveCategory("tagihan"); setSelectedProduct(null); }}
+            onClick={() => { setActiveCategory("tagihan"); setSelectedProduct(null); setShowSaveForm(false); setFavoriteLabelInput(""); }}
             className={`flex items-center gap-3.5 w-full text-left px-5 py-4 rounded-2xl font-bold transition-all border ${
               activeCategory === "tagihan"
                 ? "bg-[#0f4c3a] text-white border-[#0f4c3a] shadow-lg shadow-[#0f4c3a]/15"
@@ -684,6 +889,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                           </span>
                         )}
                       </div>
+                      {renderFavorites("pulsa", phoneNumber)}
                     </div>
 
                     {/* Subtype toggle */}
@@ -796,6 +1002,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                           <span>Cek ID</span>
                         </Button>
                       </div>
+                      {renderFavorites("pln", meterNo)}
                     </div>
 
                     {/* Customer display card if found */}
@@ -930,6 +1137,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                           className="pl-12 h-12 bg-white/50 dark:bg-slate-950 border-slate-200 focus:border-[#0f4c3a] focus:ring-[#0f4c3a]/10 rounded-2xl font-bold"
                         />
                       </div>
+                      {renderFavorites("ewallet", walletPhoneNo)}
                     </div>
 
                     {/* Denomination list Grid */}
@@ -1040,6 +1248,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                             className="pl-12 h-12 bg-white/50 dark:bg-slate-950 border-slate-200 focus:border-[#0f4c3a] focus:ring-[#0f4c3a]/10 rounded-2xl font-bold"
                           />
                         </div>
+                        {renderFavorites("tagihan", billingNo)}
                       </div>
                     </div>
 

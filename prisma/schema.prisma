@@ -81,6 +81,7 @@ model Member {
   loyalty_memberships loyalty_memberships[]
   accounts_receivable accounts_receivable[]
   rat_attendances     RatAttendance[]
+  ppob_favorites      ppob_favorites[]
 
   @@index([status, unit_id], map: "members_status_unit_id_index")
   @@index([unit_id], map: "idx_members_unit_id_foreign")
@@ -1784,5 +1785,20 @@ model RatAttendance {
   @@unique([member_id, year], map: "uq_member_year_rat")
   @@index([year], map: "rat_attendance_year_index")
   @@map("rat_attendances")
+}
+
+model ppob_favorites {
+  id              BigInt    @id @default(autoincrement())
+  member_id       BigInt
+  label           String    @db.VarChar(100)
+  customer_no     String    @db.VarChar(100)
+  product_type    String    @db.VarChar(50) // 'pulsa', 'data', 'listrik', 'other', etc.
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @db.Timestamp(0) @updatedAt
+  members         Member    @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ppob_favorites_member_id_foreign")
+
+  @@unique([member_id, customer_no, product_type], map: "uq_member_customer_ppob")
+  @@index([member_id], map: "idx_ppob_favorites_member_id")
+  @@map("ppob_favorites")
 }
 

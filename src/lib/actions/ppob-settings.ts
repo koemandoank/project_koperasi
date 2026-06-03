@@ -223,3 +223,128 @@ export async function executePpobTransactionPaylater(data: {
     return { success: false, error: error?.message || "Gagal memproses transaksi PPOB" };
   }
 }
+
+/**
+ * Fetch favorite PPOB contacts/numbers for the logged-in member.
+ */
+export async function getPpobFavorites(productType?: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(session.user.id) },
+    });
+
+    if (!user?.member_id) {
+      return { success: false, error: "Data anggota tidak ditemukan." };
+    }
+
+    const favorites = await (prisma as any).ppob_favorites.findMany({
+      where: {
+        member_id: user.member_id,
+        ...(productType ? { product_type: productType } : {}),
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    // Serialize BigInt to number/string for client serialization
+    const list = favorites.map((f: any) => ({
+      id: Number(f.id),
+      member_id: Number(f.member_id),
+      label: f.label,
+      customer_no: f.customer_no,
+      product_type: f.product_type,
+      created_at: f.created_at,
+    }));
+
+    return { success: true, favorites: list };
+  } catch (error: any) {
+    console.error("getPpobFavorites error:", error);
+    return { success: false, error: error?.message || "Gagal memuat kontak favorit." };
+  }
+}
+
+/**
+ * Add or update a PPOB favorite contact.
+ */
+export async function addPpobFavorite(data: {
+  label: string;
+  customerNo: string;
+  productType: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(session.user.id) },
+    });
+
+    if (!user?.member_id) {
+      return { success: false, error: "Data anggota tidak ditemukan." };
+    }
+
+    // Check if duplicate exists for this type & number
+    const existing = await (prisma as any).ppob_favorites.findFirst({
+      where: {
+        member_id: user.member_id,
+        customer_no: data.customerNo,
+        product_type: data.productType,
+      },
+    });
+
+    if (existing) {
+      await (prisma as any).ppob_favorites.update({
+        where: { id: existing.id },
+        data: {
+          label: data.label,
+          updated_at: new Date(),
+        },
+      });
+      return { success: true, message: "Label favorit berhasil diperbarui!" };
+    }
+
+    await (prisma as any).ppob_favorites.create({
+      data: {
+        member_id: user.member_id,
+        label: data.label,
+        customer_no: data.customerNo,
+        product_type: data.productType,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    return { success: true, message: "Berhasil menyimpan ke daftar favorit!" };
+  } catch (error: any) {
+    console.error("addPpobFavorite error:", error);
+    return { success: false, error: error?.message || "Gagal menyimpan favorit." };
+  }
+}
+
+/**
+ * Delete a PPOB favorite contact.
+ */
+export async function deletePpobFavorite(id: number) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid." };
+    }
+
+    await (prisma as any).ppob_favorites.delete({
+      where: { id: BigInt(id) },
+    });
+
+    return { success: true, message: "Berhasil menghapus nomor favorit!" };
+  } catch (error: any) {
+    console.error("deletePpobFavorite error:", error);
+    return { success: false, error: error?.message || "Gagal menghapus nomor favorit." };
+  }
+}
+
