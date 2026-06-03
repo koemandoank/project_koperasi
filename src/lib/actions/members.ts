@@ -195,7 +195,7 @@ export async function createMember(data: any) {
       },
     });
 
-    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi", "members:stats"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error: any) {
@@ -294,7 +294,7 @@ export async function updateMember(id: number, data: any) {
       },
     });
 
-    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi", "members:stats"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error: any) {
@@ -338,11 +338,175 @@ export async function deleteMember(memberId: number) {
       },
     });
 
-    await deleteCache(["members:all", "stats:admin", "stats:koperasi"]);
+    await deleteCache(["members:all", "stats:admin", "stats:koperasi", "members:stats"]);
     revalidatePath("/anggota");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete member:", error);
     return { success: false, error: "Gagal menghapus anggota. Pastikan tidak ada transaksi terkait." };
   }
+}
+
+/**
+ * Mengambil statistik anggota, termasuk total anggota, jumlah aktif/tidak aktif,
+ * lokasi anggota terbanyak, lokasi paling aktif (berdasarkan transaksi),
+ * serta 5 riwayat aktivitas transaksi terakhir.
+ */
+export async function getMemberStats() {
+  return remember("members:stats", 300, async () => {
+    try {
+      const totalMembers = await prisma.member.count();
+      const activeMembers = await prisma.member.count({
+        where: { status: "active" },
+      });
+      const inactiveMembers = totalMembers - activeMembers;
+
+      // Top location by member count
+      const memberGroups = await prisma.member.groupBy({
+        by: ["unit_id"],
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: "desc",
+          },
+        },
+        take: 1,
+      });
+
+      let topLocationName = "-";
+      let topLocationCount = 0;
+      if (memberGroups.length > 0) {
+        const topGroupId = memberGroups[0].unit_id;
+        topLocationCount = memberGroups[0]._count.id;
+        const unit = await prisma.unit.findUnique({
+          where: { id: topGroupId },
+        });
+        if (unit) {
+          topLocationName = unit.name;
+        }
+      }
+
+      // Most active location
+      const units = await prisma.unit.findMany({
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      const unitActivities = await Promise.all(
+        units.map(async (unit: any) => {
+          const memberIds = unit.members.map((m: any) => m.id);
+          if (memberIds.length === 0) {
+            return { unitName: unit.name, activityCount: 0 };
+          }
+
+          const orderCount = await prisma.orders.count({
+            where: {
+              member_id: { in: memberIds },
+            },
+          });
+
+          const savingCount = await prisma.saving_transactions.count({
+            where: {
+              member_id: { in: memberIds },
+            },
+          });
+
+          const ppobCount = await prisma.ppob_transactions.count({
+            where: {
+              member_id: { in: memberIds },
+            },
+          });
+
+          return {
+            unitName: unit.name,
+            activityCount: orderCount + savingCount + ppobCount,
+          };
+        })
+      );
+
+      unitActivities.sort((a, b) => b.activityCount - a.activityCount);
+      const mostActiveLocation = unitActivities[0] || { unitName: "-", activityCount: 0 };
+
+      // Recent activities timeline (last 5 saving_transactions + orders)
+      const recentSavings = await prisma.saving_transactions.findMany({
+        take: 5,
+        orderBy: { transaction_at: "desc" },
+        include: {
+          members: {
+            select: {
+              full_name: true,
+              member_code: true,
+            },
+          },
+        },
+      });
+
+      const recentOrders = await prisma.orders.findMany({
+        take: 5,
+        orderBy: { ordered_at: "desc" },
+        include: {
+          members: {
+            select: {
+              full_name: true,
+              member_code: true,
+            },
+          },
+        },
+      });
+
+      const activities = [
+        ...recentSavings.map((s: any) => ({
+          id: `saving-${s.id}`,
+          type: "saving",
+          date: s.transaction_at.toISOString(),
+          amount: Number(s.amount),
+          description: s.type === "deposit" ? "Setoran Simpanan" : "Penarikan Simpanan",
+          memberName: s.members?.full_name || "Umum",
+          memberCode: s.members?.member_code || "-",
+        })),
+        ...recentOrders.map((o: any) => ({
+          id: `order-${o.id}`,
+          type: "pos",
+          date: o.ordered_at.toISOString(),
+          amount: Number(o.grand_total),
+          description: `Belanja POS (${o.payment_method})`,
+          memberName: o.members?.full_name || "Umum",
+          memberCode: o.members?.member_code || "-",
+        })),
+      ];
+
+      activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const recentActivities = activities.slice(0, 5);
+
+      return {
+        totalMembers,
+        activeMembers,
+        inactiveMembers,
+        topLocationName,
+        topLocationCount,
+        mostActiveLocationName: mostActiveLocation.unitName,
+        mostActiveLocationCount: mostActiveLocation.activityCount,
+        recentActivities,
+      };
+    } catch (error) {
+      console.error("Failed to fetch member stats:", error);
+      return {
+        totalMembers: 0,
+        activeMembers: 0,
+        inactiveMembers: 0,
+        topLocationName: "-",
+        topLocationCount: 0,
+        mostActiveLocationName: "-",
+        mostActiveLocationCount: 0,
+        recentActivities: [],
+      };
+    }
+  });
 }

@@ -1,10 +1,11 @@
-import { getMembers, getUnits } from "@/lib/actions/members"
+import { getMembers, getUnits, getMemberStats } from "@/lib/actions/members"
 import { MemberTable } from "./member-table"
 import { MemberForm } from "./member-form"
 
 export default async function AnggotaPage() {
   const members = await getMembers()
   const units = await getUnits()
+  const stats = await getMemberStats()
 
   return (
     <div className="p-6 space-y-6">
@@ -16,7 +17,7 @@ export default async function AnggotaPage() {
         <MemberForm units={units} />
       </div>
       
-      <MemberTable members={members} units={units} />
+      <MemberTable members={members} units={units} stats={stats} />
     </div>
   )
 }
