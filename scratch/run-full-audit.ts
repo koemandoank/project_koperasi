@@ -219,10 +219,11 @@ async function main() {
     where: { status: { in: ["active", "overdue"] } },
     _sum: { outstanding_principal: true }
   })
-  const loanCoa = await prisma.chart_of_accounts.findFirst({ where: { code: "10201" } })
-  if (loanCoa) {
+  const loanCoas = await prisma.chart_of_accounts.findMany({ where: { code: "10201" } })
+  if (loanCoas.length > 0) {
+    const coaIds = loanCoas.map(c => c.id)
     const glSum = await prisma.journal_lines.aggregate({
-      where: { account_id: loanCoa.id },
+      where: { account_id: { in: coaIds } },
       _sum: { debit: true, credit: true }
     })
     const glBalance = Number(glSum._sum.debit ?? 0) - Number(glSum._sum.credit ?? 0)
