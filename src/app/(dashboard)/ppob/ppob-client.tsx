@@ -478,7 +478,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
 
     // Check Paylater limit
     if (activeMember.paylater_available < p.actualPrice) {
-      toast.error("Limit Paylater koperasi Anda tidak mencukupi untuk melakukan transaksi ini.");
+      toast.error("Limit Bayar Tempo koperasi Anda tidak mencukupi untuk melakukan transaksi ini.");
       return;
     }
 
@@ -574,7 +574,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
         activeMember.paylater_available -= selectedProduct.actualPrice;
         activeMember.paylater_spent += selectedProduct.actualPrice;
 
-        toast.success("Transaksi PPOB Paylater berhasil diproses!");
+        toast.success("Transaksi PPOB Bayar Tempo berhasil diproses!");
       } else {
         setTxStatus("failed");
         toast.error(res.error || "Gagal memproses transaksi PPOB.");
@@ -707,7 +707,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
           <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4" /> Limit Paylater Tersedia
+                <CreditCard className="h-4 w-4" /> Limit Bayar Tempo Tersedia
               </p>
               <h2 className="text-3xl font-extrabold mt-1.5 filter drop-shadow-md">
                 Rp {activeMember.paylater_available.toLocaleString("id-ID")}
@@ -733,8 +733,8 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
         {/* Breakdown detail paylater */}
         <Card className="border border-slate-200/60 dark:border-slate-800 shadow-lg rounded-3xl bg-white dark:bg-slate-900 overflow-hidden flex flex-col justify-between">
           <CardHeader className="p-5 pb-3">
-            <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Rincian Paylater Koperasi</CardTitle>
-            <CardDescription className="text-xs">Kelayakan kredit dan pemakaian paylater Anda.</CardDescription>
+            <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Rincian Bayar Tempo Koperasi</CardTitle>
+            <CardDescription className="text-xs">Kelayakan kredit dan pemakaian bayar tempo Anda.</CardDescription>
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-3">
             <div className="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 dark:border-slate-800">
@@ -852,10 +852,10 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                     <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between">
                       <span>Beli Pulsa & Paket Data</span>
                       <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold px-2.5 py-1 rounded-full uppercase">
-                        Mode Paylater Aktif
+                        Mode Bayar Tempo Aktif
                       </span>
                     </CardTitle>
-                    <CardDescription className="text-xs mt-0.5">Isi pulsa dan kuota data secara instan, ditagih ke saldo Paylater Anda bulan depan.</CardDescription>
+                    <CardDescription className="text-xs mt-0.5">Isi pulsa dan kuota data secara instan, ditagih ke saldo Bayar Tempo Anda bulan depan.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
                     {/* Input HP */}
@@ -946,7 +946,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                         disabled={!selectedProduct}
                         className="h-12 px-8 bg-[#0f4c3a] hover:bg-[#15614b] text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        <span>Beli Sekarang (Paylater)</span>
+                        <span>Beli Sekarang (Bayar Tempo)</span>
                         <ArrowRight className="h-4.5 w-4.5" />
                       </Button>
                     </div>
@@ -968,7 +968,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                     <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between">
                       <span>Beli Token Listrik PLN</span>
                       <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold px-2.5 py-1 rounded-full uppercase">
-                        Mode Paylater Aktif
+                        Mode Bayar Tempo Aktif
                       </span>
                     </CardTitle>
                     <CardDescription className="text-xs mt-0.5">Isi ulang daya listrik prabayar Anda kapan saja secara praktis dengan limit paylater koperasi.</CardDescription>
@@ -1061,7 +1061,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                         disabled={!selectedProduct || !plnCustomerName}
                         className="h-12 px-8 bg-[#0f4c3a] hover:bg-[#15614b] text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        <span>Beli Token (Paylater)</span>
+                        <span>Beli Token (Bayar Tempo)</span>
                         <ArrowRight className="h-4.5 w-4.5" />
                       </Button>
                     </div>
@@ -1083,7 +1083,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                     <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between">
                       <span>Top Up E-Wallet</span>
                       <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold px-2.5 py-1 rounded-full uppercase">
-                        Mode Paylater Aktif
+                        Mode Bayar Tempo Aktif
                       </span>
                     </CardTitle>
                     <CardDescription className="text-xs mt-0.5">Isi ulang dompet digital ShopeePay, DANA, OVO, atau GoPay menggunakan limit paylater Anda.</CardDescription>
@@ -1178,7 +1178,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                         disabled={!selectedProduct || !walletPhoneNo || !selectedEWallet}
                         className="h-12 px-8 bg-[#0f4c3a] hover:bg-[#15614b] text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        <span>Top Up Sekarang (Paylater)</span>
+                        <span>Top Up Sekarang (Bayar Tempo)</span>
                         <ArrowRight className="h-4.5 w-4.5" />
                       </Button>
                     </div>
@@ -1200,7 +1200,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                     <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between">
                       <span>Pembayaran Tagihan Bulanan</span>
                       <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold px-2.5 py-1 rounded-full uppercase">
-                        Mode Paylater Aktif
+                        Mode Bayar Tempo Aktif
                       </span>
                     </CardTitle>
                     <CardDescription className="text-xs mt-0.5">Bayar BPJS Kesehatan, tagihan air PDAM, atau IndiHome secara instan menggunakan limit paylater.</CardDescription>
@@ -1318,7 +1318,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                           onClick={() => handleTriggerCheckout(null, true)}
                           className="h-12 px-8 bg-[#0f4c3a] hover:bg-[#15614b] text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 cursor-pointer"
                         >
-                          <span>Bayar Tagihan (Paylater)</span>
+                          <span>Bayar Tagihan (Bayar Tempo)</span>
                           <ArrowRight className="h-4.5 w-4.5" />
                         </Button>
                       </div>
@@ -1408,7 +1408,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                   <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-2.5 text-xs font-semibold text-slate-500 font-sans">
                     <div className="flex justify-between">
                       <span>Sumber Dana</span>
-                      <span className="font-extrabold text-[#0f4c3a] dark:text-emerald-400 uppercase">Paylater Koperasi</span>
+                      <span className="font-extrabold text-[#0f4c3a] dark:text-emerald-400 uppercase">Bayar Tempo Koperasi</span>
                     </div>
                     {activeCategory === "pulsa" && (
                       <div className="flex justify-between">
@@ -1496,14 +1496,14 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                   <div className="flex flex-col items-center text-center">
                     <CheckCircle2 className="h-14 w-14 text-emerald-500 shrink-0 filter drop-shadow-md" />
                     <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 mt-3">Transaksi Sukses!</h3>
-                    <p className="text-xs text-slate-400 mt-1">Transaksi Anda telah dicatat sebagai tagihan Paylater.</p>
+                    <p className="text-xs text-slate-400 mt-1">Transaksi Anda telah dicatat sebagai tagihan Bayar Tempo.</p>
                   </div>
 
                   {/* Struk digital */}
                   <div className="p-5 border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl space-y-4 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
                     <div className="text-center border-b border-dashed border-slate-200 dark:border-slate-700 pb-3 space-y-1">
                       <p className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-sm">Koperasi Sulfindo</p>
-                      <p className="text-[10px] text-slate-400">Bukti Transaksi PPOB Paylater</p>
+                      <p className="text-[10px] text-slate-400">Bukti Transaksi PPOB Bayar Tempo</p>
                     </div>
 
                     <div className="space-y-2 border-b border-dashed border-slate-200 dark:border-slate-700 pb-3">
@@ -1521,7 +1521,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
                       </div>
                       <div className="flex justify-between">
                         <span>Metode Bayar</span>
-                        <span className="font-bold text-[#0f4c3a] dark:text-emerald-400 uppercase">PAYLATER</span>
+                        <span className="font-bold text-[#0f4c3a] dark:text-emerald-400 uppercase">BAYAR TEMPO</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Detail Transaksi</span>

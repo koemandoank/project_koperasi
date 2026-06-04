@@ -22,7 +22,7 @@ export default async function PotonganGajiPage({
         <h1 className="text-2xl font-bold tracking-tight">Laporan Potongan Gaji</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {from && to ? `Periode: ${from} s/d ${to}` : "Periode: Bulan Ini"}
-          {" · "} Mencakup: Cicilan Pinjaman (Uang / Barang / Kilat), Pay Later, Simpanan Wajib, Simpanan Salary Cut
+          {" · "} Mencakup: Cicilan Pinjaman (Uang / Barang / Kilat), Bayar Tempo, Simpanan Wajib, Simpanan Salary Cut
         </p>
       </div>
 

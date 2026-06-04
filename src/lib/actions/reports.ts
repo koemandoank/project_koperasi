@@ -132,7 +132,7 @@ function ensureMember(
  *  1. Cicilan Pinjaman Uang (salary_cut)
  *  2. Cicilan Pinjaman Barang (salary_cut)
  *  3. Cicilan Pinjaman Kilat (salary_cut)
- *  4. Pay Later (toko, belum lunas)
+ *  4. Bayar Tempo (toko, belum lunas)
  *  5. Simpanan Wajib (monthly_amount dari saving_types.is_mandatory)
  *  6. Simpanan Sukarela Salary Cut (saving_transactions.type = salary_cut)
  *
@@ -306,7 +306,7 @@ export async function getMonthlyDeductionReport(
       }
     }
 
-    // ── 4. PAY LATER ──────────────────────────────────────────────────────────
+    // ── 4. BAYAR TEMPO ──────────────────────────────────────────────────────────
     const payLaterOrders = await prisma.orders.findMany({
       where: {
         payment_method: "paylater",
@@ -334,7 +334,7 @@ export async function getMonthlyDeductionReport(
 
       row.details.push({
         category: "paylater",
-        label: "Pay Later Toko",
+        label: "Bayar Tempo Toko",
         reference: order.order_no,
         installment_no: "-",
         amount,

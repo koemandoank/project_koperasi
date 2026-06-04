@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Transaksi PPOB Anggota",
-  description: "Beli pulsa, token listrik, top up dompet digital, dan bayar tagihan bulanan menggunakan limit paylater Koperasi Anda.",
+  description: "Beli pulsa, token listrik, top up dompet digital, dan bayar tagihan bulanan menggunakan limit bayar tempo Koperasi Anda.",
 };
 
 export default async function PPOBMemberPage() {
@@ -44,7 +44,7 @@ export default async function PPOBMemberPage() {
           Transaksi PPOB Koperasi
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Gunakan limit Paylater koperasi Anda untuk berbagai kebutuhan transaksi digital secara instan dan aman.
+          Gunakan limit Bayar Tempo koperasi Anda untuk berbagai kebutuhan transaksi digital secara instan dan aman.
         </p>
       </div>
       

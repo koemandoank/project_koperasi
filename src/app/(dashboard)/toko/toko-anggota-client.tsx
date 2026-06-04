@@ -18,7 +18,7 @@ import { toast } from "sonner"
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
-const PM_LABEL: Record<string, string> = { cash: "Tunai", paylater: "Paylater", qris: "QRIS" }
+const PM_LABEL: Record<string, string> = { cash: "Tunai", paylater: "Bayar Tempo", qris: "QRIS" }
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending:    { label: "Menunggu Konfirmasi", cls: "bg-amber-100 text-amber-700" },
   confirmed:  { label: "Dikonfirmasi",        cls: "bg-blue-100 text-blue-700" },

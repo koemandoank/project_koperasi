@@ -109,7 +109,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
     if (!sessionActive) return toast.error("Buka sesi kasir terlebih dahulu!")
     if (cart.length === 0) return toast.error("Keranjang kosong")
     if (paymentMethod === "paylater" && !isMemberSelected) {
-      return toast.error("Pembayaran Paylater wajib memilih Anggota!")
+      return toast.error("Pembayaran Bayar Tempo wajib memilih Anggota!")
     }
 
     setCheckoutLoading(true)
@@ -138,7 +138,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
     if (!sessionActive) return toast.error("Buka sesi kasir terlebih dahulu!")
     if (cart.length === 0) return toast.error("Keranjang kosong")
     if (paymentMethod === "paylater" && !selectedMember) {
-      return toast.error("Pembayaran Paylater wajib memilih Anggota!")
+      return toast.error("Pembayaran Bayar Tempo wajib memilih Anggota!")
     }
     
     if (paymentMethod === "qris") {
@@ -325,7 +325,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                 onClick={() => setPaymentMethod("paylater")}
               >
                 <CreditCard className="h-3.5 w-3.5" />
-                Paylater
+                Bayar Tempo
               </Button>
               <Button
                 type="button" size="sm"
@@ -400,7 +400,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                   {m === "cash" && <Banknote className="h-3.5 w-3.5" />}
                   {m === "paylater" && <CreditCard className="h-3.5 w-3.5" />}
                   {m === "qris" && <QrCode className="h-3.5 w-3.5" />}
-                  {m === "cash" ? "Tunai" : m === "paylater" ? "Paylater" : "QRIS"}
+                  {m === "cash" ? "Tunai" : m === "paylater" ? "Bayar Tempo" : "QRIS"}
                 </button>
               ))}
             </div>

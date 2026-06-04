@@ -3,7 +3,7 @@ import { getPpobSettings } from "@/lib/actions/ppob-settings";
 
 export const metadata = {
   title: "Pengaturan PPOB",
-  description: "Pengaturan integrasi Biller PPOB Koperasi berbasis sistem Paylater",
+  description: "Pengaturan integrasi Biller PPOB Koperasi berbasis sistem Bayar Tempo",
 };
 
 export default async function PPOBSettingsPage() {

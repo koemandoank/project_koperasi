@@ -394,7 +394,7 @@ export function SesiKasirClient({
                     { label: "Tunai",    val: summary.breakdown.cash,     icon: Banknote,    color: "text-emerald-600" },
                     { label: "QRIS",     val: summary.breakdown.qris,     icon: Smartphone,  color: "text-violet-600"  },
                     { label: "Transfer", val: summary.breakdown.transfer,  icon: CreditCard,  color: "text-blue-600"   },
-                    { label: "Paylater", val: summary.breakdown.paylater,  icon: Wallet,      color: "text-amber-600"  },
+                    { label: "Bayar Tempo", val: summary.breakdown.paylater,  icon: Wallet,      color: "text-amber-600"  },
                   ].map(({  label, val, icon: Icon, color  }: any) => (
                     <div key={label} className="flex items-center gap-2">
                       <Icon className={`h-4 w-4 shrink-0 ${color}`} />

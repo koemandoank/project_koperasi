@@ -58,7 +58,7 @@ export async function processPosCheckout(data: {
      */
     if (data.paymentMethod === "paylater") {
       if (!data.memberId) {
-         return { success: false, error: "Transaksi Paylater wajib memilih anggota pembeli." };
+         return { success: false, error: "Transaksi Bayar Tempo wajib memilih anggota pembeli." };
       }
       
       const { getLoanRules } = await import('./loan-rules');
@@ -77,7 +77,7 @@ export async function processPosCheckout(data: {
         
         const currentDebt = Number(existingPaylater._sum.grand_total || 0);
         if ((currentDebt + data.grandTotal) > rules.max_paylater_debt.value) {
-          return { success: false, error: `Limit Paylater ditolak: Sisa batas hutang anggota tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
+          return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang anggota tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
         }
       }
     }

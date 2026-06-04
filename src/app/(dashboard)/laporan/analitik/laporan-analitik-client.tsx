@@ -28,7 +28,7 @@ const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cash: 'Tunai', paylater: 'Paylater', qris: 'QRIS',
+  cash: 'Tunai', paylater: 'Bayar Tempo', qris: 'QRIS',
   saving_deduct: 'Potong Simpanan', transfer: 'Transfer', all: 'Semua',
 }
 
@@ -748,7 +748,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
       wsSembako.getCell('A1').value = 'PT. SULFINDO ADIUSAHA'
       wsSembako.getCell('A1').font = { bold: true, size: 12 }
-      wsSembako.getCell('A2').value = 'REKAP TRANSAKSI PENJUALAN SEMBAKO (PAYLATER VS CASH)'
+      wsSembako.getCell('A2').value = 'REKAP TRANSAKSI PENJUALAN SEMBAKO (BAYAR TEMPO VS CASH)'
       wsSembako.getCell('A2').font = { bold: true, size: 13 }
       wsSembako.getCell('A3').value = `PERIODE: ${startDate} S/D ${endDate}`
       wsSembako.getCell('A3').font = { bold: true }
@@ -2051,7 +2051,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                         </p>
                         <SectionTbl label="PENJUALAN CASH (Tunai / QRIS / Transfer)"
                           isCash={true} totHPP={mg.totCashHpp} totJual={mg.totCashJual} totLaba={mg.totCashLaba} />
-                        <SectionTbl label="PENJUALAN KREDIT (Paylater / Potong Simpanan)"
+                        <SectionTbl label="PENJUALAN KREDIT (Bayar Tempo / Potong Simpanan)"
                           isCash={false} totHPP={mg.totKrdHpp} totJual={mg.totKrdJual} totLaba={mg.totKrdLaba} />
                         
                         <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
@@ -2554,7 +2554,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
                               </p>
                             </div>
                             <div>
-                              <p className="text-slate-400">Total Pinjaman & Paylater</p>
+                              <p className="text-slate-400">Total Pinjaman & Bayar Tempo</p>
                               <p className="text-sm font-bold text-slate-200">
                                 {formatRp(filteredDeductions.reduce((s: any, item: any) => s + item.total_pinjaman_uang + item.total_pinjaman_kilat + item.total_pinjaman_barang + item.total_paylater, 0))}
                               </p>
@@ -2620,7 +2620,7 @@ export function LaporanAnalitikClient({ templateConfig }: { templateConfig?: Rep
 
                                 {/* Pinjaman Card Section */}
                                 <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
-                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">B. PINJAMAN & PAYLATER</p>
+                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">B. PINJAMAN & BAYAR TEMPO</p>
                                   <div className="grid grid-cols-2 gap-2.5 text-[11px]">
                                     <div className="flex justify-between border-b border-slate-200/50 pb-1">
                                       <span className="text-slate-400">Pinjam Uang:</span>

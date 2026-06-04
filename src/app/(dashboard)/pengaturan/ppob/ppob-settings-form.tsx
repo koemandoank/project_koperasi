@@ -525,7 +525,7 @@ export function PPOBSettingsForm({ initialData }: { initialData: PPOBSettingsDat
 
                             <div className="w-full md:w-1/3 bg-[#0f4c3a]/5 dark:bg-[#0f4c3a]/10 border border-[#0f4c3a]/30 rounded-xl p-3.5 text-center shadow-xs">
                               <p className="text-xs font-bold text-[#0f4c3a] dark:text-[#22c55e]">3. Webhook Koperasi</p>
-                              <p className="text-[11px] text-slate-400 mt-1">Limit & tagihan Paylater anggota terupdate</p>
+                              <p className="text-[11px] text-slate-400 mt-1">Limit & tagihan Bayar Tempo anggota terupdate</p>
                             </div>
                           </div>
                         </div>

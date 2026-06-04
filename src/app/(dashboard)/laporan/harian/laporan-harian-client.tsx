@@ -22,7 +22,7 @@ const formatTime = (iso: string) =>
 
 const PAYMENT_LABEL: Record<string, { label: string; icon: any; cls: string }> = {
   cash:     { label: "Tunai",    icon: Banknote,   cls: "bg-green-100 text-green-700" },
-  paylater: { label: "Paylater", icon: CreditCard,  cls: "bg-amber-100 text-amber-700" },
+  paylater: { label: "Bayar Tempo", icon: CreditCard,  cls: "bg-amber-100 text-amber-700" },
   qris:     { label: "QRIS",    icon: QrCode,      cls: "bg-blue-100 text-blue-700" },
   transfer: { label: "Transfer", icon: Banknote,   cls: "bg-purple-100 text-purple-700" },
 }
@@ -133,7 +133,7 @@ export function LaporanHarianClient({ data, from, to, q, templateConfig }: { dat
     worksheet.getCell(`B${currentRow+3}`).value = data.totalTunai
     worksheet.getCell(`B${currentRow+3}`).numFmt = '"Rp"#,##0.00'
 
-    worksheet.getCell(`A${currentRow+4}`).value = "Paylater:"
+    worksheet.getCell(`A${currentRow+4}`).value = "Bayar Tempo:"
     worksheet.getCell(`B${currentRow+4}`).value = data.totalPaylater
     worksheet.getCell(`B${currentRow+4}`).numFmt = '"Rp"#,##0.00'
 
@@ -179,7 +179,7 @@ export function LaporanHarianClient({ data, from, to, q, templateConfig }: { dat
     doc.setFont("helvetica", "normal")
     doc.text(`Total Transaksi: ${data.totalTransaksi}`, 14, finalY + 6)
     doc.text(`Total Pendapatan: ${formatRp(data.totalPendapatan)}`, 14, finalY + 12)
-    doc.text(`Tunai: ${formatRp(data.totalTunai)}  |  Paylater: ${formatRp(data.totalPaylater)}  |  QRIS: ${formatRp(data.totalQris)}`, 14, finalY + 18)
+    doc.text(`Tunai: ${formatRp(data.totalTunai)}  |  Bayar Tempo: ${formatRp(data.totalPaylater)}  |  QRIS: ${formatRp(data.totalQris)}`, 14, finalY + 18)
 
     generatePdfFooter(doc, finalY + 24, templateConfig)
 
@@ -283,7 +283,7 @@ export function LaporanHarianClient({ data, from, to, q, templateConfig }: { dat
             <div className="flex items-center gap-3">
               <CreditCard className="h-8 w-8 text-amber-500 bg-amber-50 rounded-lg p-1.5" />
               <div>
-                <p className="text-xs text-muted-foreground">Paylater</p>
+                <p className="text-xs text-muted-foreground">Bayar Tempo</p>
                 <p className="text-xl font-bold">{formatRp(data.totalPaylater)}</p>
               </div>
             </div>
@@ -369,7 +369,7 @@ export function LaporanHarianClient({ data, from, to, q, templateConfig }: { dat
                 <p className="font-bold text-blue-700">{formatRp(data.totalQris)}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Paylater (Tagihan)</p>
+                <p className="text-sm text-muted-foreground">Bayar Tempo (Tagihan)</p>
                 <p className="font-bold text-amber-700">{formatRp(data.totalPaylater)}</p>
               </div>
             </div>

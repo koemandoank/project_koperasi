@@ -26,7 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   pinjaman_uang:         "Pinjaman Uang",
   pinjaman_barang:       "Pinjaman Barang",
   pinjaman_kilat:        "Pinjaman Kilat",
-  paylater:              "Pay Later",
+  paylater:              "Bayar Tempo",
   simpanan_wajib:        "Simpanan Wajib",
   simpanan_salary_cut:   "Simpanan (Salary Cut)",
 }
@@ -226,7 +226,7 @@ export function ReportClient({
       { header: "Pin. Uang", key: "c1", width: 16 },
       { header: "Pin. Barang", key: "c2", width: 16 },
       { header: "Pin. Kilat", key: "c3", width: 16 },
-      { header: "Pay Later", key: "c4", width: 16 },
+      { header: "Bayar Tempo", key: "c4", width: 16 },
       { header: "Simp. Wajib", key: "c5", width: 16 },
       { header: "Simp. S.Cut", key: "c6", width: 16 },
       { header: "Total Potongan", key: "total", width: 18 },
@@ -294,7 +294,7 @@ export function ReportClient({
     // @ts-ignore
     autoTable(doc, {
       startY,
-      head: [["No", "NIK", "Nama", "Dept", "Pin.Uang", "Pin.Barang", "Pin.Kilat", "PayLater", "Simp.Wajib", "S.Cut", "Total"]],
+      head: [["No", "NIK", "Nama", "Dept", "Pin.Uang", "Pin.Barang", "Pin.Kilat", "Bayar Tempo", "Simp.Wajib", "S.Cut", "Total"]],
       body: tableData,
       theme: "grid",
       styles: { fontSize: 7, cellPadding: 2 },
@@ -322,7 +322,7 @@ export function ReportClient({
           ["Pinjaman Uang",        totals.pinjaman_uang,       "bg-blue-50 border-blue-200 text-blue-700"],
           ["Pinjaman Barang",      totals.pinjaman_barang,     "bg-violet-50 border-violet-200 text-violet-700"],
           ["Pinjaman Kilat",       totals.pinjaman_kilat,      "bg-orange-50 border-orange-200 text-orange-700"],
-          ["Pay Later",            totals.paylater,            "bg-red-50 border-red-200 text-red-700"],
+          ["Bayar Tempo",            totals.paylater,            "bg-red-50 border-red-200 text-red-700"],
           ["Simpanan Wajib",       totals.simpanan_wajib,      "bg-emerald-50 border-emerald-200 text-emerald-700"],
           ["Simpanan Salary Cut",  totals.simpanan_salary_cut, "bg-teal-50 border-teal-200 text-teal-700"],
         ] as [string, number, string][]).map(([label, val, cls]) => (
@@ -414,7 +414,7 @@ export function ReportClient({
               <TableHead className="text-right text-xs text-blue-700">Pin. Uang</TableHead>
               <TableHead className="text-right text-xs text-violet-700">Pin. Barang</TableHead>
               <TableHead className="text-right text-xs text-orange-700">Pin. Kilat</TableHead>
-              <TableHead className="text-right text-xs text-red-700">Pay Later</TableHead>
+              <TableHead className="text-right text-xs text-red-700">Bayar Tempo</TableHead>
               <TableHead className="text-right text-xs text-emerald-700">Simp. Wajib</TableHead>
               <TableHead className="text-right text-xs text-teal-700">Simp. S.Cut</TableHead>
               <TableHead className="text-right text-xs font-bold">Total Potongan</TableHead>

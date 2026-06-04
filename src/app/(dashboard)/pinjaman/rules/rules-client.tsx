@@ -146,11 +146,11 @@ export function RulesClient({
                     />
                     <Label className="text-base font-semibold flex items-center gap-2 cursor-pointer" onClick={() => updateRule("max_paylater_debt", "enabled", !formData.max_paylater_debt.enabled)}>
                       <ShoppingCart className="h-4 w-4 text-red-500" />
-                      Limit Maksimal Hutang Paylater (Modul Toko)
+                      Limit Maksimal Hutang Bayar Tempo (Modul Toko)
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-11">
-                    Total batas nominal akumulasi hutang paylater di toko. Jika melebihi ini, transaksi paylater otomatis ditolak.
+                    Total batas nominal akumulasi hutang bayar tempo di toko. Jika melebihi ini, transaksi bayar tempo otomatis ditolak.
                   </p>
                 </div>
                 {formData.max_paylater_debt.enabled && (

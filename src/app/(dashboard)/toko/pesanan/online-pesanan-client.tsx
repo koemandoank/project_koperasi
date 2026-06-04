@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 }
 
 const PM_LABEL: Record<string, string> = {
-  cash: "Tunai", paylater: "Paylater", qris: "QRIS", transfer: "Transfer"
+  cash: "Tunai", paylater: "Bayar Tempo", qris: "QRIS", transfer: "Transfer"
 }
 
 export function OnlinePesananClient({ orders }: { orders: any[] }) {

@@ -120,7 +120,7 @@ export default async function PinjamanPage() {
       {/* Tagihan Paylater Berjalan */}
       {data.paylater_debts && data.paylater_debts.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-lg">Tagihan Paylater (Toko)</h2>
+          <h2 className="font-semibold text-lg">Tagihan Bayar Tempo (Toko)</h2>
           {data.paylater_debts.map((p: any) => (
             <Card key={p.id} className="border-l-4 border-l-amber-400">
               <CardContent className="pt-4">

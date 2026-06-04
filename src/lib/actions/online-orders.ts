@@ -67,7 +67,7 @@ export async function createOnlineOrder(data: {
         
         const currentDebt = Number(existingPaylater._sum.grand_total || 0);
         if ((currentDebt + grandTotal) > rules.max_paylater_debt.value) {
-          return { success: false, error: `Limit Paylater ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
+          return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
         }
       }
     }
