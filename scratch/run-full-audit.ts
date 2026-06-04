@@ -323,6 +323,85 @@ async function main() {
   if (paymentMismatches === 0) console.log("  ✅ Clean: All paid orders have corresponding payments.\n")
   else console.log(`  ⚠️ Total paid order mismatches found: ${paymentMismatches} (Showing first 5)\n`)
 
+  // 14. PPOB Paylater Transactions vs Orders Integrity
+  console.log("--- SCAN 14: Checking PPOB Paylater Transactions vs Orders Integrity ---")
+  const ppobPaylaterTxs = await (prisma as any).ppob_transactions.findMany({
+    where: { payment_method: "paylater", status: "success" }
+  })
+  let ppobMismatchCount = 0
+  for (const tx of ppobPaylaterTxs) {
+    const order = await prisma.orders.findUnique({
+      where: { order_no: tx.trx_no }
+    })
+    if (!order) {
+      ppobMismatchCount++
+      totalCritical++
+      console.log(`  ❌ CRITICAL: PPOB Paylater Transaction [${tx.trx_no}] has no matching order record in 'orders'.`)
+    } else {
+      const orderTotal = Number(order.grand_total)
+      const ppobTotal = Number(tx.total_amount)
+      if (Math.abs(orderTotal - ppobTotal) > 0.01) {
+        ppobMismatchCount++
+        totalCritical++
+        console.log(`  ❌ CRITICAL: PPOB Transaction [${tx.trx_no}] amount (Rp ${ppobTotal.toLocaleString("id-ID")}) does not match Order grand total (Rp ${orderTotal.toLocaleString("id-ID")}).`)
+      }
+    }
+  }
+  if (ppobMismatchCount === 0) console.log("  ✅ Clean: All PPOB paylater transactions match order records.\n")
+  else console.log(`  ⚠️ Total PPOB mismatches found: ${ppobMismatchCount}\n`)
+
+  // 15. Loan Schedules vs Principal Plafon Mismatch (Strict Loan Audit)
+  console.log("--- SCAN 15: Checking Loan Schedules vs Principal Plafon (Strict Loan Audit) ---")
+  const allLoans = await prisma.loans.findMany({
+    include: { loan_schedules: true }
+  })
+  let plafonMismatchCount = 0
+  for (const loan of allLoans) {
+    const schedulePrincipalSum = loan.loan_schedules.reduce((sum, s) => sum + Number(s.principal_due), 0)
+    const principal = Number(loan.principal)
+    if (Math.abs(schedulePrincipalSum - principal) > 0.01) {
+      plafonMismatchCount++
+      totalCritical++
+      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] principal (Rp ${principal.toLocaleString("id-ID")}) does not match sum of schedule principal_due (Rp ${schedulePrincipalSum.toLocaleString("id-ID")}).`)
+    }
+  }
+  if (plafonMismatchCount === 0) console.log("  ✅ Clean: All loan schedule sums match their principal plafon.\n")
+  else console.log(`  ⚠️ Total loan principal mismatches found: ${plafonMismatchCount}\n`)
+
+  // 16. Loan Outstanding Principal vs Paid Schedules Integrity (Strict Loan Audit)
+  console.log("--- SCAN 16: Checking Loan Outstanding Principal vs Paid Schedules (Strict Loan Audit) ---")
+  let outstandingMismatchCount = 0
+  for (const loan of allLoans) {
+    const paidPrincipalSum = loan.loan_schedules.reduce((sum, s) => sum + Number(s.principal_paid), 0)
+    const calculatedOutstanding = Number(loan.principal) - paidPrincipalSum
+    const actualOutstanding = Number(loan.outstanding_principal)
+    if (Math.abs(calculatedOutstanding - actualOutstanding) > 0.01) {
+      outstandingMismatchCount++
+      totalCritical++
+      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] outstanding (Rp ${actualOutstanding.toLocaleString("id-ID")}) does not match calculated outstanding (Rp ${calculatedOutstanding.toLocaleString("id-ID")}).`)
+    }
+  }
+  if (outstandingMismatchCount === 0) console.log("  ✅ Clean: All loan outstanding balances are consistent with paid schedules.\n")
+  else console.log(`  ⚠️ Total outstanding inconsistencies found: ${outstandingMismatchCount}\n`)
+
+  // 17. Loan Status vs Outstanding Balance Integrity (Strict Loan Audit)
+  console.log("--- SCAN 17: Checking Loan Status vs Outstanding Balance (Strict Loan Audit) ---")
+  let statusMismatchCount = 0
+  for (const loan of allLoans) {
+    const outstanding = Number(loan.outstanding_principal)
+    if (outstanding === 0 && loan.status !== "paid_off") {
+      statusMismatchCount++
+      totalCritical++
+      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] has 0 outstanding but status is '${loan.status}' (expected 'paid_off').`)
+    } else if (outstanding > 0 && loan.status === "paid_off") {
+      statusMismatchCount++
+      totalCritical++
+      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] has outstanding Rp ${outstanding.toLocaleString("id-ID")} but status is 'paid_off'.`)
+    }
+  }
+  if (statusMismatchCount === 0) console.log("  ✅ Clean: All loan statuses are consistent with outstanding balances.\n")
+  else console.log(`  ⚠️ Total loan status inconsistencies found: ${statusMismatchCount}\n`)
+
   console.log("=======================================================================")
   console.log("=== AUDIT SUMMARY ===")
   console.log(`  Critical Errors (Need immediate fix)  : ${totalCritical}`)
