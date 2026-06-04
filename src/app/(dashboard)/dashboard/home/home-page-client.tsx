@@ -44,13 +44,46 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
 
   useEffect(() => {
     let active = true
-    setLoading(true)
+    const cacheKey = `koperasi_stats_${period}`
+    let hasCache = false
+
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed) {
+          setFinancialData(parsed)
+          setLoading(false)
+          hasCache = true
+        }
+      }
+    } catch (e) {
+      console.error("Gagal membaca cache:", e)
+    }
+
+    if (!hasCache) {
+      setLoading(true)
+    }
+
     getGlobalFinancialStats(period).then(res => {
-      if (active) { setFinancialData(res); setLoading(false) }
+      if (active) {
+        setFinancialData(res)
+        setLoading(false)
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(res))
+        } catch (e) {
+          console.error("Gagal menyimpan cache:", e)
+        }
+      }
     }).catch(err => {
       console.error(err)
-      if (active) setLoading(false)
+      if (active) {
+        if (!hasCache) {
+          setLoading(false)
+        }
+      }
     })
+
     return () => { active = false }
   }, [period])
 
