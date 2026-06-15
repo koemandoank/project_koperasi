@@ -1,24 +1,106 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { LogOut, User as UserIcon, Bell, Search, Menu, CreditCard, ShoppingBag } from "lucide-react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { Sidebar } from "./sidebar"
 import { PageHeader } from "./page-header"
+import { getNotifications } from "@/lib/actions/member-portal"
+import { cn } from "@/lib/utils"
+
+type Notification = { type: string; message: string; count: number; href: string }
+
+// ─────────────────────────────────────────────
+// Web Audio API — efek chime double-beep premium
+// ─────────────────────────────────────────────
+function playNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContext) return
+    const ctx = new AudioContext()
+
+    const playTone = (freq: number, startTime: number, duration: number, gainVal: number) => {
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      oscillator.type = "sine"
+      oscillator.frequency.setValueAtTime(freq, startTime)
+
+      gainNode.gain.setValueAtTime(0, startTime)
+      gainNode.gain.linearRampToValueAtTime(gainVal, startTime + 0.02)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration)
+
+      oscillator.start(startTime)
+      oscillator.stop(startTime + duration)
+    }
+
+    const now = ctx.currentTime
+    // Nada D5 (587Hz) → G5 (784Hz): double-chime naik
+    playTone(587.33, now, 0.35, 0.25)
+    playTone(783.99, now + 0.18, 0.45, 0.2)
+  } catch {
+    // Browser tidak support — abaikan
+  }
+}
+
+// ─────────────────────────────────────────────
+// Hook: polling notifikasi setiap 15 detik
+// ─────────────────────────────────────────────
+function useNotificationPolling(initialNotifications: Notification[]) {
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
+  const [hasNew, setHasNew] = useState(false)
+  const prevCountRef = useRef(initialNotifications.reduce((s, n) => s + n.count, 0))
+
+  const poll = useCallback(async () => {
+    try {
+      const fresh = await getNotifications()
+      const freshCount = fresh.reduce((s, n) => s + n.count, 0)
+      const prevCount = prevCountRef.current
+
+      if (freshCount > prevCount) {
+        setHasNew(true)
+        playNotificationSound()
+        // Reset animasi ring setelah 1 detik (1 cycle)
+        setTimeout(() => setHasNew(false), 1000)
+      }
+
+      prevCountRef.current = freshCount
+      setNotifications(fresh)
+    } catch {
+      // Gagal poll — biarkan data lama tetap tampil
+    }
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(poll, 15_000)
+    return () => clearInterval(interval)
+  }, [poll])
+
+  return { notifications, hasNew }
+}
+
+// ─────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────
 
 export function HeaderClient({
   user,
   settings,
-  notifications
+  notifications: initialNotifications,
 }: {
   user: any
   settings: any
-  notifications: Array<{ type: string; message: string; count: number; href: string }>
+  notifications: Notification[]
 }) {
   const [notifOpen, setNotifOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const totalNotif = notifications.reduce((s: any, n: any) => s + n.count, 0)
+
+  const { notifications, hasNew } = useNotificationPolling(initialNotifications)
+  const totalNotif = notifications.reduce((s, n) => s + n.count, 0)
 
   const NOTIF_ICONS: Record<string, any> = {
     loan: CreditCard,
@@ -70,7 +152,13 @@ export function HeaderClient({
               onClick={() => setNotifOpen(v => !v)}
               className="relative p-2 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
             >
-              <Bell className="h-5 w-5" />
+              <Bell
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  totalNotif > 0 ? "text-blue-600 dark:text-blue-400" : "",
+                  hasNew ? "animate-bell-ring" : totalNotif > 0 ? "animate-bell-shake" : ""
+                )}
+              />
               {totalNotif > 0 && (
                 <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white dark:border-slate-950 animate-pulse" />
               )}

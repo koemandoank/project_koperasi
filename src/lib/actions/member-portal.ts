@@ -213,9 +213,15 @@ export async function getMyOrders() {
   }
 }
 
-/** Notifikasi untuk admin/pengurus: pinjaman menunggu */
-export async function getNotifications(role: string) {
+/**
+ * Mengambil notifikasi untuk pengguna yang sedang login.
+ * Role dibaca dari session server-side untuk mencegah spoofing dari client.
+ */
+export async function getNotifications() {
   try {
+    const session = await auth()
+    const role = session?.user?.role ?? ""
+
     const results: { type: string; message: string; count: number; href: string }[] = []
 
     const showLoanNotif = ["superadmin", "admin", "pengurus"].includes(role)
@@ -228,21 +234,21 @@ export async function getNotifications(role: string) {
           type: "loan",
           message: `${pendingLoans} pengajuan pinjaman menunggu review`,
           count: pendingLoans,
-          href: "/pinjaman/approval"
+          href: "/pinjaman/approval",
         })
       }
     }
 
     if (showOrderNotif) {
       const unpaidOrders = await prisma.orders.count({
-        where: { order_status: "pending", channel: "online" }
+        where: { order_status: "pending", channel: "online" },
       })
       if (unpaidOrders > 0) {
         results.push({
           type: "order",
           message: `${unpaidOrders} pesanan online menunggu proses`,
           count: unpaidOrders,
-          href: "/toko/pesanan"
+          href: "/toko/pesanan",
         })
       }
     }
