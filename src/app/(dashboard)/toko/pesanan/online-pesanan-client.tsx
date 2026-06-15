@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +10,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFoo
 import { CheckCircle, Truck, XCircle, Eye, Package, MapPin, MessageSquare } from "lucide-react"
 import { updateOnlineOrderStatus } from "@/lib/actions/online-orders"
 import { toast } from "sonner"
+import { Pagination } from "@/components/ui/pagination"
 
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -28,10 +30,21 @@ const PM_LABEL: Record<string, string> = {
   cash: "Tunai", paylater: "Bayar Tempo", qris: "QRIS", transfer: "Transfer"
 }
 
-export function OnlinePesananClient({ orders }: { orders: any[] }) {
+export function OnlinePesananClient({
+  orders,
+  pagination,
+}: {
+  orders: any[]
+  pagination?: { page: number; pages: number; total: number; pageSize: number; hasMore: boolean } | null
+}) {
   const [filter, setFilter] = useState("pending")
   const [loading, setLoading] = useState<number | null>(null)
   const [detailOrder, setDetailOrder] = useState<any | null>(null)
+  const router = useRouter()
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`/toko/pesanan?page=${newPage}`)
+  }
 
   const filtered = filter === "all" ? orders : orders.filter((o: any) => o.order_status === filter)
   const pendingCount = orders.filter((o: any) => o.order_status === "pending").length
@@ -278,6 +291,15 @@ export function OnlinePesananClient({ orders }: { orders: any[] }) {
           )}
         </DrawerContent>
       </Drawer>
+
+      {/* Pagination — shown at bottom */}
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          page={pagination.page}
+          pages={pagination.pages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </>
   )
 }

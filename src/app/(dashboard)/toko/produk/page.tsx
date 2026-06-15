@@ -4,12 +4,20 @@ import { getUnits } from "@/lib/actions/members"
 import { ProductTable } from "./product-table"
 import { ProductForm } from "./product-form"
 
-export default async function ProdukPage() {
+export default async function ProdukPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const session = await auth()
   const userRole = session?.user?.role ?? "kasir"
   const canEdit = ["superadmin", "admin", "pengurus"].includes(userRole)
 
-  const products = await getProducts()
+  const params = await searchParams
+  const page = Math.max(1, parseInt(params.page || "1"))
+  const pageSize = 25
+
+  const result = await getProducts(page, pageSize)
   const categories = await getCategories()
   const units = await getUnits()
 
@@ -23,7 +31,13 @@ export default async function ProdukPage() {
         {canEdit && <ProductForm units={units} categories={categories} />}
       </div>
       
-      <ProductTable products={products} units={units} categories={categories} canEdit={canEdit} />
+      <ProductTable
+        products={result.data}
+        units={units}
+        categories={categories}
+        canEdit={canEdit}
+        pagination={result.pagination}
+      />
     </div>
   )
 }

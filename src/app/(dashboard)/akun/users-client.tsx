@@ -11,20 +11,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
 import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield, BookOpen, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
 
 export function UsersClient({
   initialUsers,
   currentRole,
+  pagination,
 }: {
   initialUsers: UserData[];
   currentRole: string;
+  pagination?: {
+    page: number;
+    pages: number;
+    total: number;
+    pageSize: number;
+    hasMore: boolean;
+  };
 }) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-  
+
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -34,6 +43,11 @@ export function UsersClient({
   });
 
   const router = useRouter();
+  const pathname = "/akun";
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`${pathname}?page=${newPage}`);
+  };
 
   useEffect(() => {
     setUsers(initialUsers);
@@ -251,6 +265,15 @@ export function UsersClient({
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          page={pagination.page}
+          pages={pagination.pages}
+          onPageChange={handlePageChange}
+        />
+      )}
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent showClose>
