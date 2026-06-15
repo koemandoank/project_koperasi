@@ -9,6 +9,8 @@ import { resetMemberPassword, deleteMember } from "@/lib/actions/members"
 import { toast } from "sonner"
 import { MemberForm } from "./member-form"
 import { cn } from "@/lib/utils"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { Pagination } from "@/components/ui/pagination"
 
 /**
  * Validates that a photo path is a proper external URL (Cloudinary, ui-avatars, etc).
@@ -29,12 +31,32 @@ export function MemberTable({
   members,
   units,
   stats,
+  pagination,
 }: {
   members: any[]
   units: any[]
   stats: any
+  pagination?: {
+    page: number
+    pages: number
+    total: number
+    pageSize: number
+    hasMore: boolean
+  }
 }) {
-  const [activeTab, setActiveTab] = useState<"list" | "stats" | "activities">("list")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams)
+    params.set("page", newPage.toString())
+    router.push(`${pathname}?${params.toString()}`)
+  }
+
+  const [activeTab, setActiveTab] = useState<"list" | "stats" | "activities">(
+    searchParams.get("page") ? "list" : "list"
+  )
   const [loading, setLoading] = useState<number | null>(null)
   const [search, setSearch] = useState("")
 
@@ -385,6 +407,14 @@ export function MemberTable({
               </div>
             ))}
           </div>
+          
+          {pagination && pagination.pages > 1 && (
+            <Pagination
+              page={pagination.page}
+              pages={pagination.pages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       )}
 

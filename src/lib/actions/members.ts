@@ -5,18 +5,95 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/actions/log-audit";
 import { remember, deleteCache } from "@/lib/cache";
+import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
+import { z } from "zod";
+import { memberCreateSchema, memberUpdateSchema } from "@/lib/validations";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // READ
-/**
- * Mengambil daftar seluruh anggota koperasi beserta akun user dan unit/lokasinya.
- * 
- * @returns {Promise<Array<{ id: number, member_code: string, nik: string, full_name: string, email: string | null, phone: string | null, status: string, unit_id: number, unit_name: string, unit_code: string, role: string, user_id: number | null, photo_path: string | null }>>} List anggota koperasi
- * @throws {Error} Jika terjadi kegagalan saat membaca database
- */
-export async function getMembers() {
-  return remember("members:all", 600, async () => {
-    try {
+export async function getMembers(): Promise<Array<{
+  id: number;
+  member_code: string;
+  nik: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+  unit_id: number;
+  unit_name: string;
+  unit_code: string;
+  role: string;
+  user_id: number | null;
+  photo_path: string | null;
+}>>;
+export async function getMembers(
+  page: number,
+  pageSize: number
+): Promise<{
+  data: Array<{
+    id: number;
+    member_code: string;
+    nik: string;
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+    status: string;
+    unit_id: number;
+    unit_name: string;
+    unit_code: string;
+    role: string;
+    user_id: number | null;
+    photo_path: string | null;
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+    hasMore: boolean;
+  };
+}>;
+export async function getMembers(page?: number, pageSize?: number): Promise<any> {
+  try {
+    const isPaginated = page !== undefined && pageSize !== undefined;
+
+    if (isPaginated) {
+      const { skip, take } = calculatePagination(page, pageSize);
+
+      const [members, total] = await Promise.all([
+        prisma.member.findMany({
+          include: {
+            users: true,
+            units: true,
+          },
+          orderBy: { created_at: "desc" },
+          skip,
+          take,
+        }),
+        prisma.member.count(),
+      ]);
+
+      const data = members.map((m: any) => ({
+        id: Number(m.id),
+        member_code: m.member_code,
+        nik: m.nik,
+        full_name: m.full_name,
+        email: m.email,
+        phone: m.phone,
+        status: m.status,
+        unit_id: Number(m.unit_id),
+        unit_name: m.units?.name || "-",
+        unit_code: m.units?.code || "-",
+        role: m.users?.role || "anggota",
+        user_id: m.users ? Number(m.users.id) : null,
+        photo_path: m.photo_path,
+      }));
+
+      return {
+        data,
+        pagination: getPaginationMeta(total, page, pageSize),
+      };
+    } else {
       const members = await prisma.member.findMany({
         include: {
           users: true,
@@ -40,11 +117,17 @@ export async function getMembers() {
         user_id: m.users ? Number(m.users.id) : null,
         photo_path: m.photo_path,
       }));
-    } catch (error) {
-      console.error("Failed to fetch members:", error);
-      return [];
     }
-  });
+  } catch (error) {
+    console.error("Failed to fetch members:", error);
+    if (page !== undefined && pageSize !== undefined) {
+      return {
+        data: [],
+        pagination: getPaginationMeta(0, page, pageSize),
+      };
+    }
+    return [];
+  }
 }
 
 export async function getUnits() {
@@ -142,6 +225,8 @@ export async function resetMemberPassword(userId: number, customPassword?: strin
  */
 export async function createMember(data: any) {
   try {
+    const validated = memberCreateSchema.parse(data);
+
     const count = await prisma.member.count();
     const memberCode = `MBR-${String(count + 1).padStart(4, "0")}`;
 
@@ -151,27 +236,27 @@ export async function createMember(data: any) {
       const member = await tx.member.create({
         data: {
           member_code: memberCode,
-          nik: data.nik,
-          full_name: data.full_name,
-          email: data.email,
-          phone: data.phone,
-          unit_id: BigInt(data.unit_id),
+          nik: validated.nik,
+          full_name: validated.full_name,
+          email: validated.email || null,
+          phone: validated.phone || null,
+          unit_id: BigInt(validated.unit_id),
           join_date: new Date(),
           status: "active",
-          photo_path: data.photo_path || null,
+          photo_path: validated.photo_path || null,
         },
       });
 
       newMemberId = member.id;
 
-      if (data.email) {
+      if (validated.email) {
         const hashedPassword = await bcrypt.hash("K0pmember01", 10);
         await tx.user.create({
           data: {
-            username: data.email.split("@")[0],
-            email: data.email,
+            username: validated.email.split("@")[0],
+            email: validated.email,
             password: hashedPassword,
-            role: data.role || "anggota",
+            role: validated.role || "anggota",
             member_id: member.id,
             is_active: true,
           },
@@ -185,13 +270,13 @@ export async function createMember(data: any) {
       modelId: newMemberId ? Number(newMemberId) : null,
       newValues: {
         member_code: memberCode,
-        nik: data.nik,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone,
-        unit_id: data.unit_id,
-        role: data.role || "anggota",
-        photo_path: data.photo_path || null,
+        nik: validated.nik,
+        full_name: validated.full_name,
+        email: validated.email,
+        phone: validated.phone,
+        unit_id: validated.unit_id,
+        role: validated.role,
+        photo_path: validated.photo_path || null,
       },
     });
 
@@ -200,6 +285,9 @@ export async function createMember(data: any) {
     return { success: true };
   } catch (error: any) {
     console.error(error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0].message };
+    }
     if (error.code === "P2002") return { success: false, error: "NIK atau Email sudah terdaftar." };
     return { success: false, error: "Gagal menambahkan anggota." };
   }
@@ -218,6 +306,8 @@ export async function createMember(data: any) {
  */
 export async function updateMember(id: number, data: any) {
   try {
+    const validated = memberUpdateSchema.parse(data);
+
     // Ambil data lama untuk audit
     const oldMember = await prisma.member.findUnique({
       where: { id: BigInt(id) },
@@ -232,12 +322,12 @@ export async function updateMember(id: number, data: any) {
       await tx.member.update({
         where: { id: BigInt(id) },
         data: {
-          nik: data.nik,
-          full_name: data.full_name,
-          email: data.email,
-          phone: data.phone,
-          unit_id: BigInt(data.unit_id),
-          photo_path: data.photo_path || null,
+          nik: validated.nik,
+          full_name: validated.full_name,
+          email: validated.email,
+          phone: validated.phone,
+          unit_id: validated.unit_id !== undefined ? BigInt(validated.unit_id) : undefined,
+          photo_path: validated.photo_path !== undefined ? (validated.photo_path || null) : undefined,
         },
       });
 
@@ -246,23 +336,23 @@ export async function updateMember(id: number, data: any) {
         await tx.user.update({
           where: { id: existingUser.id },
           data: {
-            email: data.email || existingUser.email,
-            role: data.role,
+            email: validated.email || existingUser.email,
+            role: validated.role,
           },
         });
-      } else if (data.email) {
+      } else if (validated.email) {
         const hashedPassword = await bcrypt.hash("K0pmember01", 10);
         const member = await tx.member.findUnique({
           where: { id: BigInt(id) },
           select: { member_code: true },
         });
-        const username = member?.member_code || data.email.split("@")[0];
+        const username = member?.member_code || validated.email.split("@")[0];
         await tx.user.create({
           data: {
             username,
-            email: data.email,
+            email: validated.email,
             password: hashedPassword,
-            role: data.role || "anggota",
+            role: validated.role || "anggota",
             member_id: BigInt(id),
             is_active: true,
           },
@@ -284,13 +374,13 @@ export async function updateMember(id: number, data: any) {
         photo_path: oldMember?.photo_path,
       },
       newValues: {
-        nik: data.nik,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone,
-        unit_id: data.unit_id,
-        role: data.role,
-        photo_path: data.photo_path,
+        nik: validated.nik,
+        full_name: validated.full_name,
+        email: validated.email,
+        phone: validated.phone,
+        unit_id: validated.unit_id,
+        role: validated.role,
+        photo_path: validated.photo_path,
       },
     });
 
@@ -298,6 +388,9 @@ export async function updateMember(id: number, data: any) {
     revalidatePath("/anggota");
     return { success: true };
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0].message };
+    }
     if (error.code === "P2002") return { success: false, error: "NIK atau Email sudah terdaftar." };
     return { success: false, error: "Gagal mengupdate anggota." };
   }

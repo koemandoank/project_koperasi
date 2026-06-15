@@ -18,6 +18,7 @@ import {
   validateShuConfig,
   SHU_CONFIG_ALLOWED_ROLES,
 } from "@/lib/types/shu-config.types";
+import { saveShuConfig } from "@/lib/actions/shu-calculation";
 
 const formatRp = (v: number) => `${v.toFixed(1)}%`;
 
@@ -94,19 +95,14 @@ export function ShuConfigForm({
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/shu-config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cfg),
-        });
-        const json = await res.json() as { success?: boolean; error?: string };
-        if (json.success) {
+        const res = await saveShuConfig(cfg);
+        if (res.success) {
           toast.success("Konfigurasi SHU berhasil disimpan dan dicatat di audit log!");
         } else {
-          toast.error(json.error || "Gagal menyimpan konfigurasi SHU.");
+          toast.error(res.error || "Gagal menyimpan konfigurasi SHU.");
         }
-      } catch {
-        toast.error("Terjadi kesalahan jaringan. Coba lagi.");
+      } catch (error: any) {
+        toast.error(error?.message || "Terjadi kesalahan saat menyimpan.");
       }
     });
   };

@@ -137,6 +137,7 @@ export async function executePpobTransactionPaylater(data: {
   totalAmount: number;
   providerRef?: string;
   sn?: string;
+  paymentMethod?: "paylater" | "saving_deduct";
 }) {
   try {
     const session = await auth();
@@ -154,70 +155,212 @@ export async function executePpobTransactionPaylater(data: {
     }
 
     const member = user.members;
-
-    // Generate reference number
     const trxNo = "TX-PPOB-" + Math.floor(100000 + Math.random() * 900000);
+    const paymentMethod = data.paymentMethod || "paylater";
 
-    // Save transaction in ppob_transactions table strictly as "paylater"
-    const tx = await (prisma as any).ppob_transactions.create({
-      data: {
-        member_id: member.id,
-        trx_no: trxNo,
-        product_type: data.productType,
-        product_code: data.productCode,
-        customer_no: data.customerNo,
-        customer_name: data.customerName || null,
-        amount: data.amount,
-        admin_fee: data.adminFee,
-        total_amount: data.totalAmount,
-        payment_method: "paylater", // strictly paylater as requested!
-        provider_ref: data.providerRef || "BILLER-" + Math.floor(100000 + Math.random() * 900000),
-        sn: data.sn || null,
-        status: "success",
-        transacted_at: new Date(),
-        completed_at: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    });
+    if (paymentMethod === "saving_deduct") {
+      // Find the Sukarela saving type
+      const sukarelaType = await prisma.saving_types.findFirst({
+        where: {
+          OR: [
+            { code: "SUKARELA" },
+            { name: { contains: "Sukarela" } }
+          ]
+        }
+      });
+      if (!sukarelaType) {
+        return { success: false, error: "Jenis simpanan Sukarela tidak ditemukan. Silakan hubungi admin." };
+      }
 
-    // Also register an unpaid Accounts Receivable or Paylater Debt in orders / accounts_receivable table
-    // Let's create an entry in the orders table with paylater method to reflect as unpaid debt for the member!
-    await (prisma as any).orders.create({
-      data: {
-        order_no: trxNo,
-        member_id: member.id,
-        unit_id: member.unit_id,
-        channel: "online",
-        subtotal: data.amount,
-        discount: 0,
-        grand_total: data.totalAmount,
-        payment_method: "paylater", // strictly paylater!
-        payment_status: "unpaid",   // member owes this amount to the coop
-        order_status: "confirmed",
-        note: `PPOB ${data.productType.toUpperCase()} - No: ${data.customerNo}`,
-        ordered_at: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    });
+      // Find member's Sukarela savings record
+      const memberSaving = await prisma.savings.findUnique({
+        where: {
+          member_id_saving_type_id: {
+            member_id: member.id,
+            saving_type_id: sukarelaType.id
+          }
+        }
+      });
 
-    await logAudit({
-      action: "CREATE",
-      modelType: "ppob_transactions",
-      modelId: Number(tx.id),
-      oldValues: {},
-      newValues: { trx_no: trxNo, payment_method: "paylater" },
-    });
+      if (!memberSaving || Number(memberSaving.balance) < data.totalAmount) {
+        return { success: false, error: "Saldo Simpanan Sukarela tidak mencukupi." };
+      }
 
-    revalidatePath("/ppob");
-    
-    return {
-      success: true,
-      refNo: trxNo,
-      date: new Date().toLocaleString("id-ID"),
-      points: Math.floor(data.amount / 100),
-    };
+      const balanceBefore = Number(memberSaving.balance);
+      const balanceAfter = balanceBefore - data.totalAmount;
+
+      const txResult = await prisma.$transaction(async (tx: any) => {
+        // Update savings balance
+        await tx.savings.update({
+          where: { id: memberSaving.id },
+          data: {
+            balance: balanceAfter,
+            total_withdraw: { increment: data.totalAmount },
+            updated_at: new Date()
+          }
+        });
+
+        // Log saving transaction
+        await tx.saving_transactions.create({
+          data: {
+            savings_id: memberSaving.id,
+            member_id: member.id,
+            type: "withdraw",
+            amount: data.totalAmount,
+            balance_before: balanceBefore,
+            balance_after: balanceAfter,
+            reference_no: trxNo,
+            note: `Pembelian PPOB ${data.productType.toUpperCase()} - No: ${data.customerNo}`,
+            processed_by: BigInt(session.user.id),
+            transaction_at: new Date(),
+          }
+        });
+
+        // Create PPOB Transaction
+        const ppobTx = await tx.ppob_transactions.create({
+          data: {
+            member_id: member.id,
+            trx_no: trxNo,
+            product_type: data.productType,
+            product_code: data.productCode,
+            customer_no: data.customerNo,
+            customer_name: data.customerName || null,
+            amount: data.amount,
+            admin_fee: data.adminFee,
+            total_amount: data.totalAmount,
+            payment_method: "saving_deduct",
+            provider_ref: data.providerRef || "BILLER-" + Math.floor(100000 + Math.random() * 900000),
+            sn: data.sn || null,
+            status: "success",
+            transacted_at: new Date(),
+            completed_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date(),
+          }
+        });
+
+        // Create Paid Order
+        await tx.orders.create({
+          data: {
+            order_no: trxNo,
+            member_id: member.id,
+            unit_id: member.unit_id,
+            channel: "online",
+            subtotal: data.amount,
+            discount: 0,
+            grand_total: data.totalAmount,
+            payment_method: "saving_deduct",
+            payment_status: "paid",
+            order_status: "confirmed",
+            note: `PPOB ${data.productType.toUpperCase()} - No: ${data.customerNo}`,
+            ordered_at: new Date(),
+            paid_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date(),
+          }
+        });
+
+        return ppobTx;
+      });
+
+      await logAudit({
+        action: "CREATE",
+        modelType: "ppob_transactions",
+        modelId: Number(txResult.id),
+        oldValues: {},
+        newValues: { trx_no: trxNo, payment_method: "saving_deduct" },
+      });
+
+      revalidatePath("/ppob");
+
+      return {
+        success: true,
+        refNo: trxNo,
+        date: new Date().toLocaleString("id-ID"),
+        points: Math.floor(data.amount / 100),
+      };
+    } else {
+      // Paylater route (needs limit checking!)
+      const { getLoanRules } = await import('./loan-rules');
+      const rules = await getLoanRules();
+      const paylaterLimit = rules.max_paylater_debt?.enabled ? rules.max_paylater_debt.value : 2000000;
+
+      // Calculate total unpaid paylater orders
+      const existingPaylater = await prisma.orders.aggregate({
+        where: {
+          member_id: member.id,
+          payment_method: "paylater",
+          payment_status: "unpaid",
+          order_status: { not: "cancelled" }
+        },
+        _sum: { grand_total: true }
+      });
+      
+      const currentDebt = Number(existingPaylater._sum.grand_total || 0);
+      if ((currentDebt + data.totalAmount) > paylaterLimit) {
+        return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal Rp ${paylaterLimit.toLocaleString('id-ID')}).` };
+      }
+
+      // Save transaction in ppob_transactions table strictly as "paylater"
+      const tx = await prisma.ppob_transactions.create({
+        data: {
+          member_id: member.id,
+          trx_no: trxNo,
+          product_type: data.productType,
+          product_code: data.productCode,
+          customer_no: data.customerNo,
+          customer_name: data.customerName || null,
+          amount: data.amount,
+          admin_fee: data.adminFee,
+          total_amount: data.totalAmount,
+          payment_method: "paylater",
+          provider_ref: data.providerRef || "BILLER-" + Math.floor(100000 + Math.random() * 900000),
+          sn: data.sn || null,
+          status: "success",
+          transacted_at: new Date(),
+          completed_at: new Date(),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      // Also register an unpaid Accounts Receivable or Paylater Debt in orders / accounts_receivable table
+      await prisma.orders.create({
+        data: {
+          order_no: trxNo,
+          member_id: member.id,
+          unit_id: member.unit_id,
+          channel: "online",
+          subtotal: data.amount,
+          discount: 0,
+          grand_total: data.totalAmount,
+          payment_method: "paylater",
+          payment_status: "unpaid",
+          order_status: "confirmed",
+          note: `PPOB ${data.productType.toUpperCase()} - No: ${data.customerNo}`,
+          ordered_at: new Date(),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      await logAudit({
+        action: "CREATE",
+        modelType: "ppob_transactions",
+        modelId: Number(tx.id),
+        oldValues: {},
+        newValues: { trx_no: trxNo, payment_method: "paylater" },
+      });
+
+      revalidatePath("/ppob");
+      
+      return {
+        success: true,
+        refNo: trxNo,
+        date: new Date().toLocaleString("id-ID"),
+        points: Math.floor(data.amount / 100),
+      };
+    }
   } catch (error: any) {
     console.error("executePpobTransactionPaylater error:", error);
     return { success: false, error: error?.message || "Gagal memproses transaksi PPOB" };

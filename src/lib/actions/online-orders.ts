@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
+import { checkRole } from "@/lib/auth-helpers"
 
 /**
  * Anggota membuat pesanan online dari portal
@@ -135,6 +136,10 @@ export async function createOnlineOrder(data: {
 /** Admin/Kasir: ambil semua pesanan online yg perlu diproses */
 export async function getOnlineOrders(status?: string) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return []
+    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
     const where: any = { channel: "online" }
     if (status && status !== "all") where.order_status = status
 
@@ -178,6 +183,10 @@ export async function updateOnlineOrderStatus(
   status: "confirmed" | "processing" | "delivered" | "cancelled"
 ) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
     await prisma.orders.update({
       where: { id: BigInt(orderId) },
       data: {

@@ -1,8 +1,6 @@
 import { auth } from "@/auth";
 
-export async function verifySessionAndRole(allowedRoles: string[]) {
-  const session = await auth();
-  
+export function checkRole(session: any, allowedRoles: string[]) {
   if (!session || !session.user) {
     throw new Error("Unauthorized: Harap login kembali");
   }
@@ -19,3 +17,9 @@ export async function verifySessionAndRole(allowedRoles: string[]) {
 
   return session;
 }
+
+export async function verifySessionAndRole(allowedRoles: string[]) {
+  const session = await auth();
+  return checkRole(session, allowedRoles);
+}
+

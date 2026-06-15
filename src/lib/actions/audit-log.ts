@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { Prisma } from "@prisma/client"
+import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -133,6 +135,9 @@ const LOG_VISIBLE_ROLES = ["superadmin", "admin", "pengurus", "kasir"] as const
 export async function getAuditLogs(
   filters: AuditLogFilters
 ): Promise<AuditLogResult> {
+  const session = await auth()
+  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
   const PAGE_SIZE = 25
   const page = Math.max(1, filters.page ?? 1)
   const skip = (page - 1) * PAGE_SIZE
@@ -232,6 +237,9 @@ export async function getAuditLogs(
  */
 export async function getAuditCategories(): Promise<string[]> {
   try {
+    const session = await auth()
+    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
     const types = await prisma.auditLog.findMany({
       select: { model_type: true },
       distinct: ["model_type"],
@@ -265,6 +273,9 @@ export async function getRoleSummary(
   from?: string,
   to?: string
 ): Promise<RoleSummaryRow[]> {
+  const session = await auth()
+  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)
   const endDate   = to   ? new Date(to)   : now
@@ -348,6 +359,9 @@ export async function getTimelineSummary(
   to?: string,
   role?: string
 ): Promise<TimelineDayRow[]> {
+  const session = await auth()
+  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)
   const endDate   = to   ? new Date(to)   : now

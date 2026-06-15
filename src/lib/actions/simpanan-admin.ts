@@ -1,9 +1,14 @@
-﻿"use server"
+"use server"
 
 import { prisma } from "@/lib/db/prisma"
+import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 export async function getAdminSimpananData() {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return null
+    checkRole(session, ["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"])
     const totalBalance = await prisma.savings.aggregate({
       _sum: { balance: true }
     })

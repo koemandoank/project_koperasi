@@ -110,55 +110,6 @@ export async function updateAppSettings(data: {
   }
 }
 
-/** Key untuk SHU settings di app_settings — disimpan sebagai JSON di kolom `shu_config` */
-const SHU_SETTINGS_KEY = "shu_config"
-
-/**
- * Simpan konfigurasi distribusi SHU ke app_settings.
- * @param values - Objek distribusi SHU (key → persen)
- */
-export async function saveShuSettings(
-  values: Record<string, number>
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await verifySessionAndRole(["superadmin", "ketua"]);
-    const jsonValue = JSON.stringify(values)
-    const settings = await (prisma as any).app_settings?.findFirst?.()
-    const oldShu = settings?.shu_config ? JSON.parse(settings.shu_config) : null
-
-    if (settings) {
-      await (prisma as any).app_settings.update({ where: { id: settings.id }, data: { shu_config: jsonValue } })
-    } else {
-      await (prisma as any).app_settings.create({ data: { company_name: "Koperasi Digital", shu_config: jsonValue } })
-    }
-
-    await logAudit({
-      action: "UPDATE",
-      modelType: "shu_config",
-      modelId: settings ? Number(settings.id) : null,
-      oldValues: oldShu ?? {},
-      newValues: values as Record<string, unknown>,
-    })
-
-    revalidatePath("/pengaturan/shu")
-    return { success: true }
-  } catch (error) {
-    console.error("saveShuSettings error:", error)
-    return { success: false, error: "Gagal menyimpan konfigurasi SHU." }
-  }
-}
-
-export async function getShuSettings(): Promise<Record<string, number> | null> {
-  try {
-    const settings = await (prisma as any).app_settings?.findFirst?.()
-    if (!settings?.shu_config) return null
-    return JSON.parse(settings.shu_config) as Record<string, number>
-  } catch (error) {
-    console.error("getShuSettings error:", error)
-    return null
-  }
-}
-
 /**
  * Konfigurasi Dashboard Anggota
  */

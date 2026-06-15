@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
+import { z } from "zod";
+import { userCreateSchema, userUpdateSchema } from "@/lib/validations";
 
 export type UserData = {
   id: number;
@@ -15,58 +18,105 @@ export type UserData = {
   last_login_at: Date | null;
 };
 
-export async function getUsers(): Promise<UserData[]> {
+export async function getUsers(): Promise<UserData[]>;
+export async function getUsers(
+  page: number,
+  pageSize: number
+): Promise<{ data: UserData[]; pagination: any }>;
+export async function getUsers(page?: number, pageSize?: number): Promise<any> {
   try {
     await verifySessionAndRole(["superadmin", "admin"]);
+    const isPaginated = page !== undefined && pageSize !== undefined;
     
-    // Hanya fetch user selain anggota (anggota dikelola di modul anggota)
-    const users = await prisma.user.findMany({
-      where: {
-        role: {
-          in: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
-        },
-      },
-      orderBy: { id: "asc" },
-    });
+    if (isPaginated) {
+      const { skip, take } = calculatePagination(page, pageSize);
 
-    return users.map((u: any) => ({
-      id: Number(u.id),
-      username: u.username,
-      email: u.email,
-      role: u.role,
-      is_active: u.is_active,
-      created_at: u.created_at,
-      last_login_at: u.last_login_at,
-    }));
+      // Hanya fetch user selain anggota (anggota dikelola di modul anggota)
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where: {
+            role: {
+              in: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
+            },
+          },
+          orderBy: { id: "asc" },
+          skip,
+          take,
+        }),
+        prisma.user.count({
+          where: {
+            role: {
+              in: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
+            },
+          },
+        }),
+      ]);
+
+      const data = users.map((u: any) => ({
+        id: Number(u.id),
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        is_active: u.is_active,
+        created_at: u.created_at,
+        last_login_at: u.last_login_at,
+      }));
+
+      return {
+        data,
+        pagination: getPaginationMeta(total, page, pageSize),
+      };
+    } else {
+      const users = await prisma.user.findMany({
+        where: {
+          role: {
+            in: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
+          },
+        },
+        orderBy: { id: "asc" },
+      });
+
+      return users.map((u: any) => ({
+        id: Number(u.id),
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        is_active: u.is_active,
+        created_at: u.created_at,
+        last_login_at: u.last_login_at,
+      }));
+    }
   } catch (error) {
     console.error("getUsers error:", error);
+    if (page !== undefined && pageSize !== undefined) {
+      return {
+        data: [],
+        pagination: getPaginationMeta(0, page, pageSize),
+      };
+    }
     return [];
   }
 }
 
-export async function createUser(data: {
-  username: string;
-  email: string;
-  role: "admin" | "pengurus" | "kasir" | "superadmin" | "petugas_akuntan" | "pengawas";
-  password?: string;
-}): Promise<{ success: boolean; error?: string }> {
+export async function createUser(data: any): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySessionAndRole(["superadmin", "admin"]);
+    const validated = userCreateSchema.parse(data);
     
     // Admin cannot create superadmin
-    if (session.user.role === "admin" && data.role === "superadmin") {
+    if (session.user.role === "admin" && validated.role === "superadmin") {
       return { success: false, error: "Admin tidak dapat membuat akun superadmin." };
     }
 
-    const hashedPassword = await bcrypt.hash(data.password || "654321", 10);
+    const hashedPassword = await bcrypt.hash(validated.password || "654321", 10);
 
     await prisma.user.create({
       data: {
-        username: data.username.toLowerCase(),
-        email: data.email.toLowerCase(),
+        username: validated.username.toLowerCase(),
+        email: validated.email.toLowerCase(),
         password: hashedPassword,
-        role: data.role,
-        is_active: true,
+        role: validated.role,
+        is_active: validated.is_active,
         created_at: new Date(),
         updated_at: new Date(),
       },
@@ -76,6 +126,9 @@ export async function createUser(data: {
     return { success: true };
   } catch (error: any) {
     console.error("createUser error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0].message };
+    }
     if (error.code === "P2002") {
       return { success: false, error: "Username atau Email sudah digunakan." };
     }
@@ -85,16 +138,11 @@ export async function createUser(data: {
 
 export async function updateUser(
   id: number,
-  data: {
-    username: string;
-    email: string;
-    role: "admin" | "pengurus" | "kasir" | "superadmin" | "petugas_akuntan" | "pengawas";
-    password?: string;
-    is_active: boolean;
-  }
+  data: any
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySessionAndRole(["superadmin", "admin"]);
+    const validated = userUpdateSchema.parse(data);
     
     const target = await prisma.user.findUnique({ where: { id: BigInt(id) } });
     if (!target) return { success: false, error: "User tidak ditemukan." };
@@ -104,15 +152,15 @@ export async function updateUser(
     }
 
     const updateData: any = {
-      username: data.username.toLowerCase(),
-      email: data.email.toLowerCase(),
-      role: data.role,
-      is_active: data.is_active,
+      username: validated.username?.toLowerCase(),
+      email: validated.email?.toLowerCase(),
+      role: validated.role,
+      is_active: validated.is_active,
       updated_at: new Date(),
     };
 
-    if (data.password && data.password.trim().length >= 6) {
-      updateData.password = await bcrypt.hash(data.password.trim(), 10);
+    if (validated.password && validated.password.trim().length >= 6) {
+      updateData.password = await bcrypt.hash(validated.password.trim(), 10);
     }
 
     await prisma.user.update({
@@ -124,6 +172,9 @@ export async function updateUser(
     return { success: true };
   } catch (error: any) {
     console.error("updateUser error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0].message };
+    }
     if (error.code === "P2002") {
       return { success: false, error: "Username atau Email sudah digunakan." };
     }

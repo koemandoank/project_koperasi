@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { type LoanRules, type RuleConfig, DEFAULT_LOAN_RULES } from "@/lib/types/loan-rules.types"
 import { Save, AlertTriangle, Clock, ShieldCheck, Receipt, ShoppingCart, Percent, Loader2 } from "lucide-react"
+import { getLoanRules, saveLoanRules } from "@/lib/actions/loan-rules"
 
 
 export function RulesClient({
@@ -23,35 +24,30 @@ export function RulesClient({
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<LoanRules>(DEFAULT_LOAN_RULES)
 
-  /** Fetch data terbaru dari API setiap kali komponen di-mount (modal dibuka) */
+  /** Fetch data terbaru dari Server Action setiap kali komponen di-mount (modal dibuka) */
   useEffect(() => {
     let cancelled = false
-    fetch("/api/loan-rules", { cache: "no-store" })
-      .then(res => {
-        if (!res.ok) throw new Error("Gagal memuat data")
-        return res.json() as Promise<LoanRules>
+    getLoanRules()
+      .then(data => {
+        if (!cancelled) setFormData(data)
       })
-      .then(data => { if (!cancelled) setFormData(data) })
       .catch(() => {
         if (!cancelled) {
           toast.error("Gagal memuat konfigurasi aturan")
           setFormData(DEFAULT_LOAN_RULES)
         }
       })
-      .finally(() => { if (!cancelled) setLoadingData(false) })
+      .finally(() => {
+        if (!cancelled) setLoadingData(false)
+      })
     return () => { cancelled = true }
   }, [])
 
-  /** Simpan ke API endpoint */
+  /** Simpan menggunakan Server Action */
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch("/api/loan-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-      const result = await res.json() as { success: boolean; error?: string }
+      const result = await saveLoanRules(formData)
       if (result.success) {
         toast.success("Aturan pinjaman berhasil diperbarui!")
         if (onSaved) onSaved()

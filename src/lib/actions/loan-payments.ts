@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
+import { checkRole } from "@/lib/auth-helpers"
 
 /**
  * Catat pembayaran cicilan pinjaman secara manual.
@@ -40,6 +41,8 @@ export async function recordLoanPayment({
   try {
     const session = await auth()
     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+
+    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
 
     // Validasi pinjaman aktif
     const loan = await prisma.loans.findUnique({
@@ -214,6 +217,27 @@ export async function recordLoanPayment({
  */
 export async function getLoanPayments(loanId: number) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    // Fetch the loan first to check ownership
+    const loan = await prisma.loans.findUnique({
+      where: { id: BigInt(loanId) },
+      select: { member_id: true }
+    })
+    if (!loan) return []
+
+    // If role is anggota, verify that the loan belongs to this member
+    if (session.user.role === "anggota") {
+      const user = await prisma.user.findUnique({
+        where: { id: BigInt(session.user.id) },
+        select: { member_id: true }
+      })
+      if (!user?.member_id || user.member_id !== loan.member_id) {
+        return [] // BOLA protection: user cannot access other members' loan payment records
+      }
+    }
+
     const payments = await prisma.loan_payments.findMany({
       where: { loan_id: BigInt(loanId) },
       include: {

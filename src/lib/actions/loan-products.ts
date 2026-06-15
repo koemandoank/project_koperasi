@@ -1,8 +1,10 @@
-﻿"use server"
+"use server"
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
+import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
 
 export async function getLoanProducts() {
   try {
@@ -32,6 +34,10 @@ export async function getLoanProducts() {
 
 export async function createLoanProduct(data: any) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
+    checkRole(session, ["superadmin", "admin", "pengurus"]);
+
     const created = await prisma.loan_products.create({
       data: {
         code: data.code,
@@ -66,6 +72,10 @@ export async function createLoanProduct(data: any) {
 
 export async function updateLoanProduct(id: number, data: any) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
+    checkRole(session, ["superadmin", "admin", "pengurus"]);
+
     const old = await prisma.loan_products.findUnique({ where: { id: BigInt(id) }, select: { code: true, name: true, interest_rate: true, max_tenor: true, max_amount: true, min_amount: true, admin_fee_pct: true, penalty_pct: true } });
 
     await prisma.loan_products.update({
@@ -102,6 +112,10 @@ export async function updateLoanProduct(id: number, data: any) {
 
 export async function toggleLoanProductStatus(id: number, isActive: boolean) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
+    checkRole(session, ["superadmin", "admin", "pengurus"]);
+
     await prisma.loan_products.update({
       where: { id: BigInt(id) },
       data: { is_active: isActive }

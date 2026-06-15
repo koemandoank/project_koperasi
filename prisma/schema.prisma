@@ -85,6 +85,7 @@ model Member {
 
   @@index([status, unit_id], map: "members_status_unit_id_index")
   @@index([unit_id], map: "idx_members_unit_id_foreign")
+  @@index([status, created_at(sort: Desc)], map: "idx_member_status_created")
   @@map("members")
 }
 
@@ -231,6 +232,7 @@ model journal_entries {
   @@index([reversed_by_entry_id], map: "idx_journal_entries_reversed_by_entry_id_foreign")
   @@index([unit_id, entry_date], map: "journal_entries_unit_id_entry_date_index")
   @@index([unit_id, is_posted, entry_date], map: "journal_entries_unit_id_is_posted_entry_date_index")
+  @@index([is_posted, entry_date], map: "idx_journal_entries_posted_date")
 }
 
 model journal_lines {
@@ -280,6 +282,7 @@ model loan_applications {
   @@index([loan_product_id], map: "idx_loan_applications_loan_product_id_foreign")
   @@index([member_id, status], map: "loan_applications_member_id_status_index")
   @@index([reviewed_by], map: "idx_loan_applications_reviewed_by_foreign")
+  @@index([status], map: "idx_loan_applications_status")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -439,6 +442,7 @@ model orders {
   @@index([member_id, ordered_at], map: "orders_member_id_ordered_at_index")
   @@index([payment_status, order_status], map: "orders_payment_status_order_status_index")
   @@index([unit_id, ordered_at], map: "orders_unit_id_ordered_at_index")
+  @@index([ordered_at(sort: Desc)], map: "idx_orders_ordered_at")
 }
 
 model password_reset_tokens {

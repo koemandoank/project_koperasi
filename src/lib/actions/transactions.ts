@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
+import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Interfaces
@@ -564,62 +565,126 @@ async function ensureDefaultTransactions(): Promise<void> {
   }
 }
 
-/**
- * Fetches the list of recent manual transactions to populate the "Transaksi Terkini" list.
- * 
- * @param {number} limit - Maximum rows to pull.
- * @returns {Promise<{ success: boolean, entries: RecentTransactionItem[] }>} Recent entries.
- */
-export async function getRecentTransactions(limit = 10): Promise<{ success: boolean; entries: RecentTransactionItem[] }> {
+export async function getRecentTransactions(): Promise<{ success: boolean; entries: RecentTransactionItem[] }>;
+export async function getRecentTransactions(limit: number): Promise<{ success: boolean; entries: RecentTransactionItem[] }>;
+export async function getRecentTransactions(
+  page: number,
+  pageSize: number
+): Promise<{
+  success: boolean;
+  entries: RecentTransactionItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+    hasMore: boolean;
+  };
+}>;
+export async function getRecentTransactions(pageOrLimit?: number, pageSize?: number): Promise<any> {
   try {
     // Seed default transactions if empty
     await ensureDefaultTransactions()
 
-    const entries = await prisma.journal_entries.findMany({
-      where: { source: "manual" },
-      include: {
-        journal_lines: {
-          include: { chart_of_accounts: true }
-        }
-      },
-      orderBy: { entry_date: "desc" },
-      take: limit
-    })
+    const isPaginated = pageSize !== undefined;
+    
+    if (isPaginated) {
+      const page = pageOrLimit || 1;
+      const { skip, take } = calculatePagination(page, pageSize);
 
-    const result: RecentTransactionItem[] = []
+      const [entries, total] = await Promise.all([
+        prisma.journal_entries.findMany({
+          where: { source: "manual" },
+          include: {
+            journal_lines: {
+              include: { chart_of_accounts: true }
+            }
+          },
+          orderBy: { entry_date: "desc" },
+          skip,
+          take
+        }),
+        prisma.journal_entries.count({
+          where: { source: "manual" }
+        })
+      ]);
 
-    for (const e of entries) {
-      // Manual entries have exactly 2 lines: one Debit, one Credit
-      const debitLine = e.journal_lines.find((l: any) => Number(l.debit) > 0)
-      const creditLine = e.journal_lines.find((l: any) => Number(l.credit) > 0)
+      const result: RecentTransactionItem[] = [];
 
-      if (!debitLine || !creditLine) continue
+      for (const e of entries) {
+        const debitLine = e.journal_lines.find((l: any) => Number(l.debit) > 0)
+        const creditLine = e.journal_lines.find((l: any) => Number(l.credit) > 0)
 
-      // Detect if it is Income or Expense
-      // Pengeluaran: Category is Expense (Debit), Account is Asset (Credit)
-      // Pemasukan: Account is Asset (Debit), Category is Revenue (Credit)
-      const isExpense = debitLine.chart_of_accounts.type === "expense"
-      
-      const categoryName = isExpense ? debitLine.chart_of_accounts.name : creditLine.chart_of_accounts.name
-      const accountName = isExpense ? creditLine.chart_of_accounts.name : debitLine.chart_of_accounts.name
-      const amount = isExpense ? Number(debitLine.debit) : Number(creditLine.credit)
+        if (!debitLine || !creditLine) continue
 
-      result.push({
-        id: Number(e.id),
-        entry_no: e.entry_no,
-        entry_date: e.entry_date.toISOString().split("T")[0],
-        description: e.description,
-        amount,
-        type: isExpense ? "pengeluaran" : "pemasukan",
-        category_name: categoryName,
-        account_name: accountName,
-        created_at: e.created_at ? e.created_at.toISOString() : new Date().toISOString()
+        const isExpense = debitLine.chart_of_accounts.type === "expense"
+        
+        const categoryName = isExpense ? debitLine.chart_of_accounts.name : creditLine.chart_of_accounts.name
+        const accountName = isExpense ? creditLine.chart_of_accounts.name : debitLine.chart_of_accounts.name
+        const amount = isExpense ? Number(debitLine.debit) : Number(creditLine.credit)
+
+        result.push({
+          id: Number(e.id),
+          entry_no: e.entry_no,
+          entry_date: e.entry_date.toISOString().split("T")[0],
+          description: e.description,
+          amount,
+          type: isExpense ? "pengeluaran" : "pemasukan",
+          category_name: categoryName,
+          account_name: accountName,
+          created_at: e.created_at ? e.created_at.toISOString() : new Date().toISOString()
+        })
+      }
+
+      return {
+        success: true,
+        entries: result,
+        pagination: getPaginationMeta(total, page, pageSize)
+      }
+    } else {
+      const limit = pageOrLimit || 10;
+      const entries = await prisma.journal_entries.findMany({
+        where: { source: "manual" },
+        include: {
+          journal_lines: {
+            include: { chart_of_accounts: true }
+          }
+        },
+        orderBy: { entry_date: "desc" },
+        take: limit
       })
-    }
 
-    return {
-      success: true,
-      entries: result
+      const result: RecentTransactionItem[] = []
+
+      for (const e of entries) {
+        const debitLine = e.journal_lines.find((l: any) => Number(l.debit) > 0)
+        const creditLine = e.journal_lines.find((l: any) => Number(l.credit) > 0)
+
+        if (!debitLine || !creditLine) continue
+
+        const isExpense = debitLine.chart_of_accounts.type === "expense"
+        
+        const categoryName = isExpense ? debitLine.chart_of_accounts.name : creditLine.chart_of_accounts.name
+        const accountName = isExpense ? creditLine.chart_of_accounts.name : debitLine.chart_of_accounts.name
+        const amount = isExpense ? Number(debitLine.debit) : Number(creditLine.credit)
+
+        result.push({
+          id: Number(e.id),
+          entry_no: e.entry_no,
+          entry_date: e.entry_date.toISOString().split("T")[0],
+          description: e.description,
+          amount,
+          type: isExpense ? "pengeluaran" : "pemasukan",
+          category_name: categoryName,
+          account_name: accountName,
+          created_at: e.created_at ? e.created_at.toISOString() : new Date().toISOString()
+        })
+      }
+
+      return {
+        success: true,
+        entries: result
+      }
     }
   } catch (error: any) {
     console.error("[getRecentTransactions] Error:", error)

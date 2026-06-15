@@ -7,6 +7,8 @@ import { logAudit } from "@/lib/actions/log-audit";
 import { verifySessionAndRole } from "@/lib/auth-helpers";
 import { deleteCache } from "@/lib/cache";
 import { z } from "zod";
+import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
+import { loanApplicationSchema } from "@/lib/validations";
 
 /** Check if a loan application violates any of the active loan rules */
 export async function checkLoanRuleViolations(
@@ -126,58 +128,131 @@ export async function checkLoanRuleViolationsAction(
 }
 
 /** Fetch all loan applications for admin/pengurus approval */
-export async function getLoanApplications(statusFilter?: string) {
+export async function getLoanApplications(statusFilter?: string): Promise<any[]>;
+export async function getLoanApplications(
+  statusFilter: string | undefined,
+  page: number,
+  pageSize: number
+): Promise<{ data: any[]; pagination: any }>;
+export async function getLoanApplications(
+  statusFilter?: string,
+  page?: number,
+  pageSize?: number
+): Promise<any> {
   try {
+    const isPaginated = page !== undefined && pageSize !== undefined;
     const whereClause: any = {}
     if (statusFilter && statusFilter !== "all") {
       whereClause.status = statusFilter
     }
 
-    const apps = await prisma.loan_applications.findMany({
-      where: whereClause,
-      include: {
-        members: true,
-        loan_products: true,
-      },
-      orderBy: { created_at: "desc" }
-    });
+    if (isPaginated) {
+      const { skip, take } = calculatePagination(page, pageSize);
 
-    // Fetch all approved applications to calculate dynamic queue numbers
-    const approvedApps = await prisma.loan_applications.findMany({
-      where: { status: "approved" },
-      orderBy: { approved_at: "asc" },
-      select: { id: true }
-    });
-    const approvedIds = approvedApps.map((a: any) => Number(a.id));
+      const [apps, total] = await Promise.all([
+        prisma.loan_applications.findMany({
+          where: whereClause,
+          include: {
+            members: true,
+            loan_products: true,
+          },
+          orderBy: { created_at: "desc" },
+          skip,
+          take,
+        }),
+        prisma.loan_applications.count({
+          where: whereClause,
+        }),
+      ]);
 
-    const result = await Promise.all(
-      apps.map(async (a: any) => {
-        const violations = a.status === "pending"
-          ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
-          : [];
+      const approvedApps = await prisma.loan_applications.findMany({
+        where: { status: "approved" },
+        orderBy: { approved_at: "asc" },
+        select: { id: true }
+      });
+      const approvedIds = approvedApps.map((a: any) => Number(a.id));
 
-        return {
-          id: Number(a.id),
-          application_no: a.application_no,
-          member_name: a.members?.full_name || "Unknown",
-          member_nik: a.members?.nik || "-",
-          product_name: a.loan_products?.name || "-",
-          amount_requested: Number(a.amount_requested),
-          tenor_months: a.tenor_months,
-          purpose: a.purpose,
-          status: a.status,
-          repayment_method: a.repayment_method,
-          submitted_at: a.submitted_at?.toISOString() || null,
-          created_at: a.created_at?.toISOString() || null,
-          rule_violations: violations,
-          queue_number: a.status === "approved" ? approvedIds.indexOf(Number(a.id)) + 1 : null,
-        };
-      })
-    );
+      const data = await Promise.all(
+        apps.map(async (a: any) => {
+          const violations = a.status === "pending"
+            ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
+            : [];
 
-    return result;
+          return {
+            id: Number(a.id),
+            application_no: a.application_no,
+            member_name: a.members?.full_name || "Unknown",
+            member_nik: a.members?.nik || "-",
+            product_name: a.loan_products?.name || "-",
+            amount_requested: Number(a.amount_requested),
+            tenor_months: a.tenor_months,
+            purpose: a.purpose,
+            status: a.status,
+            repayment_method: a.repayment_method,
+            submitted_at: a.submitted_at?.toISOString() || null,
+            created_at: a.created_at?.toISOString() || null,
+            rule_violations: violations,
+            queue_number: a.status === "approved" ? approvedIds.indexOf(Number(a.id)) + 1 : null,
+          };
+        })
+      );
+
+      return {
+        data,
+        pagination: getPaginationMeta(total, page, pageSize),
+      };
+    } else {
+      const apps = await prisma.loan_applications.findMany({
+        where: whereClause,
+        include: {
+          members: true,
+          loan_products: true,
+        },
+        orderBy: { created_at: "desc" }
+      });
+
+      const approvedApps = await prisma.loan_applications.findMany({
+        where: { status: "approved" },
+        orderBy: { approved_at: "asc" },
+        select: { id: true }
+      });
+      const approvedIds = approvedApps.map((a: any) => Number(a.id));
+
+      const data = await Promise.all(
+        apps.map(async (a: any) => {
+          const violations = a.status === "pending"
+            ? await checkLoanRuleViolations(a.member_id, a.loan_product_id, Number(a.amount_requested), a.id)
+            : [];
+
+          return {
+            id: Number(a.id),
+            application_no: a.application_no,
+            member_name: a.members?.full_name || "Unknown",
+            member_nik: a.members?.nik || "-",
+            product_name: a.loan_products?.name || "-",
+            amount_requested: Number(a.amount_requested),
+            tenor_months: a.tenor_months,
+            purpose: a.purpose,
+            status: a.status,
+            repayment_method: a.repayment_method,
+            submitted_at: a.submitted_at?.toISOString() || null,
+            created_at: a.created_at?.toISOString() || null,
+            rule_violations: violations,
+            queue_number: a.status === "approved" ? approvedIds.indexOf(Number(a.id)) + 1 : null,
+          };
+        })
+      );
+
+      return data;
+    }
   } catch (error) {
     console.error("getLoanApplications error:", error);
+    if (page !== undefined && pageSize !== undefined) {
+      return {
+        data: [],
+        pagination: getPaginationMeta(0, page, pageSize),
+      };
+    }
     return [];
   }
 }
@@ -339,16 +414,10 @@ export async function updateLoanStatus(
  * Jika rule tidak aktif → pengajuan diproses normal tanpa validasi rule.
  * Pinjaman yang sudah di-approve pengurus TIDAK dipengaruhi oleh fungsi ini.
  */
-export async function submitLoanApplication(data: {
-  loan_product_id: number;
-  amount_requested: number;
-  tenor_months: number;
-  repayment_method: string;
-  purpose: string;
-  guarantor_name?: string;
-  guarantor_phone?: string;
-}) {
+export async function submitLoanApplication(data: any) {
   try {
+    const validated = loanApplicationSchema.parse(data);
+
     const session = await auth();
     const userId = session?.user?.id;
     if (!userId) return { success: false, error: "Tidak terautentikasi" };
@@ -360,7 +429,7 @@ export async function submitLoanApplication(data: {
     if (!user?.members) return { success: false, error: "Data anggota tidak ditemukan" };
 
     const memberId = user.members.id;
-    const productIdNum = Number(data.loan_product_id);
+    const productIdNum = validated.loan_product_id;
 
     // FETCH LOAN RULES
     const { getLoanRules } = await import('./loan-rules');
@@ -424,7 +493,7 @@ export async function submitLoanApplication(data: {
       const balance = Number(totalSavings._sum?.balance ?? 0);
       const maxAllowed = balance * (rules.max_loan_percentage_of_savings.value / 100);
       
-      if (data.amount_requested > maxAllowed) {
+      if (validated.amount_requested > maxAllowed) {
         ruleViolationError = `Limit ditolak: Pengajuan melebihi ${rules.max_loan_percentage_of_savings.value}% saldo simpanan (Maks Rp ${maxAllowed.toLocaleString('id-ID')}).`;
       }
     }
@@ -438,15 +507,15 @@ export async function submitLoanApplication(data: {
           member_id: memberId,
           loan_product_id: BigInt(productIdNum),
           application_no: appNo,
-          amount_requested: data.amount_requested,
-          tenor_months: data.tenor_months,
-          repayment_method: data.repayment_method as any,
-          purpose: data.purpose,
+          amount_requested: validated.amount_requested,
+          tenor_months: validated.tenor_months,
+          repayment_method: validated.repayment_method as any,
+          purpose: validated.purpose,
           status: "rejected",
           submitted_at: new Date(),
           rejection_note: ruleViolationError,
-          guarantor_name: data.guarantor_name || null,
-          guarantor_phone: data.guarantor_phone || null,
+          guarantor_name: validated.guarantor_name || null,
+          guarantor_phone: validated.guarantor_phone || null,
         }
       });
 
@@ -458,11 +527,11 @@ export async function submitLoanApplication(data: {
         modelId: null,
         newValues: {
           application_no: appNo,
-          loan_product_id: data.loan_product_id,
-          amount_requested: data.amount_requested,
-          tenor_months: data.tenor_months,
-          repayment_method: data.repayment_method,
-          purpose: data.purpose,
+          loan_product_id: validated.loan_product_id,
+          amount_requested: validated.amount_requested,
+          tenor_months: validated.tenor_months,
+          repayment_method: validated.repayment_method,
+          purpose: validated.purpose,
           status: "rejected",
           rejection_note: ruleViolationError,
         },
@@ -477,45 +546,59 @@ export async function submitLoanApplication(data: {
         member_id: memberId,
         loan_product_id: BigInt(productIdNum),
         application_no: appNo,
-        amount_requested: data.amount_requested,
-        tenor_months: data.tenor_months,
-        repayment_method: data.repayment_method as any,
-        purpose: data.purpose,
+        amount_requested: validated.amount_requested,
+        tenor_months: validated.tenor_months,
+        repayment_method: validated.repayment_method as any,
+        purpose: validated.purpose,
         status: "pending",
         submitted_at: new Date(),
-        guarantor_name: data.guarantor_name || null,
-        guarantor_phone: data.guarantor_phone || null,
+        guarantor_name: validated.guarantor_name || null,
+        guarantor_phone: validated.guarantor_phone || null,
       }
     });
 
     revalidatePath("/pinjaman");
 
     await logAudit({
-        action: "CREATE",
-        modelType: "loan_applications",
-        modelId: null,
-        newValues: {
-          application_no: appNo,
-          loan_product_id: data.loan_product_id,
-          amount_requested: data.amount_requested,
-          tenor_months: data.tenor_months,
-          repayment_method: data.repayment_method,
-          purpose: data.purpose,
-          status: "pending",
-        },
-      });
+      action: "CREATE",
+      modelType: "loan_applications",
+      modelId: null,
+      newValues: {
+        application_no: appNo,
+        loan_product_id: validated.loan_product_id,
+        amount_requested: validated.amount_requested,
+        tenor_months: validated.tenor_months,
+        repayment_method: validated.repayment_method,
+        purpose: validated.purpose,
+        status: "pending",
+      },
+    });
 
-      await deleteCache(["stats:admin", "stats:kredit"]);
-      return { success: true };
-    } catch (error) {
-      console.error("submitLoanApplication error:", error);
-      return { success: false, error: "Gagal mengajukan pinjaman." };
+    await deleteCache(["stats:admin", "stats:kredit"]);
+    return { success: true };
+  } catch (error: any) {
+    console.error("submitLoanApplication error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0].message };
     }
+    return { success: false, error: "Gagal mengajukan pinjaman." };
+  }
 }
 
 /** Fetch all loans for admin/pengurus management */
-export async function getAllLoans(params?: { search?: string; status?: string }) {
+export async function getAllLoans(params?: { search?: string; status?: string }): Promise<any[]>;
+export async function getAllLoans(
+  params: { search?: string; status?: string } | undefined,
+  page: number,
+  pageSize: number
+): Promise<{ data: any[]; pagination: any }>;
+export async function getAllLoans(
+  params?: { search?: string; status?: string },
+  page?: number,
+  pageSize?: number
+): Promise<any> {
   try {
+    const isPaginated = page !== undefined && pageSize !== undefined;
     const whereClause: any = {}
     
     if (params?.status && params.status !== "all") {
@@ -530,58 +613,212 @@ export async function getAllLoans(params?: { search?: string; status?: string })
       ]
     }
 
-    const loans = await prisma.loans.findMany({
-      where: whereClause,
-      include: {
-        members: {
-          select: {
-            full_name: true,
-            nik: true,
-            member_code: true,
-          }
-        },
-        loan_applications: {
-          include: {
-            loan_products: true
-          }
-        },
-        loan_schedules: {
-          orderBy: { installment_no: "asc" }
-        }
-      },
-      orderBy: { disbursed_at: "desc" }
-    })
+    if (isPaginated) {
+      const { skip, take } = calculatePagination(page, pageSize);
 
-    return loans.map((l: any) => ({
-      id: Number(l.id),
-      loan_no: l.loan_no,
-      member_name: l.members?.full_name || "Unknown",
-      member_nik: l.members?.nik || "-",
-      member_code: l.members?.member_code || "-",
-      product_name: l.loan_applications?.loan_products?.name || "Pinjaman Uang",
-      principal: Number(l.principal),
-      outstanding: Number(l.outstanding_principal),
-      total_paid: Number(l.total_paid),
-      monthly_installment: Number(l.monthly_installment),
-      tenor_months: l.tenor_months,
-      status: l.status,
-      repayment_method: l.repayment_method,
-      disbursed_at: l.disbursed_at?.toISOString() || null,
-      schedules: l.loan_schedules.map((s: any) => ({
-        id: Number(s.id),
-        installment_no: s.installment_no,
-        due_date: s.due_date.toISOString().split("T")[0],
-        principal_due: Number(s.principal_due),
-        interest_due: Number(s.interest_due),
-        total_due: Number(s.total_due),
-        status: s.status,
-        principal_paid: Number(s.principal_paid),
-        interest_paid: Number(s.interest_paid),
-        penalty_paid: Number(s.penalty_paid || 0),
-      }))
-    }))
+      const [loans, total] = await Promise.all([
+        prisma.loans.findMany({
+          where: whereClause,
+          include: {
+            members: {
+              select: {
+                full_name: true,
+                nik: true,
+                member_code: true,
+              }
+            },
+            loan_applications: {
+              include: {
+                loan_products: true
+              }
+            },
+            loan_schedules: {
+              orderBy: { installment_no: "asc" }
+            }
+          },
+          orderBy: { disbursed_at: "desc" },
+          skip,
+          take,
+        }),
+        prisma.loans.count({
+          where: whereClause,
+        }),
+      ]);
+
+      const data = loans.map((l: any) => ({
+        id: Number(l.id),
+        loan_no: l.loan_no,
+        member_name: l.members?.full_name || "Unknown",
+        member_nik: l.members?.nik || "-",
+        member_code: l.members?.member_code || "-",
+        product_name: l.loan_applications?.loan_products?.name || "Pinjaman Uang",
+        principal: Number(l.principal),
+        outstanding: Number(l.outstanding_principal),
+        total_paid: Number(l.total_paid),
+        monthly_installment: Number(l.monthly_installment),
+        tenor_months: l.tenor_months,
+        status: l.status,
+        repayment_method: l.repayment_method,
+        disbursed_at: l.disbursed_at?.toISOString() || null,
+        schedules: l.loan_schedules.map((s: any) => ({
+          id: Number(s.id),
+          installment_no: s.installment_no,
+          due_date: s.due_date.toISOString().split("T")[0],
+          principal_due: Number(s.principal_due),
+          interest_due: Number(s.interest_due),
+          total_due: Number(s.total_due),
+          status: s.status,
+          principal_paid: Number(s.principal_paid),
+          interest_paid: Number(s.interest_paid),
+          penalty_paid: Number(s.penalty_paid || 0),
+        }))
+      }));
+
+      return {
+        data,
+        pagination: getPaginationMeta(total, page, pageSize),
+      };
+    } else {
+      const loans = await prisma.loans.findMany({
+        where: whereClause,
+        include: {
+          members: {
+            select: {
+              full_name: true,
+              nik: true,
+              member_code: true,
+            }
+          },
+          loan_applications: {
+            include: {
+              loan_products: true
+            }
+          },
+          loan_schedules: {
+            orderBy: { installment_no: "asc" }
+          }
+        },
+        orderBy: { disbursed_at: "desc" }
+      });
+
+      return loans.map((l: any) => ({
+        id: Number(l.id),
+        loan_no: l.loan_no,
+        member_name: l.members?.full_name || "Unknown",
+        member_nik: l.members?.nik || "-",
+        member_code: l.members?.member_code || "-",
+        product_name: l.loan_applications?.loan_products?.name || "Pinjaman Uang",
+        principal: Number(l.principal),
+        outstanding: Number(l.outstanding_principal),
+        total_paid: Number(l.total_paid),
+        monthly_installment: Number(l.monthly_installment),
+        tenor_months: l.tenor_months,
+        status: l.status,
+        repayment_method: l.repayment_method,
+        disbursed_at: l.disbursed_at?.toISOString() || null,
+        schedules: l.loan_schedules.map((s: any) => ({
+          id: Number(s.id),
+          installment_no: s.installment_no,
+          due_date: s.due_date.toISOString().split("T")[0],
+          principal_due: Number(s.principal_due),
+          interest_due: Number(s.interest_due),
+          total_due: Number(s.total_due),
+          status: s.status,
+          principal_paid: Number(s.principal_paid),
+          interest_paid: Number(s.interest_paid),
+          penalty_paid: Number(s.penalty_paid || 0),
+        }))
+      }));
+    }
   } catch (error) {
     console.error("getAllLoans error:", error);
+    if (page !== undefined && pageSize !== undefined) {
+      return {
+        data: [],
+        pagination: getPaginationMeta(0, page, pageSize),
+      };
+    }
     return [];
+  }
+}
+
+export async function getLoanTransaction(id: number) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { error: "Unauthorized" }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(session.user.id) },
+      include: { members: true }
+    })
+
+    const isAdmin = ["superadmin", "admin", "pengurus"].includes(session.user.role || "")
+
+    let loan;
+    if (isAdmin) {
+      loan = await prisma.loans.findFirst({
+        where: {
+          id: BigInt(id),
+        },
+        include: {
+          loan_schedules: { orderBy: { due_date: "asc" } },
+          loan_applications: { include: { loan_products: true } }
+        }
+      })
+    } else {
+      if (!user?.members) {
+        return { error: "Member not found" }
+      }
+
+      loan = await prisma.loans.findFirst({
+        where: {
+          id: BigInt(id),
+          member_id: user.members.id
+        },
+        include: {
+          loan_schedules: { orderBy: { due_date: "asc" } },
+          loan_applications: { include: { loan_products: true } }
+        }
+      })
+    }
+
+    if (!loan) {
+      return { error: "Loan not found" }
+    }
+
+    return {
+      success: true,
+      data: {
+        id: Number(loan.id),
+        loan_no: loan.loan_no,
+        principal: Number(loan.principal),
+        outstanding: Number(loan.outstanding_principal),
+        monthly_installment: Number(loan.monthly_installment),
+        tenor_months: loan.tenor_months,
+        disbursed_at: loan.disbursed_at?.toISOString().split("T")[0],
+        last_due_date: loan.last_due_date?.toISOString().split("T")[0],
+        status: loan.status,
+        repayment_method: loan.repayment_method,
+        product: loan.loan_applications?.loan_products ? {
+          name: loan.loan_applications.loan_products.name,
+          code: loan.loan_applications.loan_products.code,
+          interest_rate: Number(loan.loan_applications.loan_products.interest_rate),
+          max_tenor: loan.loan_applications.loan_products.max_tenor,
+        } : null,
+        loan_schedules: loan.loan_schedules.map((s: any) => ({
+          id: Number(s.id),
+          due_date: s.due_date,
+          principal_payment: Number(s.principal_due),
+          interest_payment: Number(s.interest_due),
+          total_payment: Number(s.total_due),
+          status: s.status,
+        })),
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching loan transaction:", error)
+    return { error: "Internal server error" }
   }
 }

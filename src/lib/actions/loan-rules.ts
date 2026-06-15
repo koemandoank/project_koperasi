@@ -2,8 +2,11 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { type LoanRules, DEFAULT_LOAN_RULES } from "@/lib/types/loan-rules.types";
+import { type LoanRules, DEFAULT_LOAN_RULES, LoanRulesSchema } from "@/lib/types/loan-rules.types";
 import { logAudit } from "@/lib/actions/log-audit";
+import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
+import { z } from "zod";
 
 /**
  * Membaca konfigurasi loan rules dari database.
@@ -42,7 +45,12 @@ export async function getLoanRules(): Promise<LoanRules> {
  */
 export async function saveLoanRules(values: LoanRules): Promise<{ success: boolean; error?: string }> {
   try {
-    const jsonValue = JSON.stringify(values);
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
+    checkRole(session, ["superadmin", "admin", "pengurus"]);
+
+    const parsedValues = LoanRulesSchema.parse(values);
+    const jsonValue = JSON.stringify(parsedValues);
 
     const settings = await prisma.app_settings.findFirst();
     const oldRules = settings?.loan_rules ? JSON.parse(settings.loan_rules) : null;
@@ -63,14 +71,17 @@ export async function saveLoanRules(values: LoanRules): Promise<{ success: boole
       modelType: "loan_rules",
       modelId: settings ? Number(settings.id) : null,
       oldValues: oldRules ?? {},
-      newValues: values as unknown as Record<string, unknown>,
+      newValues: parsedValues as unknown as Record<string, unknown>,
     });
 
     revalidatePath("/pinjaman/produk");
     revalidatePath("/pinjaman");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("saveLoanRules error:", error);
-    return { success: false, error: "Gagal menyimpan aturan pinjaman." };
+    if (error instanceof z.ZodError) {
+      return { success: false, error: `Validasi gagal: ${error.issues[0]?.message || error.message}` };
+    }
+    return { success: false, error: error.message || "Gagal menyimpan aturan pinjaman." };
   }
 }

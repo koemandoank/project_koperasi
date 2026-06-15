@@ -66,6 +66,7 @@ interface PPOBClientProps {
       amount: number;
       ordered_at: string;
     }>;
+    sukarela_balance?: number;
   } | null;
 }
 
@@ -134,7 +135,8 @@ const defaultMemberData = {
   paylater_debts: [
     { id: 1, order_no: "TX-PL-892134", amount: 150000, ordered_at: "2026-05-20" },
     { id: 2, order_no: "TX-PL-899120", amount: 100000, ordered_at: "2026-05-24" },
-  ]
+  ],
+  sukarela_balance: 0,
 };
 
 export function TokoPPOBClient({ memberData }: PPOBClientProps) {
@@ -384,6 +386,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
 
   // checkout/security state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"paylater" | "saving_deduct">("paylater");
   const [pinCode, setPinCode] = useState<string[]>(Array(6).fill(""));
   const [isProcessingTx, setIsProcessingTx] = useState(false);
   const [txStatus, setTxStatus] = useState<"processing" | "success" | "failed" | null>(null);
@@ -476,10 +479,20 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
       return;
     }
 
-    // Check Paylater limit
-    if (activeMember.paylater_available < p.actualPrice) {
-      toast.error("Limit Bayar Tempo koperasi Anda tidak mencukupi untuk melakukan transaksi ini.");
+    // Check balance / limit availability
+    const hasEnoughPaylater = activeMember.paylater_available >= p.actualPrice;
+    const hasEnoughSavings = (activeMember.sukarela_balance || 0) >= p.actualPrice;
+
+    if (!hasEnoughPaylater && !hasEnoughSavings) {
+      toast.error("Limit Bayar Tempo dan Saldo Simpanan Sukarela Anda tidak mencukupi untuk transaksi ini.");
       return;
+    }
+
+    // Set default payment method based on availability
+    if (hasEnoughPaylater) {
+      setPaymentMethod("paylater");
+    } else {
+      setPaymentMethod("saving_deduct");
     }
 
     setSelectedProduct(p);
@@ -535,6 +548,7 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
       amount: selectedProduct.price,
       adminFee: selectedProduct.actualPrice - selectedProduct.price,
       totalAmount: selectedProduct.actualPrice,
+      paymentMethod: paymentMethod,
     }).then((res) => {
       if (res.success && res.refNo) {
         setTxStatus("success");
@@ -1406,9 +1420,35 @@ export function TokoPPOBClient({ memberData }: PPOBClientProps) {
 
                   {/* Summary Box */}
                   <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-2.5 text-xs font-semibold text-slate-500 font-sans">
-                    <div className="flex justify-between">
-                      <span>Sumber Dana</span>
-                      <span className="font-extrabold text-[#0f4c3a] dark:text-emerald-400 uppercase">Bayar Tempo Koperasi</span>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sumber Dana</Label>
+                      <Select 
+                        value={paymentMethod} 
+                        onValueChange={(v) => {
+                          if (!v) return;
+                          if (v === "paylater" && activeMember.paylater_available < selectedProduct.actualPrice) {
+                            toast.error("Limit Bayar Tempo tidak mencukupi.");
+                            return;
+                          }
+                          if (v === "saving_deduct" && (activeMember.sukarela_balance || 0) < selectedProduct.actualPrice) {
+                            toast.error("Saldo Simpanan Sukarela tidak mencukupi.");
+                            return;
+                          }
+                          setPaymentMethod(v as "paylater" | "saving_deduct");
+                        }}
+                      >
+                        <SelectTrigger className="w-full h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="paylater" disabled={activeMember.paylater_available < selectedProduct.actualPrice}>
+                            Bayar Tempo (Sisa: Rp {activeMember.paylater_available.toLocaleString("id-ID")})
+                          </SelectItem>
+                          <SelectItem value="saving_deduct" disabled={(activeMember.sukarela_balance || 0) < selectedProduct.actualPrice}>
+                            Simpanan Sukarela (Saldo: Rp {(activeMember.sukarela_balance || 0).toLocaleString("id-ID")})
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     {activeCategory === "pulsa" && (
                       <div className="flex justify-between">

@@ -3,9 +3,10 @@
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { getLabaRugi } from "@/lib/actions/laporan-keuangan"
-import { ShuConfig, DEFAULT_SHU_CONFIG } from "@/lib/types/shu-config.types"
+import { ShuConfig, DEFAULT_SHU_CONFIG, ShuConfigSchema, validateShuConfig } from "@/lib/types/shu-config.types"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
+import { verifySessionAndRole } from "@/lib/auth-helpers"
 
 export interface MemberShuProjection {
   memberId: string;
@@ -43,11 +44,11 @@ export interface ShuProjectionReport {
 }
 
 /**
- * Helper: Mengambil konfigurasi SHU aktif dari app_settings.
+ * Mengambil konfigurasi SHU aktif dari app_settings.
  * 
  * @returns {Promise<ShuConfig>} Konfigurasi SHU
  */
-async function getShuConfig(): Promise<ShuConfig> {
+export async function getShuConfig(): Promise<ShuConfig> {
   try {
     const settings = await prisma.app_settings.findFirst();
     if (!settings?.shu_config) return DEFAULT_SHU_CONFIG;
@@ -55,6 +56,63 @@ async function getShuConfig(): Promise<ShuConfig> {
   } catch (error) {
     console.error("Error loading SHU config:", error);
     return DEFAULT_SHU_CONFIG;
+  }
+}
+
+export async function saveShuConfig(config: ShuConfig) {
+  try {
+    const session = await verifySessionAndRole(["superadmin", "ketua"]);
+    
+    // Strict Parsing
+    const parsedData = ShuConfigSchema.parse(config);
+
+    // Validasi 3 grup + rule bisnis
+    const validationError = validateShuConfig(parsedData);
+    if (validationError) {
+      return { success: false, error: validationError };
+    }
+
+    // Ambil nilai lama untuk audit log
+    const settings = await prisma.app_settings.findFirst();
+    const oldConfig = settings?.shu_config
+      ? (JSON.parse(settings.shu_config) as Record<string, unknown>)
+      : null;
+
+    // Simpan ke DB
+    const jsonValue = JSON.stringify(parsedData);
+    let settingsId = BigInt(0);
+    if (settings) {
+      settingsId = settings.id;
+      await prisma.app_settings.update({
+        where: { id: settings.id },
+        data: { shu_config: jsonValue, updated_at: new Date() },
+      });
+    } else {
+      const created = await prisma.app_settings.create({
+        data: {
+          company_name: "Koperasi Digital",
+          shu_config: jsonValue,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+      settingsId = created.id;
+    }
+
+    // Audit Log
+    await logAudit({
+      action: "UPDATE",
+      modelType: "shu_config",
+      modelId: Number(settingsId),
+      oldValues: oldConfig ?? {},
+      newValues: config as unknown as Record<string, unknown>,
+    });
+
+    revalidatePath("/pengaturan/shu");
+    return { success: true };
+  } catch (error: any) {
+    console.error("saveShuConfig error:", error);
+    return { success: false, error: error?.message || "Gagal menyimpan konfigurasi SHU." };
   }
 }
 
