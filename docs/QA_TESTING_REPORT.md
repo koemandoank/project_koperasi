@@ -10,7 +10,7 @@ Pengujian ini memastikan bahwa setiap *role* hanya dapat mengakses data dan mela
 
 | Modul / Fitur | Superadmin | Admin | Pengurus / Ketua | Kasir | Petugas Akuntan | Pengawas | Anggota |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Dashboard Utama** | ✅ Full | ✅ Full | ✅ Full | ✅ Kasir | ❌ No Access | ❌ No Access | ✅ Portal |
+| **Dashboard Utama** | ✅ Full | ✅ Full | ✅ Full | ✅ Kasir | ✅ Full | ❌ No Access | ✅ Portal |
 | **Penerimaan Pembayaran Pinjaman** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **Kelola Online Orders (Toko)** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **Kelola Produk & Aturan Pinjaman** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -23,10 +23,10 @@ Pengujian ini memastikan bahwa setiap *role* hanya dapat mengakses data dan mela
 ## 2. Skenario Pengujian Per Role
 
 ### Skenario 1: Login & Dashboard Access
-*   **Aktor**: `superadmin` / `admin` / `pengurus`
+*   **Aktor**: `superadmin` / `admin` / `pengurus` / `petugas_akuntan`
     *   **Langkah**: Login ke sistem → buka `/dashboard`.
     *   **Ekspektasi**: Halaman dashboard terbuka. Menampilkan ringkasan statistik anggota, total simpanan, dan pinjaman aktif berjalan secara paralel.
-    *   **Status**: `VERIFIED (Code Review)` — Pembatasan RBAC pada `getAdminStats` terbukti aman.
+    *   **Status**: `VERIFIED (Code Review)` — Pembatasan RBAC pada `getAdminStats` terbukti aman untuk semua aktor di atas.
 *   **Aktor**: `kasir`
     *   **Langkah**: Login ke sistem → buka `/dashboard`.
     *   **Ekspektasi**: Hanya menampilkan data kasir (ringkasan penjualan harian, sesi POS aktif). Menu admin tidak muncul.
