@@ -67,6 +67,44 @@ async function main() {
     },
   });
 
+  // 3c) Akuntan user
+  await prisma.user.upsert({
+    where: { username: 'akuntan01' },
+    update: {
+      password: hashedPassword,
+      email: 'akuntan01@koperasi.digital',
+      is_active: true,
+    },
+    create: {
+      username: 'akuntan01',
+      email: 'akuntan01@koperasi.digital',
+      password: hashedPassword,
+      role: 'petugas_akuntan',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  // 3d) Pengawas user
+  await prisma.user.upsert({
+    where: { username: 'pengawas01' },
+    update: {
+      password: hashedPassword,
+      email: 'pengawas01@koperasi.digital',
+      is_active: true,
+    },
+    create: {
+      username: 'pengawas01',
+      email: 'pengawas01@koperasi.digital',
+      password: hashedPassword,
+      role: 'pengawas',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
 
   // 4) Seed members (20)
   const memberNames = [
