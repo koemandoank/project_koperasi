@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 
@@ -23,6 +24,9 @@ export async function createAccountsPayable(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create accounts payable
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -188,6 +192,9 @@ export async function createAccountsReceivable(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create accounts receivable
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
 
@@ -17,6 +18,9 @@ export async function createWarehouseLocation(
   address?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create warehouse locations
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -92,6 +96,9 @@ export async function updateStockBalance(
   qtyReserved: number = 0
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can update stock balances
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -213,6 +220,9 @@ export async function createStockTransferOrder(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create stock transfer orders
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -376,6 +386,9 @@ export async function createStockOpname(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create stock opname
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 

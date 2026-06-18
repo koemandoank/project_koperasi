@@ -4,7 +4,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { checkRole } from "@/lib/auth-helpers";
 import { auth } from "@/auth";
 
 export type PPOBSettingsData = {
@@ -73,7 +73,7 @@ export const getPpobSettings = cache(async (): Promise<PPOBSettingsData> => {
  */
 export async function updatePpobSettings(data: PPOBSettingsData) {
   try {
-    await verifySessionAndRole(["superadmin", "admin", "pengurus"]);
+    await checkRole(["superadmin", "admin", "pengurus"]);
 
     const dbData = {
       api_key: data.apiKey,

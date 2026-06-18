@@ -6,7 +6,7 @@ import { getLabaRugi } from "@/lib/actions/laporan-keuangan"
 import { ShuConfig, DEFAULT_SHU_CONFIG, ShuConfigSchema, validateShuConfig } from "@/lib/types/shu-config.types"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
-import { verifySessionAndRole } from "@/lib/auth-helpers"
+import { checkRole } from "@/lib/auth-helpers"
 
 export interface MemberShuProjection {
   memberId: string;
@@ -61,7 +61,7 @@ export async function getShuConfig(): Promise<ShuConfig> {
 
 export async function saveShuConfig(config: ShuConfig) {
   try {
-    const session = await verifySessionAndRole(["superadmin", "ketua"]);
+    const session = await checkRole(["superadmin", "ketua"]);
     
     // Strict Parsing
     const parsedData = ShuConfigSchema.parse(config);

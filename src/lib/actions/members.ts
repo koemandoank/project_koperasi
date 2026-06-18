@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import { checkRole } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/actions/log-audit";
 import { remember, deleteCache } from "@/lib/cache";
 import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
@@ -225,6 +226,9 @@ export async function resetMemberPassword(userId: number, customPassword?: strin
  */
 export async function createMember(data: any) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create members
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const validated = memberCreateSchema.parse(data);
 
     const count = await prisma.member.count();
@@ -306,6 +310,9 @@ export async function createMember(data: any) {
  */
 export async function updateMember(id: number, data: any) {
   try {
+    // SECURITY FIX: Only admin/pengurus can update members
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const validated = memberUpdateSchema.parse(data);
 
     // Ambil data lama untuk audit
@@ -407,6 +414,9 @@ export async function updateMember(id: number, data: any) {
  */
 export async function deleteMember(memberId: number) {
   try {
+    // SECURITY FIX: Only admin/superadmin can delete members
+    await checkRole(["admin", "superadmin"]);
+    
     const member = await prisma.member.findUnique({
       where: { id: BigInt(memberId) },
       include: { users: true, units: true },

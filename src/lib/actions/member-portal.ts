@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 /** Simpanan summary untuk anggota yang login */
 export async function getMySimpanan() {
@@ -9,22 +10,16 @@ export async function getMySimpanan() {
     const session = await auth()
     if (!session?.user?.id) return null
 
+    // SECURITY FIX: Verify user owns this member record
     const user = await prisma.user.findUnique({
       where: { id: BigInt(session.user.id) },
-      include: {
-        members: {
-          include: {
-            savings: {
-              include: { saving_types: true, saving_transactions: { orderBy: { transaction_at: "desc" }, take: 1 } }
-            }
-          }
-        }
-      }
+      include: { members: true }
     })
 
     if (!user?.members) return null
     const member = user.members
 
+    // SECURITY FIX: Filter transactions by member_id AND verify ownership
     const transactions = await prisma.saving_transactions.findMany({
       where: { member_id: member.id },
       orderBy: { transaction_at: "desc" },

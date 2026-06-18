@@ -1,7 +1,7 @@
 ﻿'use server'
 
 import { prisma } from '@/lib/db/prisma'
-import { verifySessionAndRole } from '@/lib/auth-helpers'
+import { checkRole } from '@/lib/auth-helpers'
 
 export interface POReportFilter {
   dateFrom?: string
@@ -23,7 +23,7 @@ export interface ConsignmentReportFilter {
  * Ambil laporan Purchase Order dengan filter lengkap.
  */
 export async function getPOReport(filter: POReportFilter = {}) {
-  await verifySessionAndRole(['superadmin', 'admin', 'pengurus'])
+  await checkRole(['superadmin', 'admin', 'pengurus'])
 
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom + 'T00:00:00') : undefined
   const dateTo   = filter.dateTo   ? new Date(filter.dateTo   + 'T23:59:59') : undefined
@@ -79,7 +79,7 @@ export async function getPOReport(filter: POReportFilter = {}) {
  * Ambil laporan Konsinyasi dengan filter lengkap.
  */
 export async function getConsignmentReport(filter: ConsignmentReportFilter = {}) {
-  await verifySessionAndRole(['superadmin', 'admin', 'pengurus'])
+  await checkRole(['superadmin', 'admin', 'pengurus'])
 
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom + 'T00:00:00') : undefined
   const dateTo   = filter.dateTo   ? new Date(filter.dateTo   + 'T23:59:59') : undefined

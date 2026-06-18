@@ -1,13 +1,13 @@
 "use server"
 
 import { clearAllCache, deleteCache, getCacheStats } from "@/lib/cache";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { checkRole } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/actions/log-audit";
 import { revalidatePath } from "next/cache";
 
 export async function clearAllCacheAction() {
   try {
-    await verifySessionAndRole(["superadmin", "admin"]);
+    await checkRole(["superadmin", "admin"]);
     
     const result = await clearAllCache();
     
@@ -29,7 +29,7 @@ export async function clearAllCacheAction() {
 
 export async function deleteCacheKeyAction(key: string) {
   try {
-    await verifySessionAndRole(["superadmin", "admin"]);
+    await checkRole(["superadmin", "admin"]);
     
     await deleteCache(key);
     
@@ -51,7 +51,7 @@ export async function deleteCacheKeyAction(key: string) {
 
 export async function getCacheStatsAction() {
   try {
-    await verifySessionAndRole(["superadmin", "admin", "pengurus"]);
+    await checkRole(["superadmin", "admin", "pengurus"]);
     const stats = await getCacheStats();
     return { success: true, data: stats };
   } catch (error: any) {

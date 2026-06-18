@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
 
@@ -259,6 +260,9 @@ export async function getFixedAssets(): Promise<{ success: boolean; assets: Fixe
  */
 export async function createFixedAsset(input: CreateFixedAssetInput): Promise<{ success: boolean; error?: string }> {
   try {
+    // SECURITY FIX: Only admin/pengurus can create fixed assets
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user) {
       return { success: false, error: "Sesi kedaluwarsa. Silakan login kembali." }
@@ -412,6 +416,9 @@ export async function updateFixedAsset(
   data: { name: string; condition: "BARU" | "BAIK" | "RUSAK" }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // SECURITY FIX: Only admin/pengurus can update fixed assets
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user) {
       return { success: false, error: "Sesi kedaluwarsa. Silakan login kembali." }
@@ -461,6 +468,9 @@ export async function updateFixedAsset(
  */
 export async function deleteFixedAsset(code: string): Promise<{ success: boolean; error?: string }> {
   try {
+    // SECURITY FIX: Only admin/superadmin can delete fixed assets (stricter)
+    await checkRole(["admin", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user) {
       return { success: false, error: "Sesi kedaluwarsa. Silakan login kembali." }

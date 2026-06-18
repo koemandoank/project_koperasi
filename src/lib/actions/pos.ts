@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/actions/log-audit";
 import { deleteCache } from "@/lib/cache";
 import { z } from "zod";
@@ -10,6 +11,9 @@ import { posCheckoutSchema } from "@/lib/validations";
 
 export async function processPosCheckout(data: any) {
   try {
+    // SECURITY FIX: Verify user has kasir or admin role
+    await checkRole(["kasir", "admin", "superadmin"]);
+    
     const validated = posCheckoutSchema.parse(data);
     const calculatedGrandTotal = validated.cart.reduce((sum: any, item: any) => sum + (item.price * item.qty), 0) - validated.discount;
     if (validated.grandTotal !== calculatedGrandTotal) {

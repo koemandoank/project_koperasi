@@ -2,8 +2,8 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
+import { checkRole } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/actions/log-audit";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
 import { remember, deleteCache } from "@/lib/cache";
 import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
 import { z } from "zod";
@@ -156,7 +156,8 @@ export async function getCategories() {
 
 export async function createProduct(data: any) {
   try {
-    await verifySessionAndRole([...PRODUCT_ADMIN_ROLES]);
+    // SECURITY FIX: Only admin/pengurus can create products
+    await checkRole(PRODUCT_ADMIN_ROLES as any);
     const validated = productCreateSchema.parse(data);
     
     let sku = validated.sku;
@@ -204,7 +205,8 @@ export async function createProduct(data: any) {
 
 export async function updateProduct(id: number, data: any) {
   try {
-    await verifySessionAndRole([...PRODUCT_ADMIN_ROLES]);
+    // SECURITY FIX: Only admin/pengurus can update products
+    await checkRole(PRODUCT_ADMIN_ROLES as any);
     const validated = productUpdateSchema.parse(data);
 
     const old = await prisma.products.findUnique({
@@ -251,7 +253,8 @@ export async function updateProduct(id: number, data: any) {
 
 export async function deleteProduct(id: number) {
   try {
-    await verifySessionAndRole([...PRODUCT_ADMIN_ROLES]);
+    // SECURITY FIX: Only admin/superadmin can delete products
+    await checkRole(["admin", "superadmin"]);
     const old = await prisma.products.findUnique({
       where: { id: BigInt(id) },
       select: { sku: true, name: true, price: true, stock: true }

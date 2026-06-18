@@ -3,8 +3,8 @@
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/actions/log-audit";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
 import { deleteCache } from "@/lib/cache";
 import { z } from "zod";
 import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
@@ -281,8 +281,12 @@ export async function updateLoanStatus(
   note?: string
 ) {
   try {
-    const session = await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"]);
-    const userId = session.user.id;
+    // SECURITY FIX: Upgrade to centralized checkRole
+    await checkRole(["superadmin", "ketua", "pengurus", "admin"]);
+    
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, error: "Tidak terautentikasi" };
 
     // Validate enum to prevent constraint errors
     const parsedAction = z.enum(["approve", "reject"]).parse(action);

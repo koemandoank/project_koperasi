@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/db/prisma";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { checkRole } from "@/lib/auth-helpers";
 import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination";
 import { z } from "zod";
 import { userCreateSchema, userUpdateSchema } from "@/lib/validations";
@@ -25,7 +26,7 @@ export async function getUsers(
 ): Promise<{ data: UserData[]; pagination: any }>;
 export async function getUsers(page?: number, pageSize?: number): Promise<any> {
   try {
-    await verifySessionAndRole(["superadmin", "admin"]);
+    await checkRole(["superadmin", "admin"]);
     const isPaginated = page !== undefined && pageSize !== undefined;
     
     if (isPaginated) {
@@ -100,7 +101,9 @@ export async function getUsers(page?: number, pageSize?: number): Promise<any> {
 
 export async function createUser(data: any): Promise<{ success: boolean; error?: string }> {
   try {
-    const session = await verifySessionAndRole(["superadmin", "admin"]);
+    // SECURITY FIX: Only admin/superadmin can create users
+    const session = await checkRole(["admin", "superadmin"]);
+    
     const validated = userCreateSchema.parse(data);
     
     // Admin cannot create superadmin
@@ -141,7 +144,9 @@ export async function updateUser(
   data: any
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const session = await verifySessionAndRole(["superadmin", "admin"]);
+    // SECURITY FIX: Only admin/superadmin can update users
+    const session = await checkRole(["admin", "superadmin"]);
+    
     const validated = userUpdateSchema.parse(data);
     
     const target = await prisma.user.findUnique({ where: { id: BigInt(id) } });

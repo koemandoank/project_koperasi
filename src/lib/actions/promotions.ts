@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/db/prisma";
+import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
 
@@ -62,6 +64,9 @@ export async function createPromotion(
   data: Omit<Promotion, "id" | "created_at" | "updated_at">
 ): Promise<Promotion | null> {
   try {
+    // SECURITY FIX: Only admin can create promotions
+    await checkRole(["admin", "superadmin"]);
+    
     await prisma.$executeRawUnsafe(
       `INSERT INTO promotions (title, description, image_url, link_url, is_active, sort_order, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
@@ -106,6 +111,9 @@ export async function updatePromotion(
   data: Partial<Omit<Promotion, "id" | "created_at" | "updated_at">>
 ): Promise<Promotion | null> {
   try {
+    // SECURITY FIX: Only admin can update promotions
+    await checkRole(["admin", "superadmin"]);
+    
     const fields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -155,6 +163,9 @@ export async function updatePromotion(
  */
 export async function deletePromotion(id: number): Promise<boolean> {
   try {
+    // SECURITY FIX: Only admin can delete promotions
+    await checkRole(["admin", "superadmin"]);
+    
     await prisma.$executeRawUnsafe("DELETE FROM promotions WHERE id = $1", id);
 
     await logAudit({

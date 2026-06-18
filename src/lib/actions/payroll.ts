@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
-import { verifySessionAndRole } from "@/lib/auth-helpers"
+import { checkRole } from "@/lib/auth-helpers"
 
 interface PayrollBatchResult {
   success: boolean
@@ -31,7 +31,7 @@ export async function processMonthlyPayrollBatch({
 }): Promise<PayrollBatchResult> {
   try {
     // 1. Verifikasi peran Admin/Pengurus
-    const session = await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"])
+    const session = await checkRole(["superadmin", "ketua", "pengurus", "admin"])
     const userId = session.user.id
 
     const startDate = new Date(`${from}T00:00:00+07:00`)

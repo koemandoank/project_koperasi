@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 import type {
@@ -21,6 +22,9 @@ export async function createCashRegisterSession(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/kasir can create cash register sessions
+    await checkRole(["admin", "pengurus", "kasir", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -443,6 +447,9 @@ export async function createOrderReturn(
   refundMethod: 'cash' | 'original_payment' | 'store_credit' | 'gift_card'
 ) {
   try {
+    // SECURITY FIX: Only admin/kasir can create order returns
+    await checkRole(["admin", "pengurus", "kasir", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -496,6 +503,9 @@ export async function createOrderReturn(
 
 export async function approveOrderReturn(returnId: bigint) {
   try {
+    // SECURITY FIX: Only admin/pengurus can approve order returns
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 

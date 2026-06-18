@@ -34,9 +34,8 @@ export async function getLoanProducts() {
 
 export async function createLoanProduct(data: any) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
-    checkRole(session, ["superadmin", "admin", "pengurus"]);
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
 
     const created = await prisma.loan_products.create({
       data: {
@@ -72,9 +71,8 @@ export async function createLoanProduct(data: any) {
 
 export async function updateLoanProduct(id: number, data: any) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
-    checkRole(session, ["superadmin", "admin", "pengurus"]);
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
 
     const old = await prisma.loan_products.findUnique({ where: { id: BigInt(id) }, select: { code: true, name: true, interest_rate: true, max_tenor: true, max_amount: true, min_amount: true, admin_fee_pct: true, penalty_pct: true } });
 
@@ -112,9 +110,8 @@ export async function updateLoanProduct(id: number, data: any) {
 
 export async function toggleLoanProductStatus(id: number, isActive: boolean) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
-    checkRole(session, ["superadmin", "admin", "pengurus"]);
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
 
     await prisma.loan_products.update({
       where: { id: BigInt(id) },

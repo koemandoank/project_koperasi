@@ -4,7 +4,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { checkRole } from "@/lib/auth-helpers";
 
 type AppSettings = {
   id: number;
@@ -80,7 +80,7 @@ export async function updateAppSettings(data: {
   logo_url?: string;
 }) {
   try {
-    await verifySessionAndRole(["superadmin", "ketua"]);
+    await checkRole(["superadmin", "ketua"]);
     
     const settings = await (prisma as any).app_settings?.findFirst?.();
     const oldData = settings
@@ -127,7 +127,7 @@ export async function getMemberDashboardConfig() {
 
 export async function setMemberDashboardConfig(config: { show_financial_stats: boolean }) {
   try {
-    await verifySessionAndRole(["superadmin", "admin", "pengurus"])
+    await checkRole(["superadmin", "admin", "pengurus"])
     await prisma.cache.upsert({
       where: { key: MEMBER_DASHBOARD_KEY },
       update: { value: JSON.stringify(config), expiration: 2147483647 },
@@ -221,7 +221,7 @@ export async function saveReportTemplateConfig(
   config: ReportTemplateConfig
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifySessionAndRole(["superadmin", "admin", "pengurus"]);
+    await checkRole(["superadmin", "admin", "pengurus"]);
     
     if (!config.company_name) {
       return { success: false, error: "Nama Koperasi tidak boleh kosong" };

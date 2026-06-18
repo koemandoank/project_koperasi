@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 
@@ -22,6 +23,9 @@ export async function createSupplier(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create suppliers
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -97,6 +101,9 @@ export async function createPurchaseOrder(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create purchase orders
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -173,6 +180,9 @@ export async function createPurchaseOrder(
 
 export async function approvePurchaseOrder(poId: number) {
   try {
+    // SECURITY FIX: Only admin/pengurus can approve purchase orders
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -606,6 +616,9 @@ export async function createGoodReceipt(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create good receipts
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -681,6 +694,9 @@ export async function createGoodReceipt(
 
 export async function approveGoodReceipt(grId: bigint) {
   try {
+    // SECURITY FIX: Only admin/pengurus can approve good receipts
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 

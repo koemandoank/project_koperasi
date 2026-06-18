@@ -27,9 +27,12 @@ export async function createOnlineOrder(data: {
   note?: string
 }) {
   try {
+    // SECURITY FIX: Only logged-in members can create online orders
+    const session = await auth()
+    if (!session?.user?.id) throw new Error('Unauthorized')
+    
     // Validasi Zod untuk keranjang mencegah injeksi kuantitas negatif
     const parsedCart = z.array(OnlineOrderItemSchema).parse(data.cart)
-    const session = await auth()
     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
 
     const user = await prisma.user.findUnique({
@@ -141,7 +144,7 @@ export async function getOnlineOrders(status?: string, page?: number, pageSize?:
   try {
     const session = await auth()
     if (!session?.user?.id) return page !== undefined ? { data: [], pagination: null } : []
-    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"])
 
     const where: any = { channel: "online" }
     if (status && status !== "all") where.order_status = status
@@ -213,9 +216,11 @@ export async function updateOnlineOrderStatus(
   status: "confirmed" | "processing" | "delivered" | "cancelled"
 ) {
   try {
+    // SECURITY FIX: Only kasir/admin can update online order status
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"]);
+    
     const session = await auth()
     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
-    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
 
     await prisma.orders.update({
       where: { id: BigInt(orderId) },

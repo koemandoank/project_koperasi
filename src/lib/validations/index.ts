@@ -30,7 +30,7 @@ export const memberCreateSchema = z.object({
   role: z.enum(["anggota", "admin", "pengurus", "superadmin", "kasir", "petugas_akuntan", "pengawas"]),
   
   photo_path: z.string().optional().nullable().or(z.literal(""))
-});
+}).strict();
 
 export const memberUpdateSchema = memberCreateSchema.partial();
 
@@ -53,7 +53,7 @@ export const userCreateSchema = z.object({
   role: z.enum(["superadmin", "admin", "pengurus", "kasir", "anggota", "petugas_akuntan", "pengawas"]),
   
   is_active: z.boolean().default(true)
-});
+}).strict();
 
 export const userUpdateSchema = userCreateSchema.partial();
 
@@ -86,7 +86,7 @@ export const productCreateSchema = z.object({
   unit_id: z.string().or(z.number()).transform(Number),
   unit_measure: z.string().default("pcs"),
   image_path: z.string().optional().nullable().or(z.literal(""))
-});
+}).strict();
 
 export const productUpdateSchema = productCreateSchema.partial();
 
@@ -110,7 +110,7 @@ export const loanApplicationSchema = z.object({
   
   guarantor_name: z.string().optional().nullable().or(z.literal("")),
   guarantor_phone: z.string().optional().nullable().or(z.literal(""))
-});
+}).strict();
 
 // ── POS Checkout ──
 export const posCheckoutSchema = z.object({
@@ -123,7 +123,7 @@ export const posCheckoutSchema = z.object({
         .refine(val => Number.isInteger(val) && val >= 1, "Kuantitas minimal 1"),
       stock: z.string().or(z.number()).transform(Number)
         .refine(val => Number.isInteger(val) && val >= 0, "Stok tidak boleh negatif")
-    })
+    }).strict()
   ).min(1, "Keranjang tidak boleh kosong"),
   
   memberId: z.string().or(z.number()).nullable().optional().transform(val => val ? Number(val) : null),
@@ -133,4 +133,4 @@ export const posCheckoutSchema = z.object({
   subtotal: z.string().or(z.number()).transform(Number),
   discount: z.string().or(z.number()).transform(Number),
   grandTotal: z.string().or(z.number()).transform(Number)
-});
+}).strict();

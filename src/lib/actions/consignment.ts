@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 
@@ -29,6 +30,9 @@ export async function createConsignmentItem(
   consignmentDate: Date
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create consignment items
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -405,6 +409,9 @@ export async function createConsignmentSettlement(
   referenceNo?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can record consignment payments
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
