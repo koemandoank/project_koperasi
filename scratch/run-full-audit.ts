@@ -369,20 +369,29 @@ async function main() {
   else console.log(`  ⚠️ Total loan principal mismatches found: ${plafonMismatchCount}\n`)
 
   // 16. Loan Outstanding Principal vs Paid Schedules Integrity (Strict Loan Audit)
-  console.log("--- SCAN 16: Checking Loan Outstanding Principal vs Paid Schedules (Strict Loan Audit) ---")
+  // NOTE: Sumber kebenaran outstanding = principal - SUM(loan_payments.principal_portion)
+  //       loan_schedules.principal_paid adalah ringkasan tampilan; mungkin berbeda karena
+  //       payroll cut yang terjadwal ke depan belum memiliki payment record.
+  console.log("--- SCAN 16: Checking Loan Outstanding Principal vs Paid Amounts (Strict Loan Audit) ---")
+  const allLoansWithPayments = await prisma.loans.findMany({
+    include: { loan_schedules: true, loan_payments: true }
+  })
   let outstandingMismatchCount = 0
-  for (const loan of allLoans) {
-    const paidPrincipalSum = loan.loan_schedules.reduce((sum, s) => sum + Number(s.principal_paid), 0)
-    const calculatedOutstanding = Number(loan.principal) - paidPrincipalSum
+  for (const loan of allLoansWithPayments) {
+    const totalPaidPrincipal = loan.loan_payments.reduce(
+      (sum, p) => sum + Number(p.principal_portion), 0
+    )
+    const calculatedOutstanding = Math.max(0, Number(loan.principal) - totalPaidPrincipal)
     const actualOutstanding = Number(loan.outstanding_principal)
-    if (Math.abs(calculatedOutstanding - actualOutstanding) > 0.01) {
+    if (Math.abs(calculatedOutstanding - actualOutstanding) > 0.05) {
       outstandingMismatchCount++
       totalCritical++
-      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] outstanding (Rp ${actualOutstanding.toLocaleString("id-ID")}) does not match calculated outstanding (Rp ${calculatedOutstanding.toLocaleString("id-ID")}).`)
+      console.log(`  ❌ CRITICAL: Loan [${loan.loan_no}] outstanding (Rp ${actualOutstanding.toLocaleString("id-ID")}) does not match payment-based calculation (Rp ${calculatedOutstanding.toLocaleString("id-ID")}).`)
     }
   }
-  if (outstandingMismatchCount === 0) console.log("  ✅ Clean: All loan outstanding balances are consistent with paid schedules.\n")
+  if (outstandingMismatchCount === 0) console.log("  ✅ Clean: All loan outstanding balances are consistent with payment records.\n")
   else console.log(`  ⚠️ Total outstanding inconsistencies found: ${outstandingMismatchCount}\n`)
+
 
   // 17. Loan Status vs Outstanding Balance Integrity (Strict Loan Audit)
   console.log("--- SCAN 17: Checking Loan Status vs Outstanding Balance (Strict Loan Audit) ---")

@@ -8,7 +8,7 @@ import { checkRole } from "@/lib/auth-helpers"
 // Role 1: ADMINISTRATOR / PENGURUS
 export async function getAdminStats() {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus"])
+  await checkRole(["superadmin", "admin", "pengurus"], session)
 
   return remember("stats:admin", 300, async () => {
     try {
@@ -102,7 +102,7 @@ export async function getAdminStats() {
 // Role 2: ADMIN KREDIT
 export async function getKreditStats() {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"])
+  await checkRole(["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"], session)
 
   return remember("stats:kredit", 300, async () => {
     try {
@@ -166,7 +166,7 @@ export async function getKreditStats() {
 // Role 3: KASIR / ADMIN TOKO
 export async function getKasirStats() {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
   return remember("stats:kasir", 60, async () => {
     try {

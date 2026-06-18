@@ -6,9 +6,9 @@ import { checkRole } from "@/lib/auth-helpers"
 
 export async function getAdminSimpananData() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) return null
-    checkRole(session, ["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"])
+     const session = await auth()
+     if (!session?.user?.id) return null
+     await checkRole(["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"], session)
     const totalBalance = await prisma.savings.aggregate({
       _sum: { balance: true }
     })

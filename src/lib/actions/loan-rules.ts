@@ -44,10 +44,10 @@ export async function getLoanRules(): Promise<LoanRules> {
  * Dipanggil dari Server Actions. Untuk API route, gunakan /api/loan-rules.
  */
 export async function saveLoanRules(values: LoanRules): Promise<{ success: boolean; error?: string }> {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
-    checkRole(session, ["superadmin", "admin", "pengurus"]);
+   try {
+     const session = await auth();
+     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" };
+     await checkRole(["superadmin", "admin", "pengurus"], session);
 
     const parsedValues = LoanRulesSchema.parse(values);
     const jsonValue = JSON.stringify(parsedValues);

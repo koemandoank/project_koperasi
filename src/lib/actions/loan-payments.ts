@@ -38,11 +38,11 @@ export async function recordLoanPayment({
   penaltyAmount?: number
   note?: string
 }) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+   try {
+     const session = await auth()
+     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
 
-    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+     await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
     // Validasi pinjaman aktif
     const loan = await prisma.loans.findUnique({

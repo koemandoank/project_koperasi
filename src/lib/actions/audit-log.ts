@@ -136,7 +136,7 @@ export async function getAuditLogs(
   filters: AuditLogFilters
 ): Promise<AuditLogResult> {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
   const PAGE_SIZE = 25
   const page = Math.max(1, filters.page ?? 1)
@@ -238,7 +238,7 @@ export async function getAuditLogs(
 export async function getAuditCategories(): Promise<string[]> {
   try {
     const session = await auth()
-    checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
     const types = await prisma.auditLog.findMany({
       select: { model_type: true },
@@ -274,7 +274,7 @@ export async function getRoleSummary(
   to?: string
 ): Promise<RoleSummaryRow[]> {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)
@@ -360,7 +360,7 @@ export async function getTimelineSummary(
   role?: string
 ): Promise<TimelineDayRow[]> {
   const session = await auth()
-  checkRole(session, ["superadmin", "admin", "pengurus", "kasir"])
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)

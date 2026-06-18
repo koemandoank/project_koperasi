@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-function getRandomDate(start, end) {
+function getRandomDate(start: Date, end: Date): Date {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 async function main() {
@@ -23,13 +23,13 @@ async function main() {
       const product = products[Math.floor(Math.random() * products.length)];
       const qty = Math.floor(Math.random() * 3) + 1;
       const total = Number(product.price) * qty;
-      const order = await prisma.orders.create({ data: { order_no: `ORD-${Date.now()}-${m}-${i}`, member_id: member.id, unit_id: unit?.id || 1n, ordered_at: orderDate, subtotal: total, discount: 0, grand_total: total, payment_method: 'cash', payment_status: 'paid', order_status: 'delivered', cashier_id: kasir.id, created_at: orderDate, updated_at: orderDate } });
+      const order = await prisma.orders.create({ data: { order_no: `ORD-${Date.now()}-${m}-${i}`, member_id: member.id, unit_id: unit?.id || BigInt(1), ordered_at: orderDate, subtotal: total, discount: 0, grand_total: total, payment_method: 'cash', payment_status: 'paid', order_status: 'delivered', cashier_id: kasir.id, created_at: orderDate, updated_at: orderDate } });
       await prisma.order_items.create({ data: { order_id: order.id, product_id: product.id, product_name: product.name, qty, unit_price: product.price, subtotal: total } });
       orderCount++;
     }
     const saveDate = getRandomDate(startDate, endDate);
     const sukarelaType = await prisma.saving_types.findFirst({ where: { code: 'SS' } });
-    const memberSukarela = await prisma.savings.findFirst({ where: { member_id: member.id, saving_type_id: sukarelaType?.id || 1n } });
+    const memberSukarela = await prisma.savings.findFirst({ where: { member_id: member.id, saving_type_id: sukarelaType?.id || BigInt(1) } });
     if (sukarelaType && memberSukarela) {
       const amount = 50000;
       await prisma.saving_transactions.create({ data: { savings_id: memberSukarela.id, member_id: member.id, type: 'deposit', amount, balance_before: memberSukarela.balance, balance_after: Number(memberSukarela.balance) + amount, reference_no: `DEP-SS-${Date.now()}-${m}`, note: 'Setoran Sukarela dummy', processed_by: kasir.id, transaction_at: saveDate, created_at: saveDate, updated_at: saveDate } });

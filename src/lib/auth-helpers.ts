@@ -39,10 +39,10 @@ export async function checkRole(
  */
 export async function checkOwnership(
   session: Session,
-  resourceUserId: BigInt | string | number
+  resourceUserId: bigint | string | number
 ): Promise<void> {
   const userId = BigInt(session.user.id);
-  const resId = BigInt(resourceUserId);
+  const resId = typeof resourceUserId === 'bigint' ? resourceUserId : BigInt(resourceUserId);
   
   if (userId !== resId) {
     throw new Error(

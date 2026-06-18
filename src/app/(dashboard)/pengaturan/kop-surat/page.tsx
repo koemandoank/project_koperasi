@@ -1,9 +1,9 @@
 import { getReportTemplateConfig } from "@/lib/actions/settings"
-import { verifySessionAndRole } from "@/lib/auth-helpers"
+import { checkRole } from "@/lib/auth-helpers"
 import { KopSuratClient } from "./kop-surat-client"
 
 export default async function KopSuratPage() {
-  await verifySessionAndRole(["superadmin", "admin", "pengurus"])
+  await checkRole(["superadmin", "admin", "pengurus"])
   const config = await getReportTemplateConfig()
 
   return (
