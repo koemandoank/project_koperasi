@@ -8,7 +8,7 @@ import { checkRole } from "@/lib/auth-helpers"
 // Role 1: ADMINISTRATOR / PENGURUS
 export async function getAdminStats() {
   const session = await auth()
-  await checkRole(["superadmin", "admin", "pengurus"], session)
+  await checkRole(["superadmin", "admin", "pengurus", "petugas_akuntan"], session)
 
   return remember("stats:admin", 300, async () => {
     try {
