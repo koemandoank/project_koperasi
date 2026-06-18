@@ -112,7 +112,6 @@ export function PosClient({ products, members, sessionActive = true }: { product
       return toast.error("Pembayaran Bayar Tempo wajib memilih Anggota!")
     }
 
-    setCheckoutLoading(true)
     const payload = {
       cart,
       memberId: selectedMember ? selectedMember.id : null,
@@ -122,14 +121,28 @@ export function PosClient({ products, members, sessionActive = true }: { product
       grandTotal
     }
 
+    // ── Optimistic update ──────────────────────────────────────────────────────
+    // Snapshot current cart for rollback in case of failure
+    const cartSnapshot = [...cart]
+    const memberSnapshot = selectedMember
+
+    setCart([])                // Clear cart immediately (optimistic)
+    setSelectedMember(null)
+    setMemberSearch("")
+    setQrisModalOpen(false)
+    setCheckoutLoading(true)
+    // ──────────────────────────────────────────────────────────────────────────
+
     const res = await processPosCheckout(payload)
+
     if (res.success) {
       setLastOrderNo(res.orderNo || "")
-      setCart([])
-      setQrisModalOpen(false)
       setSuccessModalOpen(true)
     } else {
-      toast.error(res.error)
+      // Rollback: restore cart and member if server rejected
+      setCart(cartSnapshot)
+      setSelectedMember(memberSnapshot)
+      toast.error(res.error || "Checkout gagal. Data keranjang dikembalikan.")
     }
     setCheckoutLoading(false)
   }

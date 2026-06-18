@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -41,6 +42,7 @@ export function MemberForm({
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [units, setUnits] = useState(initialUnits)
+  const router = useRouter()
 
   const [formData, setFormData] = useState({
     nik: memberToEdit?.nik || "",
@@ -137,19 +139,26 @@ export function MemberForm({
         }
       }
 
+      // ── Optimistic update ────────────────────────────────────────────────────
+      // Close drawer immediately so UI feels instant
+      setOpen(false)
+      toast.loading(memberToEdit ? "Memperbarui anggota..." : "Menambah anggota...", { id: "member-save" })
+      // ─────────────────────────────────────────────────────────────────────────
+
       const payload = { ...formData, unit_id: finalUnitId }
-      const action = memberToEdit ? updateMember(memberToEdit.id, payload) : createMember(payload)
-      const res = await action
+      const res = await (memberToEdit ? updateMember(memberToEdit.id, payload) : createMember(payload))
 
       if (res.success) {
-        toast.success(memberToEdit ? "Anggota diperbarui" : "Anggota ditambahkan")
-        setOpen(false)
-        setTimeout(() => window.location.reload(), 500)
+        toast.success(memberToEdit ? "Anggota diperbarui" : "Anggota ditambahkan", { id: "member-save" })
+        router.refresh()  // Refresh server data without full page reload
       } else {
-        toast.error(res.error)
+        // Rollback: re-open drawer so user can fix errors
+        setOpen(true)
+        toast.error(res.error, { id: "member-save" })
       }
     } catch {
-      toast.error("Terjadi kesalahan sistem")
+      setOpen(true)  // rollback
+      toast.error("Terjadi kesalahan sistem", { id: "member-save" })
     }
     setLoading(false)
   }

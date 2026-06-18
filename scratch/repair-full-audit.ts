@@ -78,17 +78,13 @@ async function fixNegativeOutstandingLoans() {
       }
 
       // Update loan: outstanding=0, status=paid_off
-      await prisma.loans.update({
+      await (prisma.loans.update as any)({
         where: { id: loan.id },
         data: {
           outstanding_principal: 0,
           status: "paid_off",
-          // paid_off_at may not exist in Prisma schema yet — cast to avoid TS error in scratch script
-          ...(loan.paid_off_at !== undefined
-            ? {} // field exists on record, skip update
-            : { updated_at: new Date() }),
-          updated_at: new Date()
-        } as any
+          updated_at: new Date(),
+        },
       })
 
       console.log(
