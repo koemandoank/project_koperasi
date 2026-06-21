@@ -109,10 +109,10 @@ export function BottomNav({ role }: { role: string }) {
         // Only show on mobile
         "md:hidden",
         // Background & border
-        "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl",
-        "border-t border-slate-200/80 dark:border-slate-800",
+        "bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl",
+        "border-t border-zinc-200/80 dark:border-zinc-800/80",
         // Shadow
-        "shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]",
+        "shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.04)]",
         // Safe area for notch/home indicator
         "pb-[env(safe-area-inset-bottom)]",
       )}
@@ -134,13 +134,13 @@ export function BottomNav({ role }: { role: string }) {
               href={tab.href}
               className={cn(
                 // Layout
-                "flex flex-1 flex-col items-center justify-center gap-0.5",
+                "flex flex-1 flex-col items-center justify-center gap-0.5 transform active:scale-[0.95]",
                 // Touch target
                 "min-h-12",
                 // Active press state
-                "active:bg-slate-50 dark:active:bg-slate-900",
+                "active:bg-zinc-50 dark:active:bg-zinc-900",
                 // Transition
-                "transition-colors duration-150",
+                "transition-all duration-150",
               )}
             >
               <div className="relative">
@@ -148,21 +148,21 @@ export function BottomNav({ role }: { role: string }) {
                   className={cn(
                     "h-5 w-5 transition-all duration-200",
                     isActive
-                      ? "text-blue-600 dark:text-blue-400 scale-110"
-                      : "text-slate-400 dark:text-slate-500"
+                      ? "text-primary scale-110"
+                      : "text-zinc-400 dark:text-zinc-500"
                   )}
                 />
                 {/* Active indicator dot */}
                 {isActive && (
-                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
                 )}
               </div>
               <span
                 className={cn(
                   "text-[11px] leading-tight font-medium transition-colors duration-200",
                   isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "text-primary font-semibold"
+                    : "text-zinc-400 dark:text-zinc-500"
                 )}
               >
                 {tab.label}

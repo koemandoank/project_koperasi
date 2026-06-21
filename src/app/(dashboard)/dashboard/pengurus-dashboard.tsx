@@ -65,43 +65,27 @@ function KpiCard({
   color?:  "indigo" | "emerald" | "rose" | "amber" | "blue" | "violet"
   trend?:  "up" | "down" | "neutral"
 }) {
-  const bg: Record<string, string> = {
-    indigo:  "bg-indigo-50  border-indigo-100  dark:bg-indigo-950/30  dark:border-indigo-900/40",
-    emerald: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40",
-    rose:    "bg-rose-50    border-rose-100    dark:bg-rose-950/30    dark:border-rose-900/40",
-    amber:   "bg-amber-50   border-amber-100   dark:bg-amber-950/30   dark:border-amber-900/40",
-    blue:    "bg-blue-50    border-blue-100    dark:bg-blue-950/30    dark:border-blue-900/40",
-    violet:  "bg-violet-50  border-violet-100  dark:bg-violet-950/30  dark:border-violet-900/40",
-  }
-  const iconBg: Record<string, string> = {
-    indigo:  "bg-indigo-600",
-    emerald: "bg-emerald-600",
-    rose:    "bg-rose-600",
-    amber:   "bg-amber-500",
-    blue:    "bg-blue-600",
-    violet:  "bg-violet-600",
-  }
-  const textColor: Record<string, string> = {
-    indigo:  "text-indigo-900  dark:text-indigo-100",
-    emerald: "text-emerald-900 dark:text-emerald-100",
-    rose:    "text-rose-900    dark:text-rose-100",
-    amber:   "text-amber-900   dark:text-amber-100",
-    blue:    "text-blue-900    dark:text-blue-100",
-    violet:  "text-violet-900  dark:text-violet-100",
+  const iconColor: Record<string, string> = {
+    indigo:  "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10",
+    emerald: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+    rose:    "text-rose-600 dark:text-rose-400 bg-rose-500/10",
+    amber:   "text-amber-500 dark:text-amber-400 bg-amber-500/10",
+    blue:    "text-blue-600 dark:text-blue-400 bg-blue-500/10",
+    violet:  "text-violet-600 dark:text-violet-400 bg-violet-500/10",
   }
 
   return (
-    <Card className={`border ${bg[color]}`}>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <CardTitle className={`text-sm font-semibold ${textColor[color]} opacity-80`}>
+    <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm transition-all duration-200">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
           {title}
         </CardTitle>
-        <div className={`h-9 w-9 rounded-xl ${iconBg[color]} flex items-center justify-center shadow-sm flex-shrink-0`}>
-          <Icon className="h-5 w-5 text-white" />
+        <div className={`h-9 w-9 rounded-xl ${iconColor[color]} flex items-center justify-center flex-shrink-0`}>
+          <Icon className="h-5 w-5" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-extrabold tracking-tight ${textColor[color]}`}>
+        <div className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-550">
           {value}
         </div>
         {sub && (
@@ -164,7 +148,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
             Dashboard Eksekutif · {lastUpdate ? `Diperbarui ${lastUpdate}` : "Memuat data..."}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={loadData} disabled={loading} className="self-start sm:self-auto">
+        <Button size="sm" variant="outline" onClick={loadData} disabled={loading} className="self-start sm:self-auto h-11 px-4 text-sm font-semibold rounded-2xl active:scale-[0.98] transition-transform">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
@@ -179,7 +163,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 1: RINGKASAN FINANSIAL
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
           📊 Ringkasan Finansial (Year-to-Date)
         </h2>
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
@@ -223,9 +207,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
               { label: "Pinjaman Beredar",     val: fmt(exec.financialOverview.totalPinjamanBeredar) },
               { label: "Estimasi SHU (YTD)",   val: fmt(exec.financialOverview.estimasiSHU) },
             ].map(({  label, val  }: any) => (
-              <div key={label} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</p>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 break-all">{val}</p>
+              <div key={label} className="rounded-xl border border-zinc-200/50 dark:border-zinc-800/85 bg-white dark:bg-zinc-900/50 px-3 py-2">
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">{label}</p>
+                <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100 mt-0.5 break-all">{val}</p>
               </div>
             ))}
           </div>
@@ -236,21 +220,21 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 2: KESEHATAN KREDIT
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
           🏦 Kesehatan Kredit
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {/* NPL */}
-          <Card className="border-rose-100 dark:border-rose-900/40">
+          <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm text-rose-800 dark:text-rose-300">Rasio NPL</CardTitle>
+                <CardTitle className="text-sm text-zinc-500 dark:text-zinc-400">Rasio NPL</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-rose-500" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2">
-                <span className="text-3xl font-extrabold text-rose-600">
+                <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">
                   {loading ? "—" : `${exec?.loanHealth.nplRatio ?? 0}%`}
                 </span>
                 <Badge variant={nplBadgeColor} className="mb-1">
@@ -263,7 +247,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
               <p className="text-xs text-muted-foreground mt-1">
                 NPL: {loading ? "—" : fmt(exec?.loanHealth.nplAmount ?? 0)}
               </p>
-              <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="mt-2 h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
@@ -274,25 +258,25 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                   }}
                 />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Batas aman: &lt;5% (OJK)</p>
+              <p className="text-[10px] text-zinc-400 mt-1">Batas aman: &lt;5% (OJK)</p>
             </CardContent>
           </Card>
 
           {/* Pending Approvals */}
-          <Card className="border-amber-100 dark:border-amber-900/40">
+          <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm text-amber-800 dark:text-amber-300">Antrean Persetujuan</CardTitle>
-                <ShieldCheck className="h-4 w-4 text-amber-500" />
+                <CardTitle className="text-sm text-zinc-500 dark:text-zinc-400">Antrean Persetujuan</CardTitle>
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-amber-600">
+              <div className="text-3xl font-extrabold text-primary">
                 {loading ? "—" : exec?.loanHealth.pendingApprovals ?? 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Pengajuan pinjaman menunggu verifikasi</p>
               <Link href="/pinjaman/approval">
-                <Button size="sm" variant="outline" className="mt-3 w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50">
+                <Button size="sm" variant="outline" className="mt-3 w-full text-xs h-10 rounded-2xl active:scale-[0.98] transition-transform">
                   Buka Approval Center →
                 </Button>
               </Link>
@@ -300,27 +284,27 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           </Card>
 
           {/* Jatuh Tempo 7 Hari */}
-          <Card className="border-indigo-100 dark:border-indigo-900/40">
+          <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm text-indigo-800 dark:text-indigo-300">Jatuh Tempo (7 Hari)</CardTitle>
-                <Clock className="h-4 w-4 text-indigo-500" />
+                <CardTitle className="text-sm text-zinc-500 dark:text-zinc-400">Jatuh Tempo (7 Hari)</CardTitle>
+                <Clock className="h-4 w-4 text-zinc-500" />
               </div>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <p className="text-sm text-muted-foreground">Memuat...</p>
               ) : (exec?.loanHealth.dueSoon.length ?? 0) === 0 ? (
-                <p className="text-sm text-emerald-600 font-medium">Tidak ada tagihan jatuh tempo</p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Tidak ada tagihan jatuh tempo</p>
               ) : (
                 <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                   {exec!.loanHealth.dueSoon.map((d: any, i: any) => (
-                    <div key={i} className="flex justify-between items-start text-xs border-b border-slate-50 dark:border-slate-800 pb-1.5 last:border-0">
+                    <div key={i} className="flex justify-between items-start text-xs border-b border-zinc-100 dark:border-zinc-800 pb-1.5 last:border-0">
                       <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-100 leading-tight">{d.member_name}</p>
-                        <p className="text-slate-400">{d.loan_no} · {d.due_date}</p>
+                        <p className="font-semibold text-zinc-800 dark:text-zinc-250 leading-tight">{d.member_name}</p>
+                        <p className="text-zinc-400 dark:text-zinc-500">{d.loan_no} · {d.due_date}</p>
                       </div>
-                      <span className="font-bold text-rose-600 shrink-0 ml-2">{fmtShort(d.amount_due)}</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-450 shrink-0 ml-2">{fmtShort(d.amount_due)}</span>
                     </div>
                   ))}
                 </div>
@@ -333,8 +317,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
       {/* ════════════════════════════════════════════════════════════════════════
           SEKSI 3: STATISTIK KEANGGOTAAN
       ════════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Statistik Keanggotaan ─── */}
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
           👥 Statistik Keanggotaan
         </h2>
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
@@ -365,9 +350,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           </div>
 
           {/* Growth Chart */}
-          <Card className="md:col-span-2 lg:col-span-5">
+          <Card className="md:col-span-2 lg:col-span-5 border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Pertumbuhan Anggota Baru (12 Bulan)</CardTitle>
+              <CardTitle className="text-sm text-zinc-500 dark:text-zinc-400">Pertumbuhan Anggota Baru (12 Bulan)</CardTitle>
             </CardHeader>
             <CardContent>
               {loading || !exec?.membershipStats.growthByMonth.length ? (
@@ -380,11 +365,11 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                     <BarChart data={exec.membershipStats.growthByMonth.map((g: any) => ({
                       ...g, label: fmtMonth(g.month)
                     }))}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                       <Tooltip formatter={(v) => [`${v} anggota`, "Baru"]} />
-                      <Bar dataKey="new_members" name="Anggota Baru" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="new_members" name="Anggota Baru" fill="oklch(0.643 0.17 162)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -398,13 +383,13 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 4: VISUALISASI ARUS KAS
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
           💸 Arus Kas (12 Bulan Terakhir)
         </h2>
-        <Card>
+        <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Pemasukan vs Pengeluaran</CardTitle>
+              <CardTitle className="text-base text-zinc-800 dark:text-zinc-150">Pemasukan vs Pengeluaran</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Angsuran masuk + Simpanan + Penjualan vs Pencairan Pinjaman
               </p>
@@ -424,15 +409,15 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                   }))}>
                     <defs>
                       <linearGradient id="gradPemasukan" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#10b981" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}    />
+                        <stop offset="5%"  stopColor="oklch(0.643 0.17 162)" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="oklch(0.643 0.17 162)" stopOpacity={0}    />
                       </linearGradient>
                       <linearGradient id="gradPengeluaran" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.20} />
                         <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}    />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis tickFormatter={(v) => `${fmtShort(v)}`} tick={{ fontSize: 10 }} />
                     <Tooltip
@@ -441,7 +426,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
                     <Area
                       type="monotone" dataKey="pemasukan" name="Pemasukan"
-                      stroke="#10b981" strokeWidth={2} fill="url(#gradPemasukan)"
+                      stroke="oklch(0.643 0.17 162)" strokeWidth={2} fill="url(#gradPemasukan)"
                     />
                     <Area
                       type="monotone" dataKey="pengeluaran" name="Pengeluaran"
@@ -459,24 +444,24 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 5: TINDAKAN CEPAT (QUICK ACTIONS)
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
           ⚡ Tindakan Cepat
         </h2>
         <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {[
-            { href: "/akuntansi/transaksi",         icon: Receipt,     label: "Input Transaksi",      color: "from-blue-500 to-blue-700" },
-            { href: "/pinjaman/approval",            icon: ShieldCheck, label: "Approval Pinjaman",    color: "from-amber-500 to-orange-600" },
-            { href: "/akuntansi/laporan-keuangan",  icon: FileText,    label: "Lap. Keuangan RAT",    color: "from-emerald-500 to-teal-600" },
-            { href: "/laporan/analitik",             icon: TrendingUp,  label: "Analitik Toko",        color: "from-violet-500 to-purple-700" },
-            { href: "/laporan/potongan-gaji",        icon: CreditCard,  label: "Potongan Gaji",        color: "from-rose-500 to-red-600" },
-            { href: "/akuntansi/pembagian-shu",      icon: Wallet,      label: "Pembagian SHU",        color: "from-indigo-500 to-indigo-700" },
+            { href: "/akuntansi/transaksi",         icon: Receipt,     label: "Input Transaksi",      color: "from-emerald-500 to-emerald-700" },
+            { href: "/pinjaman/approval",            icon: ShieldCheck, label: "Approval Pinjaman",    color: "from-amber-500 to-orange-650" },
+            { href: "/akuntansi/laporan-keuangan",  icon: FileText,    label: "Lap. Keuangan RAT",    color: "from-zinc-500 to-zinc-700" },
+            { href: "/laporan/analitik",             icon: TrendingUp,  label: "Analitik Toko",        color: "from-zinc-700 to-zinc-900" },
+            { href: "/laporan/potongan-gaji",        icon: CreditCard,  label: "Potongan Gaji",        color: "from-rose-500 to-red-650" },
+            { href: "/akuntansi/pembagian-shu",      icon: Wallet,      label: "Pembagian SHU",        color: "from-emerald-600 to-teal-800" },
           ].map(({  href, icon: Icon, label, color  }: any) => (
             <Link key={href} href={href}>
-              <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer">
+              <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer">
                 <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-sm`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 text-center leading-tight">
+                <span className="text-[11px] font-semibold text-zinc-750 dark:text-zinc-350 text-center leading-tight">
                   {label}
                 </span>
               </div>
@@ -487,7 +472,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
 
       {/* Timestamp */}
       {exec && (
-        <p className="text-[10px] text-slate-300 dark:text-slate-700 text-center mt-2">
+        <p className="text-[10px] text-zinc-400 dark:text-zinc-650 text-center mt-2">
           Data diambil dari database pada {new Date(exec.generatedAt).toLocaleString("id-ID")}
         </p>
       )}

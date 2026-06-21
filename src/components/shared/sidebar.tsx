@@ -236,11 +236,11 @@ function getGroupsByRole(role: string): NavGroup[] {
 function GroupLabel({ label, icon: Icon }: { label: string; icon?: React.ElementType }) {
   return (
     <div className="flex items-center gap-2 px-3 pt-5 pb-1.5">
-      {Icon && <Icon className="h-3.5 w-3.5 text-indigo-400 dark:text-indigo-500 shrink-0" />}
-      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.18em]">
+      {Icon && <Icon className="h-3.5 w-3.5 text-primary shrink-0" />}
+      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
         {label}
       </span>
-      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800 ml-1" />
+      <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-900 ml-1" />
     </div>
   )
 }
@@ -277,29 +277,29 @@ export function Sidebar({
   }))
 
   return (
-    <div className="flex h-full w-full max-w-xs flex-col bg-white dark:bg-slate-950 border-r border-slate-200/60 dark:border-slate-800 shadow-2xl z-10 transition-all duration-300 relative">
+    <div className="flex h-full w-full max-w-xs flex-col bg-white dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/80 shadow-2xl z-10 transition-all duration-300 relative">
       {/* Close Button — Mobile Only */}
       {onClose && (
         <button
           onClick={onClose}
           aria-label="Tutup menu"
-          className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors md:hidden"
+          className="absolute top-4 right-4 p-2 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors md:hidden"
         >
           <X className="h-5 w-5" />
         </button>
       )}
 
       {/* Header / Brand */}
-      <div className="flex h-20 shrink-0 items-center px-6 border-b border-white/10 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-blue-900 dark:via-indigo-900 dark:to-violet-900 shadow-inner">
+      <div className="flex h-20 shrink-0 items-center px-6 border-b border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950">
         <div className="flex items-center gap-3 w-full">
-          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-sm border border-white/30 flex-shrink-0">
+          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800 flex-shrink-0">
             <img src={logoUrl || "/icon.jpg"} alt="Logo Koperasi" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-lg tracking-wide text-white drop-shadow-md leading-tight line-clamp-2">
+            <span className="font-extrabold text-sm tracking-wide text-zinc-800 dark:text-zinc-100 leading-tight line-clamp-2 font-heading">
               {companyName}
             </span>
-            <span className="text-[10px] text-blue-100 uppercase tracking-widest font-medium capitalize">
+            <span className="text-[10px] text-primary uppercase tracking-widest font-semibold mt-0.5">
               {role}
             </span>
           </div>
@@ -326,34 +326,30 @@ export function Sidebar({
 
                 const Icon = link.icon
 
-                const isFinancialGroup = group.groupLabel === "Keuangan"
-
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 group relative overflow-hidden",
+                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 group relative overflow-hidden active:scale-[0.98]",
                       link.mobileOnly ? "md:hidden" : "",
                       isActive
-                        ? (isFinancialGroup
-                          ? "text-red-800 dark:text-red-400 bg-[#fdf4f4] dark:bg-red-950/20 border-2 border-slate-900 dark:border-slate-800 font-extrabold shadow-sm rounded-xl"
-                          : "text-white shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30")
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400"
+                        ? "text-primary-foreground shadow-sm bg-primary border border-primary/10"
+                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-primary dark:hover:text-primary-foreground"
                     )}
                   >
                     {/* Active indicator bar */}
-                    {isActive && !isFinancialGroup && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/40 rounded-r-full" />
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground/40 rounded-r-full" />
                     )}
 
                     <Icon
                       className={cn(
                         "h-4 w-4 shrink-0 transition-transform duration-200",
                         isActive 
-                          ? (isFinancialGroup ? "text-red-800 dark:text-red-400 font-extrabold" : "text-white") 
-                          : "text-slate-400 group-hover:text-blue-500"
+                          ? "text-primary-foreground" 
+                          : "text-zinc-400 group-hover:text-primary"
                       )}
                     />
                     <span className="flex-1 truncate">{link.label}</span>
@@ -370,10 +366,10 @@ export function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <div className="rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 p-3 border border-indigo-100/50 dark:border-indigo-900/30">
-          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Versi Sistem</p>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">v3.0.0 NextJS</p>
+      <div className="p-4 border-t border-zinc-100 dark:border-zinc-900">
+        <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900 p-3 border border-zinc-100/50 dark:border-zinc-800/50">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Versi Sistem</p>
+          <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">v3.0.0 NextJS</p>
         </div>
       </div>
     </div>
