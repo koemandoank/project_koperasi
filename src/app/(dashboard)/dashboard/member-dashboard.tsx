@@ -494,7 +494,7 @@ export function MemberDashboard({ data }: { data: any }) {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-sm">{formatRp(o.grand_total)}</p>
-                      <Badge variant="outline" className="text-[10px] mt-0.5">{o.payment_method.toUpperCase()}</Badge>
+                      <Badge variant="outline" className="text-xs mt-0.5">{o.payment_method.toUpperCase()}</Badge>
                     </div>
                   </div>
                 ))}

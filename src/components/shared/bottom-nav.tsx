@@ -132,13 +132,13 @@ export function BottomNav({ role }: { role: string }) {
               href={tab.href}
               className={cn(
                 // Layout
-                "flex flex-1 flex-col items-center justify-center gap-0.5",
+                "flex flex-1 flex-col items-center justify-center gap-0.5 transform active:scale-[0.98]",
                 // Touch target
                 "min-h-12",
                 // Active press state
                 "active:bg-slate-50 dark:active:bg-slate-900",
                 // Transition
-                "transition-colors duration-150",
+                "transition-all duration-150",
               )}
             >
               <div className="relative">
@@ -157,7 +157,7 @@ export function BottomNav({ role }: { role: string }) {
               </div>
               <span
                 className={cn(
-                  "text-[11px] leading-tight font-medium transition-colors duration-200",
+                  "text-xs leading-tight font-medium transition-colors duration-200",
                   isActive
                     ? "text-blue-600 dark:text-blue-400 font-semibold"
                     : "text-slate-400 dark:text-slate-500"

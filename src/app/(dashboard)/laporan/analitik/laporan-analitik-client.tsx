@@ -1505,7 +1505,7 @@ export function LaporanAnalitikClient() {
           >
             📋 Data Transaksi Kasir
             {hasSearched && detailRows.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 font-bold">
                 {detailRows.length}
               </span>
             )}
@@ -1520,7 +1520,7 @@ export function LaporanAnalitikClient() {
           >
             📅 Laporan Mingguan
             {mingguData && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700 font-bold">
                 ✓
               </span>
             )}
@@ -1535,7 +1535,7 @@ export function LaporanAnalitikClient() {
           >
             🌾 Rekap Sembako Anggota
             {hasSearched && sembakoRows.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 font-bold">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 font-bold">
                 {sembakoRows.length}
               </span>
             )}
@@ -1550,7 +1550,7 @@ export function LaporanAnalitikClient() {
           >
             ✂️ Potongan Gaji
             {hasSearched && filteredDeductions.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-bold">
                 {filteredDeductions.length}
               </span>
             )}
@@ -1565,7 +1565,7 @@ export function LaporanAnalitikClient() {
           >
             📦 Monitoring Stocks
             {hasSearched && filteredStocks.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-700 font-bold">
                 {filteredStocks.length}
               </span>
             )}
@@ -1582,7 +1582,7 @@ export function LaporanAnalitikClient() {
                 <div className="flex flex-wrap gap-1.5">
                   {PRESETS.map(p => (
                     <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                      className="h-8 text-[11px] px-3 py-1 rounded-lg font-semibold">{p.label}</Button>
+                      className="h-8 text-xs px-3 py-1 rounded-lg font-semibold">{p.label}</Button>
                   ))}
                 </div>
               </div>
@@ -1666,10 +1666,10 @@ export function LaporanAnalitikClient() {
                             <td className="px-2 py-1.5 text-center border border-gray-200">{r.no}</td>
                             <td className="px-2 py-1.5 text-center border border-gray-200 whitespace-nowrap">{r.tanggal}</td>
                             <td className="px-2 py-1.5 text-center border border-gray-200">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{r.minggu}</span>
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">{r.minggu}</span>
                             </td>
                             <td className="px-2 py-1.5 text-center border border-gray-200">
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                                 r.bayar==='CAS' ? 'bg-green-100 text-green-700' :
                                 r.bayar==='PAY' ? 'bg-orange-100 text-orange-700' :
                                 r.bayar==='QRS' ? 'bg-purple-100 text-purple-700' :
@@ -1710,7 +1710,7 @@ export function LaporanAnalitikClient() {
                           <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.nama_barang}</p>
                           <p className="text-xs text-slate-400 mt-0.5 truncate">Pembeli: {r.nama_anggota} ({r.nik})</p>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
                           r.bayar==='CAS' ? 'bg-green-100 text-green-700' :
                           r.bayar==='PAY' ? 'bg-orange-100 text-orange-700' :
                           r.bayar==='QRS' ? 'bg-purple-100 text-purple-700' :
@@ -1720,25 +1720,25 @@ export function LaporanAnalitikClient() {
 
                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
                         <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
-                          <p className="text-slate-400 text-[10px]">Qty</p>
+                          <p className="text-slate-400 text-xs">Qty</p>
                           <p className="font-bold text-slate-800 dark:text-slate-200">{r.qty} pcs</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
-                          <p className="text-slate-400 text-[10px]">Harga Jual</p>
+                          <p className="text-slate-400 text-xs">Harga Jual</p>
                           <p className="font-bold text-slate-800 dark:text-slate-200">{r.harga_jual.toLocaleString('id-ID')}</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/40 rounded-xl p-2">
-                          <p className="text-slate-400 text-[10px]">HPP/Unit</p>
+                          <p className="text-slate-400 text-xs">HPP/Unit</p>
                           <p className="font-bold text-slate-500">{r.harga_pokok.toLocaleString('id-ID')}</p>
                         </div>
                       </div>
 
                       <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5 mt-1">
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-xs text-slate-400">
                           No: {r.no} • Minggu: {r.minggu} • {r.tanggal}
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] text-slate-400">Laba Transaksi</p>
+                          <p className="text-xs text-slate-400">Laba Transaksi</p>
                           <p className={`font-extrabold text-sm ${r.laba >= 0 ? 'text-green-600' : 'text-red-650'}`}>{formatRp(r.laba)}</p>
                         </div>
                       </div>
@@ -1858,19 +1858,19 @@ export function LaporanAnalitikClient() {
                               <div key={r.tanggal} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 rounded-2xl shadow-xs space-y-2">
                                 <div className="flex justify-between items-center text-xs">
                                   <span className="font-bold text-slate-800 dark:text-slate-200">{r.dayName}, {r.tanggal}</span>
-                                  <span className="text-[10px] text-slate-450">Baris #{i+1}</span>
+                                  <span className="text-xs text-slate-450">Baris #{i+1}</span>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                                <div className="grid grid-cols-3 gap-2 text-center text-xs">
                                   <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
-                                    <p className="text-slate-405 text-[9px]">Harga Pokok</p>
+                                    <p className="text-slate-405 text-xs">Harga Pokok</p>
                                     <p className="font-semibold text-slate-700 dark:text-slate-300">{fmtN(hpp)}</p>
                                   </div>
                                   <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
-                                    <p className="text-slate-405 text-[9px]">Harga Jual</p>
+                                    <p className="text-slate-405 text-xs">Harga Jual</p>
                                     <p className="font-semibold text-blue-750 dark:text-blue-300">{fmtN(jual)}</p>
                                   </div>
                                   <div className="bg-slate-50 dark:bg-slate-850 p-1.5 rounded-lg">
-                                    <p className="text-slate-405 text-[9px]">Laba</p>
+                                    <p className="text-slate-405 text-xs">Laba</p>
                                     <p className={`font-bold ${laba > 0 ? 'text-green-600' : laba < 0 ? 'text-red-650' : 'text-slate-400'}`}>{fmtN(laba)}</p>
                                   </div>
                                 </div>
@@ -1880,7 +1880,7 @@ export function LaporanAnalitikClient() {
                           
                           {/* Mini Summary Card for Mobile Section */}
                           <div className="bg-slate-100 dark:bg-slate-850 p-3.5 rounded-2xl text-xs space-y-1.5 font-bold">
-                            <p className="text-[10px] text-slate-500 uppercase">SUBTOTAL {label}</p>
+                            <p className="text-xs text-slate-500 uppercase">SUBTOTAL {label}</p>
                             <div className="flex justify-between">
                               <span className="text-slate-600 dark:text-slate-400">Total HPP:</span>
                               <span>{fmtN(totHPP)}</span>
@@ -1913,12 +1913,12 @@ export function LaporanAnalitikClient() {
                               <tr className="border-b border-slate-100 dark:border-slate-800">
                                 <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Total Harga Pokok (Grand HPP)</td>
                                 <td className="px-4 py-3 text-right font-black text-slate-900 dark:text-white">{mg.grandHpp.toLocaleString('id-ID')}</td>
-                                <td className="px-3 py-3 text-slate-400 text-[10px] w-12 text-center">IDR</td>
+                                <td className="px-3 py-3 text-slate-400 text-xs w-12 text-center">IDR</td>
                               </tr>
                               <tr className="border-b border-slate-100 dark:border-slate-800">
                                 <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Total Harga Jual (Grand Jual)</td>
                                 <td className="px-4 py-3 text-right font-black text-blue-700 dark:text-blue-400">{mg.grandJual.toLocaleString('id-ID')}</td>
-                                <td className="px-3 py-3 text-slate-400 text-[10px] w-12 text-center">IDR</td>
+                                <td className="px-3 py-3 text-slate-400 text-xs w-12 text-center">IDR</td>
                               </tr>
                               <tr className="bg-yellow-50/60 dark:bg-yellow-950/20">
                                 <td className="px-4 py-4 font-extrabold text-slate-900 dark:text-slate-100 text-sm">Keuntungan Bersih (Laba)</td>
@@ -1949,7 +1949,7 @@ export function LaporanAnalitikClient() {
                       <span className="text-xs font-semibold text-slate-500 mr-2">PRESET TANGGAL:</span>
                       {PRESETS.map(p => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                          className="h-7 text-[11px] px-2.5 py-0.5">{p.label}</Button>
+                          className="h-7 text-xs px-2.5 py-0.5">{p.label}</Button>
                       ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
@@ -2101,41 +2101,41 @@ export function LaporanAnalitikClient() {
                                 <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.nama}</p>
                                 <p className="text-xs text-slate-400 mt-0.5 truncate">NIK: {r.nik} • {r.com1} • {r.com2}</p>
                               </div>
-                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500">#{idx + 1}</span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
-                                <p className="text-[10px] text-slate-450 font-bold mb-1">TRANSAKSI KREDIT</p>
+                                <p className="text-xs text-slate-450 font-bold mb-1">TRANSAKSI KREDIT</p>
                                 <div className="space-y-0.5">
                                   <div className="flex justify-between">
-                                    <span className="text-[10px] text-slate-400">Jual:</span>
+                                    <span className="text-xs text-slate-400">Jual:</span>
                                     <span className="font-bold text-emerald-600">{r.crdJual > 0 ? formatRp(r.crdJual) : '-'}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-[10px] text-slate-400">Pokok:</span>
+                                    <span className="text-xs text-slate-400">Pokok:</span>
                                     <span className="font-semibold text-slate-600">{r.crdPokok > 0 ? formatRp(r.crdPokok) : '-'}</span>
                                   </div>
                                   <div className="flex justify-between border-t border-slate-100 dark:border-slate-800/50 pt-1 mt-1 font-extrabold">
-                                    <span className="text-[10px] text-slate-400">Laba:</span>
+                                    <span className="text-xs text-slate-400">Laba:</span>
                                     <span className="text-teal-650">{r.crdLaba > 0 ? formatRp(r.crdLaba) : '-'}</span>
                                   </div>
                                 </div>
                               </div>
 
                               <div className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
-                                <p className="text-[10px] text-slate-455 font-bold mb-1">TRANSAKSI CASH</p>
+                                <p className="text-xs text-slate-455 font-bold mb-1">TRANSAKSI CASH</p>
                                 <div className="space-y-0.5">
                                   <div className="flex justify-between">
-                                    <span className="text-[10px] text-slate-455">Jual:</span>
+                                    <span className="text-xs text-slate-455">Jual:</span>
                                     <span className="font-bold text-slate-800 dark:text-slate-200">{r.casJual > 0 ? formatRp(r.casJual) : '-'}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-[10px] text-slate-455">Pokok:</span>
+                                    <span className="text-xs text-slate-455">Pokok:</span>
                                     <span className="font-semibold text-slate-500">{r.casPokok > 0 ? formatRp(r.casPokok) : '-'}</span>
                                   </div>
                                   <div className="flex justify-between border-t border-slate-100 dark:border-slate-800/50 pt-1 mt-1">
-                                    <span className="text-[10px] text-slate-455">Laba:</span>
+                                    <span className="text-xs text-slate-455">Laba:</span>
                                     <span className="font-bold text-slate-500">{r.casJual - r.casPokok > 0 ? formatRp(r.casJual - r.casPokok) : '-'}</span>
                                   </div>
                                 </div>
@@ -2161,7 +2161,7 @@ export function LaporanAnalitikClient() {
                       <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
                       {PRESETS.map(p => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                          className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
+                          className="h-7 text-xs px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
@@ -2253,7 +2253,7 @@ export function LaporanAnalitikClient() {
                               <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>KREDIT SBK</th>
                               <th className="px-2 py-2.5 border border-red-950 whitespace-nowrap" rowSpan={2}>TOTAL</th>
                             </tr>
-                            <tr className="bg-red-900 text-white text-[10px] font-bold">
+                            <tr className="bg-red-900 text-white text-xs font-bold">
                               <th className="px-1 py-1 border border-red-950">1</th>
                               <th className="px-1 py-1 border border-red-950">2</th>
                               <th className="px-1 py-1 border border-red-950">POKOK</th>
@@ -2408,24 +2408,24 @@ export function LaporanAnalitikClient() {
                                   <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
                                   <p className="text-xs text-slate-400 mt-0.5 truncate">NIK: {item.nik} • COM: 1 / {com2Val}</p>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500">#{idx + 1}</span>
                               </div>
 
                               <div className="space-y-2 text-xs">
                                 {/* Simpanan Card Section */}
                                 <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
-                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">A. SIMPANAN KARYAWAN</p>
-                                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                  <p className="text-xs text-slate-450 font-bold uppercase tracking-wider">A. SIMPANAN KARYAWAN</p>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block">Pokok:</span>
+                                      <span className="text-xs text-slate-400 block">Pokok:</span>
                                       <span className="font-bold text-slate-700 dark:text-slate-350">{simpPokok > 0 ? formatRp(simpPokok) : '-'}</span>
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block">Wajib:</span>
+                                      <span className="text-xs text-slate-400 block">Wajib:</span>
                                       <span className="font-bold text-slate-700 dark:text-slate-350">{simpWajib > 0 ? formatRp(simpWajib) : '-'}</span>
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block">Sukarela:</span>
+                                      <span className="text-xs text-slate-400 block">Sukarela:</span>
                                       <span className="font-bold text-slate-700 dark:text-slate-350">{simpSukarela > 0 ? formatRp(simpSukarela) : '-'}</span>
                                     </div>
                                   </div>
@@ -2433,8 +2433,8 @@ export function LaporanAnalitikClient() {
 
                                 {/* Pinjaman Card Section */}
                                 <div className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
-                                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">B. PINJAMAN & PAYLATER</p>
-                                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                                  <p className="text-xs text-slate-450 font-bold uppercase tracking-wider">B. PINJAMAN & PAYLATER</p>
+                                  <div className="grid grid-cols-2 gap-2.5 text-xs">
                                     <div className="flex justify-between border-b border-slate-200/50 pb-1">
                                       <span className="text-slate-400">Pinjam Uang:</span>
                                       <span className="font-bold text-blue-600">{pUang > 0 ? formatRp(pUang) : '-'}</span>
@@ -2456,7 +2456,7 @@ export function LaporanAnalitikClient() {
                               </div>
 
                               <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5 mt-1">
-                                <span className="text-[10px] text-slate-400 font-semibold uppercase">TOTAL POTONGAN GAJI</span>
+                                <span className="text-xs text-slate-400 font-semibold uppercase">TOTAL POTONGAN GAJI</span>
                                 <span className="font-extrabold text-sm text-red-600 dark:text-red-400">{total > 0 ? formatRp(total) : '-'}</span>
                               </div>
                             </div>
@@ -2481,7 +2481,7 @@ export function LaporanAnalitikClient() {
                       <span className="text-xs font-semibold text-slate-550 dark:text-slate-450 mr-2">PRESET TANGGAL:</span>
                       {PRESETS.map(p => (
                         <Button key={p.label} size="sm" variant="outline" onClick={() => applyPreset(p.days)}
-                          className="h-7 text-[11px] px-2.5 py-0.5 rounded-lg">{p.label}</Button>
+                          className="h-7 text-xs px-2.5 py-0.5 rounded-lg">{p.label}</Button>
                       ))}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
@@ -2573,7 +2573,7 @@ export function LaporanAnalitikClient() {
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap font-bold text-amber-200" rowSpan={2}>STOCK OPNAME</th>
                               <th className="px-2 py-2.5 border border-indigo-950 whitespace-nowrap" rowSpan={2}>QTY RETUR</th>
                             </tr>
-                            <tr className="bg-indigo-900 text-white text-[10px] font-bold">
+                            <tr className="bg-indigo-900 text-white text-xs font-bold">
                               <th className="px-1 py-1 border border-indigo-950">M1</th>
                               <th className="px-1 py-1 border border-indigo-950">M2</th>
                               <th className="px-1 py-1 border border-indigo-950">M3</th>
@@ -2625,15 +2625,15 @@ export function LaporanAnalitikClient() {
                           <p className="text-xs font-bold text-slate-400 uppercase">AKUMULASI ALUR STOK</p>
                           <div className="grid grid-cols-3 gap-2 text-center text-xs">
                             <div className="bg-slate-800/80 p-2 rounded-xl">
-                              <p className="text-[10px] text-slate-400">Stok Awal</p>
+                              <p className="text-xs text-slate-400">Stok Awal</p>
                               <p className="font-bold text-slate-100">{filteredStocks.reduce((s,r)=>s+r.stockAwal,0).toLocaleString('id-ID')}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
-                              <p className="text-[10px] text-slate-400">Pembelian</p>
+                              <p className="text-xs text-slate-400">Pembelian</p>
                               <p className="font-bold text-green-400">+{filteredStocks.reduce((s,r)=>s+r.pembelian,0).toLocaleString('id-ID')}</p>
                             </div>
                             <div className="bg-slate-800/80 p-2 rounded-xl">
-                              <p className="text-[10px] text-slate-400">Penjualan</p>
+                              <p className="text-xs text-slate-400">Penjualan</p>
                               <p className="font-bold text-blue-400">-{filteredStocks.reduce((s,r)=>s+r.totPenjualan,0).toLocaleString('id-ID')}</p>
                             </div>
                           </div>
@@ -2646,37 +2646,37 @@ export function LaporanAnalitikClient() {
                                 <p className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
                                 <p className="text-xs text-slate-400 mt-0.5 truncate">SKU: {item.sku}</p>
                               </div>
-                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500">#{idx + 1}</span>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500">#{idx + 1}</span>
                             </div>
 
                             <div className="grid grid-cols-4 gap-2 text-center text-xs">
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-400 block">Stok Awal</span>
+                                <span className="text-xs text-slate-400 block">Stok Awal</span>
                                 <span className="font-bold text-slate-800 dark:text-slate-200">{item.stockAwal}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Beli (+)</span>
+                                <span className="text-xs text-slate-450 block">Beli (+)</span>
                                 <span className="font-bold text-green-600">+{item.pembelian}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Jual (-)</span>
+                                <span className="text-xs text-slate-450 block">Jual (-)</span>
                                 <span className="font-bold text-blue-600">-{item.totPenjualan}</span>
                               </div>
                               <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-lg">
-                                <span className="text-[9px] text-slate-450 block">Stok Akhir</span>
+                                <span className="text-xs text-slate-450 block">Stok Akhir</span>
                                 <span className="font-extrabold text-slate-900 dark:text-white">{item.stockAkhir}</span>
                               </div>
                             </div>
 
                             {/* Detail Penjualan Mingguan (M1 - M5) */}
                             <div className="bg-slate-50/50 dark:bg-slate-850/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/40">
-                              <p className="text-[9px] text-slate-405 font-bold mb-1.5 uppercase tracking-wider">Penjualan Mingguan</p>
-                              <div className="grid grid-cols-5 gap-1 text-center text-[10px]">
+                              <p className="text-xs text-slate-405 font-bold mb-1.5 uppercase tracking-wider">Penjualan Mingguan</p>
+                              <div className="grid grid-cols-5 gap-1 text-center text-xs">
                                 {['M1','M2','M3','M4','M5'].map((m, i) => {
                                   const val = i === 0 ? item.m1 : i === 1 ? item.m2 : i === 2 ? item.m3 : i === 3 ? item.m4 : item.m5
                                   return (
                                     <div key={m}>
-                                      <p className="text-[9px] text-slate-400">{m}</p>
+                                      <p className="text-xs text-slate-400">{m}</p>
                                       <p className={`font-semibold ${val > 0 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-300 dark:text-slate-700'}`}>{val > 0 ? val : '-'}</p>
                                     </div>
                                   )
@@ -2686,11 +2686,11 @@ export function LaporanAnalitikClient() {
 
                             <div className="flex justify-between items-center text-xs border-t border-slate-50 dark:border-slate-800/30 pt-2.5">
                               <div>
-                                <span className="text-[10px] text-slate-400">Stock Opname: </span>
+                                <span className="text-xs text-slate-400">Stock Opname: </span>
                                 <span className="font-bold text-amber-600">{item.stockOpname !== null ? item.stockOpname : '-'}</span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-slate-400">Retur: </span>
+                                <span className="text-xs text-slate-400">Retur: </span>
                                 <span className="font-bold text-red-600">{item.qtyRetur > 0 ? item.qtyRetur : '-'}</span>
                               </div>
                             </div>
@@ -2753,21 +2753,21 @@ export function LaporanAnalitikClient() {
                       <div className="flex justify-between items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
-                          <p className="text-[11px] text-slate-450 truncate">{p.category}</p>
+                          <p className="text-xs text-slate-450 truncate">{p.category}</p>
                         </div>
-                        <span className="px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-[10px] font-bold text-orange-700 dark:text-orange-400">#{(idx + 1)}</span>
+                        <span className="px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-xs font-bold text-orange-700 dark:text-orange-400">#{(idx + 1)}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
                         <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-xl">
-                          <span className="text-[9px] text-slate-400 block">Stok</span>
+                          <span className="text-xs text-slate-400 block">Stok</span>
                           <span className="font-bold text-slate-700 dark:text-slate-350">{p.stock}</span>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-850 p-2 rounded-xl">
-                          <span className="text-[9px] text-slate-400 block">HPP/Unit</span>
+                          <span className="text-xs text-slate-400 block">HPP/Unit</span>
                           <span className="font-semibold text-slate-700 dark:text-slate-350">{formatRp(p.purchase_price)}</span>
                         </div>
                         <div className="bg-orange-50 dark:bg-orange-950/20 p-2 rounded-xl border border-orange-100/50 dark:border-orange-900/30">
-                          <span className="text-[9px] text-orange-700 dark:text-orange-400 block font-semibold">Stok Tertahan</span>
+                          <span className="text-xs text-orange-700 dark:text-orange-400 block font-semibold">Stok Tertahan</span>
                           <span className="font-bold text-orange-700 dark:text-orange-400">{formatRp(p.stock_value)}</span>
                         </div>
                       </div>

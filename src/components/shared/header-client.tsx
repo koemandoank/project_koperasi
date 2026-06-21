@@ -133,7 +133,7 @@ export function HeaderClient({
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
             <div className="flex flex-col text-right hidden md:flex">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{user?.name}</span>
-              <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full mt-0.5 inline-block w-fit self-end">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full mt-0.5 inline-block w-fit self-end">
                 {user?.role}
               </span>
             </div>

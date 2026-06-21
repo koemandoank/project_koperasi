@@ -73,7 +73,7 @@ function StatsCard({ period, setPeriod }: { period: StatsPeriod; setPeriod: (p: 
             { label: "Saldo Kas Koperasi", value: d.saldo,  color: "text-blue-600 dark:text-blue-400" },
           ].map(({ label, value, color }) => (
             <div key={label} className="space-y-0.5">
-              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
               <p className={`text-xl font-bold ${color}`}>{value}</p>
             </div>
           ))}
@@ -263,7 +263,7 @@ export function DashboardHomePage({ settings, promotions, todayOrders, dashboard
       </div>
 
       {/* ── MOBILE: Sistem TAB ────────────────────────────────────────────────── */}
-      <div className="md:hidden flex flex-col" style={{ height: "calc(100dvh - 120px)" }}>
+      <div className="md:hidden flex flex-col">
         {/* Tab Nav Bar */}
         <div className="flex bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-4">
           {tabs.map(({ key, label, icon }) => (

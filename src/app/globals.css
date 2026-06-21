@@ -200,10 +200,6 @@
     font-size: 16px;
     -webkit-tap-highlight-color: transparent;
   }
-  /* Prevent text below 12px */
-  .text-\[10px\], .text-\[11px\] {
-    font-size: 12px !important;
-  }
 }
 
 /* Smooth momentum scrolling on iOS/Android */
