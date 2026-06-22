@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Koperasi Sulfindo – Offline</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f1f5f9;
+      padding: 24px;
+    }
+
+    /* ── Logo Card ─────────────────────────────────────── */
+    .logo-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      padding: 28px 36px;
+      text-align: center;
+      margin-bottom: 28px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .logo-card img {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.2);
+      margin-bottom: 14px;
+    }
+    .logo-card h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: 0.01em;
+    }
+    .logo-card p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* ── Status Card ────────────────────────────────────── */
+    .status-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 20px 24px;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.4s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Label STATUS KONEKSI SERVER — lebih kecil */
+    .status-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    /* SERVER TIME OUT — lebih kecil */
+    .status-timeout {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f87171;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 12px 0;
+    }
+
+    /* Teks deskripsi — tanpa kalimat WiFi */
+    .status-desc {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .status-desc span.attempt {
+      color: #64748b;
+    }
+
+    /* ── Retry Button ───────────────────────────────────── */
+    .btn-retry {
+      width: 100%;
+      max-width: 320px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.01em;
+    }
+    .btn-retry:active { transform: scale(0.98); background: #1d4ed8; }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    .footer {
+      margin-top: 32px;
+      font-size: 0.7rem;
+      color: #475569;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Logo Card -->
+  <div class="logo-card">
+    <img src="/koperasi.png" alt="Logo Koperasi Sulfindo"
+         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><circle cx=%2240%22 cy=%2240%22 r=%2240%22 fill=%22%231e3a5f%22/></svg>'" />
+    <h1>Koperasi Sulfindo</h1>
+    <p>Sistem Manajemen Koperasi Digital</p>
+  </div>
+
+  <!-- Status Card -->
+  <div class="status-card">
+    <div class="status-header">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-label">Status Koneksi Server</span>
+    </div>
+    <div class="status-timeout" id="statusText">SERVER TIME OUT</div>
+    <div class="divider"></div>
+    <p class="status-desc" id="statusDesc">
+      Tidak dapat terhubung ke server.
+      Pemeriksaan ulang dalam <span id="countdown">5</span> detik…
+      <span class="attempt" id="attemptText"></span>
+    </p>
+  </div>
+
+  <!-- Retry Button -->
+  <button class="btn-retry" id="retryBtn" onclick="retryNow()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="1 4 1 10 7 10"></polyline>
+      <path d="M3.51 15a9 9 0 1 0 .49-4.5"></path>
+    </svg>
+    Coba Lagi Sekarang
+  </button>
+
+  <!-- Footer -->
+  <div class="footer">Koperasi Sulfindo &bull; v1.0</div>
+
+  <script>
+    // Resolve server URL via Android bridge or fallback
+    const SERVER_URL = (window.Android && window.Android.getServerUrl)
+      ? window.Android.getServerUrl()
+      : 'https://projectkoperasi.vercel.app';
+
+    let attempt = 0;
+    let countdownValue = 5;
+    let countdownTimer = null;
+
+    const dot      = document.getElementById('statusDot');
+    const statusTx = document.getElementById('statusText');
+    const descEl   = document.getElementById('statusDesc');
+    const countEl  = document.getElementById('countdown');
+    const attemptEl= document.getElementById('attemptText');
+
+    function startCountdown() {
+      countdownValue = 5;
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        countdownValue--;
+        if (countEl) countEl.textContent = countdownValue;
+        if (countdownValue <= 0) {
+          clearInterval(countdownTimer);
+          checkServer();
+        }
+      }, 1000);
+    }
+
+    async function checkServer() {
+      attempt++;
+      if (attemptEl) attemptEl.textContent = '(Percobaan #' + attempt + ')';
+
+      try {
+        const res = await fetch(SERVER_URL + '/api/ping', {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(4000)
+        });
+
+        if (res.ok) {
+          // Server kembali online — redirect
+          statusTx.textContent  = 'SERVER ONLINE';
+          dot.style.background  = '#22c55e';
+          dot.style.animation   = 'none';
+          if (countEl) countEl.parentElement.textContent = 'Menghubungkan kembali…';
+          clearInterval(countdownTimer);
+          setTimeout(() => { window.location.href = SERVER_URL; }, 800);
+          return;
+        }
+      } catch (_) { /* server masih offline */ }
+
+      startCountdown();
+    }
+
+    function retryNow() {
+      clearInterval(countdownTimer);
+      if (countEl) countEl.textContent = '…';
+      checkServer();
+    }
+
+    // Mulai polling pertama
+    startCountdown();
+  </script>
+</body>
+</html>

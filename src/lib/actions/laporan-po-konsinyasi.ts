@@ -1,7 +1,7 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/db/prisma'
-import { verifySessionAndRole } from '@/lib/auth-helpers'
+import { checkRole } from '@/lib/auth-helpers'
 
 export interface POReportFilter {
   dateFrom?: string
@@ -23,7 +23,7 @@ export interface ConsignmentReportFilter {
  * Ambil laporan Purchase Order dengan filter lengkap.
  */
 export async function getPOReport(filter: POReportFilter = {}) {
-  await verifySessionAndRole(['superadmin', 'admin', 'pengurus'])
+  await checkRole(['superadmin', 'admin', 'pengurus'])
 
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom + 'T00:00:00') : undefined
   const dateTo   = filter.dateTo   ? new Date(filter.dateTo   + 'T23:59:59') : undefined
@@ -49,14 +49,14 @@ export async function getPOReport(filter: POReportFilter = {}) {
     orderBy: { po_date: 'desc' },
   })
 
-  return orders.map(o => ({
+  return orders.map((o: any) => ({
     id: Number(o.id),
     po_no: o.po_no,
     po_date: o.po_date.toISOString().split('T')[0],
     supplier_name: o.suppliers?.supplier_name ?? '-',
     status: o.status,
     total_amount: Number(o.total_amount),
-    items: o.po_items.map(i => ({
+    items: o.po_items.map((i: any) => ({
       id: Number(i.id),
       product_id: Number(i.product_id),
       product_name: i.products?.name ?? '-',
@@ -66,7 +66,7 @@ export async function getPOReport(filter: POReportFilter = {}) {
       unit_price: Number(i.unit_price),
       total_price: Number(i.line_total),
     })),
-    good_receipts: o.good_receipts.map(gr => ({
+    good_receipts: o.good_receipts.map((gr: any) => ({
       id: Number(gr.id),
       gr_no: gr.gr_no,
       gr_date: gr.gr_date.toISOString().split('T')[0],
@@ -79,7 +79,7 @@ export async function getPOReport(filter: POReportFilter = {}) {
  * Ambil laporan Konsinyasi dengan filter lengkap.
  */
 export async function getConsignmentReport(filter: ConsignmentReportFilter = {}) {
-  await verifySessionAndRole(['superadmin', 'admin', 'pengurus'])
+  await checkRole(['superadmin', 'admin', 'pengurus'])
 
   const dateFrom = filter.dateFrom ? new Date(filter.dateFrom + 'T00:00:00') : undefined
   const dateTo   = filter.dateTo   ? new Date(filter.dateTo   + 'T23:59:59') : undefined
@@ -101,7 +101,7 @@ export async function getConsignmentReport(filter: ConsignmentReportFilter = {})
     orderBy: { consignment_date: 'desc' },
   })
 
-  return items.map(i => {
+  return items.map((i: any) => {
     const qty_received = i.qty_received
     const qty_returned = i.qty_returned
     const actual_stock = i.products ? Number(i.products.stock) : 0
@@ -141,7 +141,7 @@ export async function getSuppliersForFilter() {
     select: { id: true, supplier_name: true },
     orderBy: { supplier_name: 'asc' },
   })
-  return suppliers.map(s => ({ id: Number(s.id), supplier_name: s.supplier_name }))
+  return suppliers.map((s: any) => ({ id: Number(s.id), supplier_name: s.supplier_name }))
 }
 
 /**
@@ -153,5 +153,5 @@ export async function getProductsForFilter() {
     select: { id: true, name: true, sku: true },
     orderBy: { name: 'asc' },
   })
-  return products.map(p => ({ id: Number(p.id), name: p.name, sku: p.sku }))
+  return products.map((p: any) => ({ id: Number(p.id), name: p.name, sku: p.sku }))
 }

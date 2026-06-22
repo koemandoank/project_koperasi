@@ -3,12 +3,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreditCard, AlertTriangle, Wallet, FileText, TrendingUp } from "lucide-react"
 
-export function KreditDashboard({ data }: { data: any }) {
+export function KreditDashboard({ data, companyName = "Koperasi" }: { data: any; companyName?: string }) {
   if (!data) return <div>Loading...</div>
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Admin Kredit (Simpan Pinjam)</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">{companyName}</h1>
+        <p className="text-sm text-muted-foreground font-medium">Dashboard Admin Kredit (Simpan Pinjam)</p>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

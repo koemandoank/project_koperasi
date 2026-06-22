@@ -8,8 +8,11 @@ import {
   Lock, Unlock, Settings, Store, Package, ClipboardCheck,
   BookOpen, PieChart, ChevronRight, ShoppingBag, Inbox,
   ShoppingCart, TrendingDown, BarChart3, Truck, X, Megaphone,
-  Building2, Banknote, Receipt, ShieldAlert, Clock
+  Building2, Banknote, Receipt, ShieldAlert, Clock, PlusCircle,
+  ArrowLeftRight, Coins, Calculator, Landmark, TrendingUp, Printer, ShieldCheck, CalendarCheck,
+  Smartphone, Server
 } from "lucide-react"
+
 
 // ─────────────────────────────────────────────
 // Type Definitions
@@ -62,6 +65,22 @@ const ALL_GROUPS: NavGroup[] = [
     ],
   },
 
+  // ── KEUANGAN ──────────────────────────────
+  {
+    groupLabel: "Keuangan",
+    icon: Banknote,
+    roles: ["superadmin", "admin", "pengurus", "kasir"],
+    items: [
+      { href: "/akuntansi/transaksi",   label: "Transaksi",         icon: ArrowLeftRight },
+      { href: "/keuangan",              label: "Keuangan",          icon: Coins },
+      { href: "/akuntansi/anggaran",    label: "Anggaran",          icon: Calculator },
+      { href: "/akuntansi/aset-tetap",  label: "Aset Tetap",        icon: Landmark },
+      { href: "/akuntansi/pembagian-shu", label: "Penyaluran SHU RAT", icon: Coins },
+      { href: "/pengaturan/shu",        label: "SHU & Distribusi",  icon: TrendingUp },
+      { href: "/laporan/potongan-gaji", label: "Potongan Gaji",     icon: Receipt },
+    ],
+  },
+
   // ── TOKO ──────────────────────────────────
   {
     groupLabel: "Toko",
@@ -71,12 +90,12 @@ const ALL_GROUPS: NavGroup[] = [
       { href: "/toko/kasir/sesi", label: "Sesi Kasir",      icon: Unlock },
       { href: "/toko/kasir",      label: "Mesin Kasir (POS)", icon: Store },
       { href: "/toko",           label: "Belanja Online",   icon: ShoppingBag },
+      { href: "/ppob",           label: "Transaksi PPOB",   icon: Smartphone },
       { href: "/toko/produk",    label: "Katalog Produk",   icon: Package },
       { href: "/toko/pesanan",   label: "Pesanan Online",   icon: Inbox },
       { href: "/toko/inventaris",label: "Inventaris",       icon: ClipboardCheck },
       { href: "/pembelian",      label: "Pembelian / PO",   icon: Truck },
       { href: "/toko/konsinyasi",label: "Konsinyasi",       icon: Package },
-      { href: "/keuangan",       label: "Hutang & Piutang", icon: TrendingDown },
     ],
   },
 
@@ -84,15 +103,27 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Laporan & Akuntansi",
     icon: Receipt,
-    roles: ["superadmin", "admin", "pengurus", "kasir"],
+    roles: ["superadmin", "admin", "pengurus", "kasir", "petugas_akuntan", "pengawas"],
     items: [
+      { href: "/akuntansi/laporan-keuangan", label: "Laporan Keuangan RAT", icon: FileText },
+      { href: "/laporan/partisipasi-anggota", label: "Partisipasi Anggota RAT", icon: Users },
+      { href: "/akuntansi/rat-absensi", label: "Absensi & Hak Suara RAT", icon: CalendarCheck },
+      { href: "/akuntansi/buku-besar",  label: "Buku Besar",              icon: BookOpen },
+      { href: "/akuntansi/tutup-buku",  label: "Tutup Buku",              icon: Lock },
+      { href: "/laporan/analitik",      label: "Analitik Keuangan",       icon: TrendingUp },
       { href: "/laporan/harian",        label: "Laporan Harian",         icon: FileText },
       { href: "/laporan/po-konsinyasi", label: "Laporan PO & Konsinyasi",  icon: FileText },
       { href: "/laporan/stok",          label: "Riwayat Keluar Masuk Stok", icon: Package },
-      { href: "/laporan/potongan-gaji", label: "Laporan Gaji",             icon: FileText },
-      { href: "/laporan/analitik",      label: "Analitik & P&L",           icon: BarChart3 },
-      { href: "/akuntansi/buku-besar",  label: "Buku Besar",              icon: BookOpen },
-      { href: "/akuntansi/tutup-buku",  label: "Tutup Buku",              icon: Lock },
+    ],
+  },
+
+  // ── PENGAWAS KOPERASI ─────────────────────
+  {
+    groupLabel: "Pengawas Koperasi",
+    icon: ShieldCheck,
+    roles: ["superadmin", "pengawas"],
+    items: [
+      { href: "/pengawas", label: "Dashboard Pengawas", icon: ShieldCheck },
     ],
   },
 
@@ -100,7 +131,7 @@ const ALL_GROUPS: NavGroup[] = [
   {
     groupLabel: "Log & Audit",
     icon: ShieldAlert,
-    roles: ["superadmin", "admin", "pengurus", "ketua"],
+    roles: ["superadmin", "admin", "pengurus", "ketua", "petugas_akuntan", "pengawas"],
     items: [
       { href: "/log",             label: "Log Aktivitas",     icon: ShieldAlert },
       { href: "/toko/kasir/sesi", label: "Riwayat Sesi Kasir", icon: Clock },
@@ -113,9 +144,11 @@ const ALL_GROUPS: NavGroup[] = [
     icon: Settings,
     roles: ["superadmin", "admin", "pengurus"],
     items: [
-      { href: "/pengaturan/shu", label: "Pengaturan SHU", icon: PieChart },
       { href: "/pengaturan/promosi", label: "Promosi", icon: Megaphone },
       { href: "/pengaturan/dashboard-anggota", label: "Dashboard Anggota", icon: LayoutDashboard },
+      { href: "/pengaturan/kop-surat", label: "Kop & TTD Laporan", icon: Printer },
+      { href: "/pengaturan/ppob", label: "Pengaturan PPOB", icon: CreditCard },
+      { href: "/pengaturan/cache", label: "Manajemen Cache", icon: Server },
       { href: "/pengaturan", label: "Pengaturan Umum", icon: Settings },
     ],
   },
@@ -132,36 +165,50 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
   "/anggota":                     ["superadmin", "admin", "pengurus"],
   "/akun":                        ["superadmin", "admin"],
   // Log & Audit
-  "/log":                         ["superadmin", "admin", "pengurus", "ketua"],
+  "/log":                         ["superadmin", "admin", "pengurus", "ketua", "petugas_akuntan", "pengawas"],
   // Simpan pinjam
   "/simpanan":                    ["superadmin", "admin", "pengurus", "anggota"],
-  "/pinjaman":                    ["anggota"],
+  "/pinjaman":                    ["superadmin", "admin", "pengurus", "anggota"],
   "/pinjaman/produk":             ["superadmin", "admin", "pengurus"],
   "/pinjaman/approval":           ["superadmin", "admin", "pengurus"],
   // Toko
   "/toko/kasir/sesi":             ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/kasir":                  ["superadmin", "admin", "pengurus", "kasir"],
   "/toko":                        ["anggota"],
+  "/ppob":                        ["superadmin", "admin", "pengurus", "kasir", "anggota"],
   "/toko/produk":                 ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/pesanan":                ["superadmin", "admin", "pengurus", "kasir"],
   "/toko/inventaris":             ["superadmin", "admin", "pengurus", "kasir"],
   "/pembelian":                   ["superadmin", "admin", "pengurus"],
   "/toko/konsinyasi":             ["superadmin", "admin", "pengurus", "kasir"],
-  "/keuangan":                    ["superadmin", "admin"],
+  "/keuangan":                    ["superadmin", "admin", "pengurus", "kasir"],
   // Laporan & Akuntansi
+  "/akuntansi/transaksi":         ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/anggaran":          ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/aset-tetap":        ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/pembagian-shu":     ["superadmin", "admin", "pengurus"],
+  "/akuntansi/laporan-keuangan":  ["superadmin", "admin", "pengurus"],
+  "/laporan/partisipasi-anggota": ["superadmin", "admin", "pengurus"],
+  "/akuntansi/rat-absensi":       ["superadmin", "admin", "pengurus"],
   "/laporan/harian":              ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/po-konsinyasi":       ["superadmin", "admin", "pengurus"],
   "/laporan/stok":                ["superadmin", "admin", "pengurus", "kasir"],
   "/laporan/potongan-gaji":       ["superadmin", "admin", "pengurus"],
-  "/laporan/analitik":            ["superadmin", "admin", "pengurus"],
-  "/akuntansi/buku-besar":        ["superadmin", "admin"],
-  "/akuntansi/tutup-buku":        ["superadmin", "admin"],
+  "/laporan/analitik":            ["superadmin", "admin", "pengurus", "kasir"],
+  "/akuntansi/buku-besar":        ["superadmin", "admin", "petugas_akuntan"],
+  "/akuntansi/tutup-buku":        ["superadmin", "admin", "petugas_akuntan"],
+  // Pengawas
+  "/pengawas":                    ["superadmin", "pengawas"],
   // Pengaturan
-  "/pengaturan/shu":              ["superadmin", "admin"],
+  "/pengaturan/shu":              ["superadmin", "admin", "pengurus"],
   "/pengaturan/promosi":          ["superadmin", "admin"],
   "/pengaturan/dashboard-anggota": ["superadmin", "admin", "pengurus"],
+  "/pengaturan/kop-surat":        ["superadmin", "admin", "pengurus"],
+  "/pengaturan/ppob":             ["superadmin", "admin", "pengurus"],
+  "/pengaturan/cache":            ["superadmin", "admin"],
   "/pengaturan":                  ["superadmin", "admin"],
 }
+
 
 /**
  * Filter grup dan item menu berdasarkan role pengguna.
@@ -171,15 +218,15 @@ const ITEM_ROLE_MAP: Record<string, string[]> = {
  */
 function getGroupsByRole(role: string): NavGroup[] {
   return ALL_GROUPS
-    .filter((g) => !g.roles || g.roles.includes(role))
-    .map((g) => ({
+    .filter((g: any) => !g.roles || g.roles.includes(role))
+    .map((g: any) => ({
       ...g,
-      items: g.items.filter((item) => {
+      items: g.items.filter((item: any) => {
         const allowed = ITEM_ROLE_MAP[item.href]
         return !allowed || allowed.includes(role)
       }),
     }))
-    .filter((g) => g.items.length > 0)
+    .filter((g: any) => g.items.length > 0)
 }
 
 // ─────────────────────────────────────────────
@@ -189,11 +236,11 @@ function getGroupsByRole(role: string): NavGroup[] {
 function GroupLabel({ label, icon: Icon }: { label: string; icon?: React.ElementType }) {
   return (
     <div className="flex items-center gap-2 px-3 pt-5 pb-1.5">
-      {Icon && <Icon className="h-3.5 w-3.5 text-indigo-400 dark:text-indigo-500 shrink-0" />}
-      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.18em]">
+      {Icon && <Icon className="h-3.5 w-3.5 text-primary shrink-0" />}
+      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
         {label}
       </span>
-      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800 ml-1" />
+      <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-900 ml-1" />
     </div>
   )
 }
@@ -202,34 +249,57 @@ function GroupLabel({ label, icon: Icon }: { label: string; icon?: React.Element
 // Sidebar Component
 // ─────────────────────────────────────────────
 
-export function Sidebar({ role, onClose }: { role: string; onClose?: () => void }) {
+export function Sidebar({
+  role,
+  onClose,
+  companyName = "Koperasi",
+  logoUrl = "/icon.jpg",
+}: {
+  role: string
+  onClose?: () => void
+  /** Nama koperasi dari pengaturan umum (app_settings.company_name) */
+  companyName?: string
+  /** URL logo dari pengaturan umum (app_settings.logo_url) */
+  logoUrl?: string
+}) {
   const pathname = usePathname()
-  const groups = getGroupsByRole(role)
+  const groups = getGroupsByRole(role).map(g => ({
+    ...g,
+    items: g.items.map(item => {
+      if (item.href === "/pinjaman") {
+        return {
+          ...item,
+          label: role === "anggota" ? "Pinjaman Saya" : "Manajemen Pinjaman"
+        }
+      }
+      return item
+    })
+  }))
 
   return (
-    <div className="flex h-full w-full max-w-xs flex-col bg-white dark:bg-slate-950 border-r border-slate-200/60 dark:border-slate-800 shadow-2xl z-10 transition-all duration-300 relative">
+    <div className="flex h-full w-full max-w-xs flex-col bg-white dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/80 shadow-2xl z-10 transition-all duration-300 relative">
       {/* Close Button — Mobile Only */}
       {onClose && (
         <button
           onClick={onClose}
           aria-label="Tutup menu"
-          className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors md:hidden"
+          className="absolute top-4 right-4 p-2 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors md:hidden"
         >
           <X className="h-5 w-5" />
         </button>
       )}
 
       {/* Header / Brand */}
-      <div className="flex h-20 shrink-0 items-center px-6 border-b border-white/10 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-blue-900 dark:via-indigo-900 dark:to-violet-900 shadow-inner">
+      <div className="flex h-20 shrink-0 items-center px-6 border-b border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950">
         <div className="flex items-center gap-3 w-full">
-          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-sm border border-white/30 flex-shrink-0">
-            <img src="/icon.jpg" alt="Logo Koperasi" className="h-full w-full object-cover" />
+          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-sm border border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+            <img src={logoUrl || "/icon.jpg"} alt="Logo Koperasi" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-lg tracking-wide text-white drop-shadow-md">
-              KOEMAN-PROJECT
+            <span className="font-extrabold text-sm tracking-wide text-zinc-800 dark:text-zinc-100 leading-tight line-clamp-2 font-heading">
+              {companyName}
             </span>
-            <span className="text-[10px] text-blue-100 uppercase tracking-widest font-medium capitalize">
+            <span className="text-[10px] text-primary uppercase tracking-widest font-semibold mt-0.5">
               {role}
             </span>
           </div>
@@ -238,12 +308,12 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
 
       {/* Scrollable Nav */}
       <div className="flex-1 overflow-y-auto py-2 px-3 flex flex-col">
-        {groups.map((group) => (
+        {groups.map((group: any) => (
           <div key={group.groupLabel}>
             <GroupLabel label={group.groupLabel} icon={group.icon} />
 
             <div className="flex flex-col gap-0.5 mt-0.5">
-              {group.items.map((link) => {
+              {group.items.map((link: any) => {
                 /**
                  * Menentukan apakah link saat ini aktif.
                  * Untuk link dashboard, pencocokan dilakukan secara exact agar tidak
@@ -262,22 +332,24 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
                     href={link.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 group relative overflow-hidden",
+                      "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 group relative overflow-hidden active:scale-[0.98]",
                       link.mobileOnly ? "md:hidden" : "",
                       isActive
-                        ? "text-white shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-blue-600 dark:hover:text-blue-400"
+                        ? "text-primary-foreground shadow-sm bg-primary border border-primary/10"
+                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-primary dark:hover:text-primary-foreground"
                     )}
                   >
                     {/* Active indicator bar */}
                     {isActive && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/40 rounded-r-full" />
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground/40 rounded-r-full" />
                     )}
 
                     <Icon
                       className={cn(
                         "h-4 w-4 shrink-0 transition-transform duration-200",
-                        isActive ? "text-white" : "text-slate-400 group-hover:text-blue-500"
+                        isActive 
+                          ? "text-primary-foreground" 
+                          : "text-zinc-400 group-hover:text-primary"
                       )}
                     />
                     <span className="flex-1 truncate">{link.label}</span>
@@ -294,10 +366,10 @@ export function Sidebar({ role, onClose }: { role: string; onClose?: () => void 
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <div className="rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 p-3 border border-indigo-100/50 dark:border-indigo-900/30">
-          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Versi Sistem</p>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">v3.0.0 NextJS</p>
+      <div className="p-4 border-t border-zinc-100 dark:border-zinc-900">
+        <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900 p-3 border border-zinc-100/50 dark:border-zinc-800/50">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Versi Sistem</p>
+          <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">v3.0.0 NextJS</p>
         </div>
       </div>
     </div>

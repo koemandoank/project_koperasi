@@ -13,7 +13,7 @@ export default async function PosPage() {
   // Cek sesi kasir aktif
   const statusResult = await getCashRegisterStatus()
   const registers    = statusResult.success ? (statusResult.data ?? []) : []
-  const hasActiveSession = registers.some(r => r.active_session !== null)
+  const hasActiveSession = registers.some((r: any) => r.active_session !== null)
 
   // Fetch produk & anggota secara paralel
   const [products, members] = await Promise.all([
@@ -21,7 +21,7 @@ export default async function PosPage() {
     getMembers(),
   ])
 
-  const activeProducts = products.filter(p => p.is_active)
+  const activeProducts = products.filter((p: any) => p.is_active)
 
   return (
     <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-background/50 h-[calc(100vh-4rem)]">

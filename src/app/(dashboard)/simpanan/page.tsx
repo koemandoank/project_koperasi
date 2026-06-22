@@ -17,6 +17,8 @@ const SAVING_TYPE_LABEL: Record<string, string> = {
   interest: "Bunga",
   transfer_in: "Transfer Masuk",
   transfer_out: "Transfer Keluar",
+  salary_cut: "Potong Gaji",
+  shu_credit: "SHU Anggota",
 }
 
 export default async function SimpananPage() {
@@ -108,7 +110,7 @@ export default async function SimpananPage() {
           ) : (
             <div className="space-y-3">
               {data.transactions.map((t: { id: number; type: string; saving_name: string; reference_no: string; transaction_at: string; amount: number; balance_after: number }) => {
-                const isCredit = t.type === "deposit" || t.type === "interest"
+                const isCredit = ["deposit", "salary_cut", "shu_credit", "transfer_in", "interest"].includes(t.type)
                 return (
                   <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/30">
                     <div className="flex items-center gap-3">

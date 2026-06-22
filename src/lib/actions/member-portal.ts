@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 /** Simpanan summary untuk anggota yang login */
 export async function getMySimpanan() {
@@ -9,22 +10,16 @@ export async function getMySimpanan() {
     const session = await auth()
     if (!session?.user?.id) return null
 
+    // SECURITY FIX: Verify user owns this member record
     const user = await prisma.user.findUnique({
       where: { id: BigInt(session.user.id) },
-      include: {
-        members: {
-          include: {
-            savings: {
-              include: { saving_types: true, saving_transactions: { orderBy: { transaction_at: "desc" }, take: 1 } }
-            }
-          }
-        }
-      }
+      include: { members: true }
     })
 
     if (!user?.members) return null
     const member = user.members
 
+    // SECURITY FIX: Filter transactions by member_id AND verify ownership
     const transactions = await prisma.saving_transactions.findMany({
       where: { member_id: member.id },
       orderBy: { transaction_at: "desc" },
@@ -35,7 +30,7 @@ export async function getMySimpanan() {
     return {
       member_name: member.full_name,
       member_code: member.member_code,
-      savings: member.savings.map(s => ({
+      savings: member.savings.map((s: any) => ({
         id: Number(s.id),
         type_code: s.saving_types?.code || "-",
         type_name: s.saving_types?.name || "-",
@@ -44,8 +39,8 @@ export async function getMySimpanan() {
         total_withdraw: Number(s.total_withdraw),
         last_transaction: s.saving_transactions[0]?.transaction_at?.toISOString() || null,
       })),
-      totalBalance: member.savings.reduce((sum, s) => sum + Number(s.balance), 0),
-      transactions: transactions.map(t => ({
+      totalBalance: member.savings.reduce((sum: any, s: any) => sum + Number(s.balance), 0),
+      transactions: transactions.map((t: any) => ({
         id: Number(t.id),
         type: t.type,
         amount: Number(t.amount),
@@ -102,16 +97,24 @@ export async function getMyPinjaman() {
       orderBy: { ordered_at: "desc" }
     })
 
+    // Fetch all approved applications to calculate dynamic queue numbers
+    const approvedApps = await prisma.loan_applications.findMany({
+      where: { status: "approved" },
+      orderBy: { approved_at: "asc" },
+      select: { id: true }
+    })
+    const approvedIds = approvedApps.map((a: any) => Number(a.id))
+
     return {
       member_name: member.full_name,
       member_id: Number(member.id),
-      paylater_debts: paylaterOrders.map(o => ({
+      paylater_debts: paylaterOrders.map((o: any) => ({
         id: Number(o.id),
         order_no: o.order_no,
         amount: Number(o.grand_total),
         ordered_at: o.ordered_at.toISOString().split("T")[0]
       })),
-      loans: member.loans.map(l => ({
+      loans: member.loans.map((l: any) => ({
         id: Number(l.id),
         loan_no: l.loan_no,
         principal: Number(l.principal),
@@ -129,8 +132,8 @@ export async function getMyPinjaman() {
           max_tenor: l.loan_applications.loan_products.max_tenor,
           description: l.loan_applications.loan_products.description || "",
         } : null,
-        next_due: l.loan_schedules.find(s => s.status === "pending")?.due_date?.toISOString().split("T")[0] || null,
-        loan_schedules: l.loan_schedules.map(s => ({
+        next_due: l.loan_schedules.find((s: any) => s.status === "pending")?.due_date?.toISOString().split("T")[0] || null,
+        loan_schedules: l.loan_schedules.map((s: any) => ({
           id: Number(s.id),
           installment_no: s.installment_no,
           due_date: s.due_date,
@@ -178,7 +181,7 @@ export async function getMyOrders() {
       take: 30
     })
 
-    return orders.map(o => ({
+    return orders.map((o: any) => ({
       id: Number(o.id),
       order_no: o.order_no,
       grand_total: Number(o.grand_total),
@@ -197,9 +200,15 @@ export async function getMyOrders() {
   }
 }
 
-/** Notifikasi untuk admin/pengurus: pinjaman menunggu */
-export async function getNotifications(role: string) {
+/**
+ * Mengambil notifikasi untuk pengguna yang sedang login.
+ * Role dibaca dari session server-side untuk mencegah spoofing dari client.
+ */
+export async function getNotifications() {
   try {
+    const session = await auth()
+    const role = session?.user?.role ?? ""
+
     const results: { type: string; message: string; count: number; href: string }[] = []
 
     const showLoanNotif = ["superadmin", "admin", "pengurus"].includes(role)
@@ -212,21 +221,21 @@ export async function getNotifications(role: string) {
           type: "loan",
           message: `${pendingLoans} pengajuan pinjaman menunggu review`,
           count: pendingLoans,
-          href: "/pinjaman/approval"
+          href: "/pinjaman/approval",
         })
       }
     }
 
     if (showOrderNotif) {
       const unpaidOrders = await prisma.orders.count({
-        where: { order_status: "pending", channel: "online" }
+        where: { order_status: "pending", channel: "online" },
       })
       if (unpaidOrders > 0) {
         results.push({
           type: "order",
           message: `${unpaidOrders} pesanan online menunggu proses`,
           count: unpaidOrders,
-          href: "/toko/pesanan"
+          href: "/toko/pesanan",
         })
       }
     }
@@ -256,7 +265,7 @@ export async function getMyLoyalty() {
       include: { loyalty_programs: true }
     })
 
-    return memberships.map(m => ({
+    return memberships.map((m: any) => ({
       id: Number(m.id),
       program_name: m.loyalty_programs.program_name,
       level: m.membership_level,

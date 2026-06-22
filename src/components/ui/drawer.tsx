@@ -86,6 +86,8 @@ const DrawerContent = React.forwardRef<
       className={cn(
         // Base layout
         "fixed inset-x-0 bottom-0 z-50 flex flex-col",
+        // Width & Alignment
+        "w-full max-w-lg mx-auto",
         // Shape & background
         "rounded-t-2xl bg-white dark:bg-slate-950",
         // Shadow

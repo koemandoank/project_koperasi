@@ -106,7 +106,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
       ws.getColumn(9).width = 30
       ws.getColumn(10).width = 20
 
-      data.forEach((m, index) => {
+      data.forEach((m: any, index: any) => {
         const row = ws.addRow([
           new Date(m.created_at).toLocaleString('id-ID'),
           m.product_sku,
@@ -128,10 +128,10 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
           cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
         }
 
-        // Colour Qty cell based on type
-        if (m.type === 'in' || m.type === 'return') {
+        // Colour Qty cell based on type and quantity sign
+        if (m.type === 'in' || m.type === 'return' || (m.type === 'adjustment' && m.quantity >= 0)) {
           row.getCell(5).font = { color: { argb: 'FF16A34A' }, bold: true }
-        } else if (m.type === 'out') {
+        } else if (m.type === 'out' || (m.type === 'adjustment' && m.quantity < 0)) {
           row.getCell(5).font = { color: { argb: 'FFDC2626' }, bold: true }
         }
       })
@@ -150,8 +150,12 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
   }
 
   // Summary
-  const totalIn  = data.filter(m => m.type === 'in'  || m.type === 'return').reduce((s, m) => s + m.quantity, 0)
-  const totalOut = data.filter(m => m.type === 'out').reduce((s, m) => s + m.quantity, 0)
+  const totalIn  = data
+    .filter((m: any) => m.type === 'in' || m.type === 'return' || (m.type === 'adjustment' && m.quantity > 0))
+    .reduce((s: any, m: any) => s + Math.abs(m.quantity), 0)
+  const totalOut = data
+    .filter((m: any) => m.type === 'out' || (m.type === 'adjustment' && m.quantity < 0))
+    .reduce((s: any, m: any) => s + Math.abs(m.quantity), 0)
 
   return (
     <div className="space-y-4">
@@ -177,7 +181,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
                 <SelectTrigger id="product-select"><SelectValue placeholder="Semua Produk" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Produk</SelectItem>
-                  {products.map(p => (
+                  {products.map((p: any) => (
                     <SelectItem key={p.id} value={p.id.toString()}>{p.sku} – {p.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -275,7 +279,7 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    data.map(m => (
+                    data.map((m: any) => (
                       <TableRow key={m.id}>
                         <TableCell className="whitespace-nowrap text-xs">
                           {new Date(m.created_at).toLocaleString('id-ID')}
@@ -288,8 +292,17 @@ export function LaporanStokClient({ products }: { products: Product[] }) {
                             {TYPE_LABELS[m.type] || m.type}
                           </span>
                         </TableCell>
-                        <TableCell className={`text-right font-bold ${m.type === 'out' ? 'text-red-600' : 'text-green-600'}`}>
-                          {m.type === 'out' ? '-' : '+'}{m.quantity}
+                        <TableCell className={`text-right font-bold ${
+                          m.type === 'out' || (m.type === 'adjustment' && m.quantity < 0)
+                            ? 'text-red-600'
+                            : 'text-green-600'
+                        }`}>
+                          {m.type === 'out'
+                            ? `-${m.quantity}`
+                            : m.type === 'adjustment' && m.quantity < 0
+                              ? m.quantity
+                              : `+${m.quantity}`
+                          }
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">{m.stock_before}</TableCell>
                         <TableCell className="text-right font-medium">{m.stock_after}</TableCell>

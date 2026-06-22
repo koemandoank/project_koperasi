@@ -4,19 +4,22 @@ import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
+import { checkRole } from "@/lib/auth-helpers"
 
 /**
  * Catat pembayaran cicilan pinjaman secara manual.
  * Dipanggil oleh kasir/pengurus saat anggota membayar cicilan tunai/transfer.
  *
- * @param loanId       - ID pinjaman aktif
- * @param scheduleId   - ID jadwal cicilan yang dibayar (opsional, jika tidak diketahui = null)
- * @param amountPaid   - Total uang yang dibayar
- * @param paymentMethod - Metode pembayaran: cash | salary_cut | saving_deduct | transfer
- * @param reference    - Nomor referensi / bukti transfer (opsional)
- * @param penaltyAmount - Denda keterlambatan (default 0)
- * @param note         - Catatan tambahan (opsional)
- * @returns { success, data } | { success: false, error }
+ * @param {Object} params - Objek parameter transaksi pembayaran
+ * @param {number} params.loanId - ID pinjaman aktif
+ * @param {number} [params.scheduleId] - ID jadwal cicilan yang dibayar
+ * @param {number} params.amountPaid - Total uang yang dibayar
+ * @param {"cash" | "salary_cut" | "saving_deduct" | "transfer"} params.paymentMethod - Metode pembayaran
+ * @param {string} [params.reference] - Nomor referensi / bukti transfer (opsional)
+ * @param {number} [params.penaltyAmount] - Denda keterlambatan (default 0)
+ * @param {string} [params.note] - Catatan tambahan (opsional)
+ * @returns {Promise<{ success: boolean, data?: any, error?: string }>} Status sukses beserta data transaksi atau pesan error
+ * @throws {Error} Mengembalikan error jika terjadi kesalahan transaksi database
  */
 export async function recordLoanPayment({
   loanId,
@@ -35,9 +38,11 @@ export async function recordLoanPayment({
   penaltyAmount?: number
   note?: string
 }) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+   try {
+     const session = await auth()
+     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+
+     await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
 
     // Validasi pinjaman aktif
     const loan = await prisma.loans.findUnique({
@@ -49,8 +54,11 @@ export async function recordLoanPayment({
     })
 
     if (!loan) return { success: false, error: "Pinjaman tidak ditemukan" }
-    if (loan.status !== "active") {
-      return { success: false, error: `Pinjaman sudah berstatus '${loan.status}', tidak dapat menerima pembayaran` }
+
+    /** Status yang diperbolehkan menerima pembayaran cicilan */
+    const PAYABLE_LOAN_STATUSES = ["active", "overdue"] as const
+    if (!(PAYABLE_LOAN_STATUSES as readonly string[]).includes(loan.status)) {
+      return { success: false, error: `Pinjaman berstatus '${loan.status}' tidak dapat menerima pembayaran.` }
     }
 
     // Hitung porsi pokok & bunga dari pembayaran
@@ -58,12 +66,30 @@ export async function recordLoanPayment({
     const interestRate       = Number(loan.interest_rate)
     const outstanding        = Number(loan.outstanding_principal)
 
-    // Flat interest: bunga tetap per bulan
-    const interestPortion  = Number(loan.loan_applications?.loan_products?.interest_method) === 1
-      ? (outstanding * interestRate) / 100
-      : monthlyInstallment - (outstanding / loan.tenor_months)
+    let interestPortion = 0
+    let principalPortion = 0
 
-    const principalPortion = amountPaid - interestPortion - penaltyAmount
+    if (scheduleId) {
+      const schedule = await prisma.loan_schedules.findUnique({
+        where: { id: BigInt(scheduleId) },
+      })
+      if (schedule) {
+        interestPortion = Number(schedule.interest_due)
+        principalPortion = amountPaid - interestPortion - penaltyAmount
+      }
+    }
+
+    if (!scheduleId || interestPortion === 0) {
+      // Flat interest: bunga tetap per bulan berdasarkan plafon awal (loan.principal)
+      interestPortion = Number(loan.loan_applications?.loan_products?.interest_method) === 1
+        ? (Number(loan.principal) * interestRate) / 100
+        : monthlyInstallment - (Number(loan.principal) / loan.tenor_months)
+      
+      principalPortion = amountPaid - interestPortion - penaltyAmount
+    }
+
+    // Pastikan principalPortion tidak melebihi sisa outstanding agar tidak melanggar check constraint chk_loans_outstanding
+    const safePrincipalPortion = Math.min(outstanding, Math.max(0, principalPortion))
 
     // Generate nomor pembayaran unik
     const count     = await prisma.loan_payments.count()
@@ -78,7 +104,7 @@ export async function recordLoanPayment({
           schedule_id:       scheduleId ? BigInt(scheduleId) : null,
           payment_no:        paymentNo,
           amount_paid:       amountPaid,
-          principal_portion: Math.max(0, principalPortion),
+          principal_portion: safePrincipalPortion,
           interest_portion:  Math.max(0, interestPortion),
           penalty_amount:    penaltyAmount,
           payment_method:    paymentMethod as any,
@@ -93,7 +119,7 @@ export async function recordLoanPayment({
       prisma.loans.update({
         where: { id: BigInt(loanId) },
         data: {
-          outstanding_principal: { decrement: Math.max(0, principalPortion) },
+          outstanding_principal: { decrement: safePrincipalPortion },
           total_paid:            { increment: amountPaid },
         },
       }),
@@ -102,21 +128,38 @@ export async function recordLoanPayment({
       ...(scheduleId
         ? [prisma.loan_schedules.update({
             where: { id: BigInt(scheduleId) },
-            data: { status: "paid", paid_at: new Date() },
+            data: {
+              status: "paid",
+              paid_at: new Date(),
+              principal_paid: safePrincipalPortion,
+              interest_paid: Math.max(0, interestPortion),
+              penalty_paid: penaltyAmount,
+            },
           })]
         : []),
     ])
 
-    // Cek apakah pinjaman lunas setelah pembayaran ini
+    // Cek status pinjaman setelah pembayaran
     const updatedLoan = await prisma.loans.findUnique({
       where: { id: BigInt(loanId) },
-      select: { outstanding_principal: true },
+      select: { outstanding_principal: true, status: true },
     })
-    if (updatedLoan && Number(updatedLoan.outstanding_principal) <= 0) {
-      await prisma.loans.update({
-        where: { id: BigInt(loanId) },
-        data: { status: "closed" as any },
-      })
+
+    if (updatedLoan) {
+      const remaining = Number(updatedLoan.outstanding_principal)
+      if (remaining <= 0) {
+        // Pinjaman lunas
+        await prisma.loans.update({
+          where: { id: BigInt(loanId) },
+          data: { status: "paid_off" },
+        })
+      } else if (updatedLoan.status === "overdue") {
+        // Bayar cicilan overdue → kembali aktif, belum lunas
+        await prisma.loans.update({
+          where: { id: BigInt(loanId) },
+          data: { status: "active" },
+        })
+      }
     }
 
     await logAudit({
@@ -130,7 +173,7 @@ export async function recordLoanPayment({
         member_name:       loan.members?.full_name ?? null,
         member_nik:        loan.members?.nik ?? null,
         amount_paid:       amountPaid,
-        principal_portion: Math.max(0, principalPortion),
+        principal_portion: safePrincipalPortion,
         interest_portion:  Math.max(0, interestPortion),
         penalty_amount:    penaltyAmount,
         payment_method:    paymentMethod,
@@ -140,13 +183,29 @@ export async function recordLoanPayment({
 
     revalidatePath("/pinjaman")
     revalidatePath("/dashboard")
-    return { success: true, data: payment }
+
+    // Serialize Decimal/BigInt fields agar aman dikirim ke Client Component
+    return {
+      success: true,
+      data: {
+        id:                Number(payment.id),
+        payment_no:        payment.payment_no,
+        amount_paid:       Number(payment.amount_paid),
+        principal_portion: Number(payment.principal_portion),
+        interest_portion:  Number(payment.interest_portion),
+        penalty_amount:    Number(payment.penalty_amount),
+        payment_method:    payment.payment_method,
+        reference:         payment.reference ?? null,
+        note:              payment.note ?? null,
+        paid_at:           payment.paid_at.toISOString(),
+      },
+    }
   } catch (error: any) {
     console.error("[recordLoanPayment] Error:", error)
     if (error?.code === "P2002") {
       return { success: false, error: "Nomor pembayaran duplikat, silakan coba lagi." }
     }
-    return { success: false, error: "Gagal mencatat pembayaran cicilan." }
+    return { success: false, error: `Gagal mencatat pembayaran cicilan: ${error?.message || error}` }
   }
 }
 
@@ -158,6 +217,27 @@ export async function recordLoanPayment({
  */
 export async function getLoanPayments(loanId: number) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return []
+
+    // Fetch the loan first to check ownership
+    const loan = await prisma.loans.findUnique({
+      where: { id: BigInt(loanId) },
+      select: { member_id: true }
+    })
+    if (!loan) return []
+
+    // If role is anggota, verify that the loan belongs to this member
+    if (session.user.role === "anggota") {
+      const user = await prisma.user.findUnique({
+        where: { id: BigInt(session.user.id) },
+        select: { member_id: true }
+      })
+      if (!user?.member_id || user.member_id !== loan.member_id) {
+        return [] // BOLA protection: user cannot access other members' loan payment records
+      }
+    }
+
     const payments = await prisma.loan_payments.findMany({
       where: { loan_id: BigInt(loanId) },
       include: {
@@ -167,7 +247,7 @@ export async function getLoanPayments(loanId: number) {
       orderBy: { paid_at: "desc" },
     })
 
-    return payments.map((p) => ({
+    return payments.map((p: any) => ({
       id:                Number(p.id),
       payment_no:        p.payment_no,
       amount_paid:       Number(p.amount_paid),

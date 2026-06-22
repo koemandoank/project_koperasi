@@ -16,14 +16,14 @@ export default async function PembelianPage() {
     })
   ]);
 
-  const products = productsRaw.map(p => ({
+  const products = productsRaw.map((p: any) => ({
     id: Number(p.id),
     name: p.name,
     purchase_price: Number(p.purchase_price || 0)
   }));
 
   const suppliers = suppliersRes.success
-    ? (suppliersRes.data as any[]).map((s) => ({
+    ? (suppliersRes.data as any[]).map((s: any) => ({
         id: Number(s.id),
         supplier_code: s.supplier_code,
         supplier_name: s.supplier_name,
@@ -38,7 +38,7 @@ export default async function PembelianPage() {
     : [];
 
   const purchaseOrders = poRes.success
-    ? (poRes.data as any[]).map((po) => ({
+    ? (poRes.data as any[]).map((po: any) => ({
         id:                Number(po.id),
         po_no:             po.po_no as string,
         supplier_name:     (po.suppliers?.supplier_name ?? "-") as string,

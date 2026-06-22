@@ -1,11 +1,14 @@
 import { LaporanAnalitikClient } from './laporan-analitik-client'
+import { getReportTemplateConfig } from '@/lib/actions/settings'
 
 export const metadata = {
-  title: 'Analitik & P&L Toko | Koperasi Digital',
+  title: 'Analitik & P&L Toko | Koperasi Sulfindo',
   description: 'Laporan keuntungan, margin, dan analisis produk toko',
 }
 
-export default function LaporanAnalitikPage() {
+export default async function LaporanAnalitikPage() {
+  const templateConfig = await getReportTemplateConfig()
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -14,7 +17,8 @@ export default function LaporanAnalitikPage() {
           P&L, laba kotor, margin keuntungan, analisis produk, dan perbandingan modal vs penjualan.
         </p>
       </div>
-      <LaporanAnalitikClient />
+      <LaporanAnalitikClient templateConfig={templateConfig} />
     </div>
   )
 }
+

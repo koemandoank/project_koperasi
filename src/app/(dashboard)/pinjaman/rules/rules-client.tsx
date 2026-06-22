@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { type LoanRules, type RuleConfig, DEFAULT_LOAN_RULES } from "@/lib/types/loan-rules.types"
 import { Save, AlertTriangle, Clock, ShieldCheck, Receipt, ShoppingCart, Percent, Loader2 } from "lucide-react"
+import { getLoanRules, saveLoanRules } from "@/lib/actions/loan-rules"
 
 
 export function RulesClient({
@@ -23,35 +24,30 @@ export function RulesClient({
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<LoanRules>(DEFAULT_LOAN_RULES)
 
-  /** Fetch data terbaru dari API setiap kali komponen di-mount (modal dibuka) */
+  /** Fetch data terbaru dari Server Action setiap kali komponen di-mount (modal dibuka) */
   useEffect(() => {
     let cancelled = false
-    fetch("/api/loan-rules", { cache: "no-store" })
-      .then(res => {
-        if (!res.ok) throw new Error("Gagal memuat data")
-        return res.json() as Promise<LoanRules>
+    getLoanRules()
+      .then(data => {
+        if (!cancelled) setFormData(data)
       })
-      .then(data => { if (!cancelled) setFormData(data) })
       .catch(() => {
         if (!cancelled) {
           toast.error("Gagal memuat konfigurasi aturan")
           setFormData(DEFAULT_LOAN_RULES)
         }
       })
-      .finally(() => { if (!cancelled) setLoadingData(false) })
+      .finally(() => {
+        if (!cancelled) setLoadingData(false)
+      })
     return () => { cancelled = true }
   }, [])
 
-  /** Simpan ke API endpoint */
+  /** Simpan menggunakan Server Action */
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch("/api/loan-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-      const result = await res.json() as { success: boolean; error?: string }
+      const result = await saveLoanRules(formData)
       if (result.success) {
         toast.success("Aturan pinjaman berhasil diperbarui!")
         if (onSaved) onSaved()
@@ -78,7 +74,7 @@ export function RulesClient({
   const toggleProduct = (ruleKey: keyof LoanRules, productId: number) => {
     const current = formData[ruleKey].applied_to_products
     const updated = current.includes(productId)
-      ? current.filter(id => id !== productId)
+      ? current.filter((id: any) => id !== productId)
       : [...current, productId]
     updateRule(ruleKey, "applied_to_products", updated)
   }
@@ -91,7 +87,7 @@ export function RulesClient({
           Terapkan pada produk pinjaman (kosong = tidak diterapkan):
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {products.map(p => (
+          {products.map((p: any) => (
             <div key={p.id} className="flex items-center gap-2">
               <Checkbox
                 id={`${ruleKey}-${p.id}`}
@@ -146,11 +142,11 @@ export function RulesClient({
                     />
                     <Label className="text-base font-semibold flex items-center gap-2 cursor-pointer" onClick={() => updateRule("max_paylater_debt", "enabled", !formData.max_paylater_debt.enabled)}>
                       <ShoppingCart className="h-4 w-4 text-red-500" />
-                      Limit Maksimal Hutang Paylater (Modul Toko)
+                      Limit Maksimal Hutang Bayar Tempo (Modul Toko)
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-11">
-                    Total batas nominal akumulasi hutang paylater di toko. Jika melebihi ini, transaksi paylater otomatis ditolak.
+                    Total batas nominal akumulasi hutang bayar tempo di toko. Jika melebihi ini, transaksi bayar tempo otomatis ditolak.
                   </p>
                 </div>
                 {formData.max_paylater_debt.enabled && (

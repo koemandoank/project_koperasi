@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/db/prisma";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
-import { verifySessionAndRole } from "@/lib/auth-helpers";
+import { checkRole } from "@/lib/auth-helpers";
 
 export type SavingTypeData = {
   id: number;
@@ -30,7 +31,7 @@ export async function getSavingTypes(): Promise<SavingTypeData[]> {
       },
     });
 
-    return types.map((t) => ({
+    return types.map((t: any) => ({
       id: Number(t.id),
       code: t.code,
       name: t.name,
@@ -61,7 +62,8 @@ export async function createSavingType(data: {
   description?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"]);
+    // SECURITY FIX: Only admin/pengurus can create saving types
+    await checkRole(["admin", "pengurus", "superadmin"]);
     
     const created = await prisma.saving_types.create({
       data: {
@@ -118,7 +120,9 @@ export async function updateSavingType(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"]);
+    // SECURITY FIX: Only admin/pengurus can update saving types
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const old = await prisma.saving_types.findUnique({ where: { id: BigInt(id) } });
 
     await prisma.saving_types.update({
@@ -170,7 +174,7 @@ export async function toggleSavingTypeStatus(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifySessionAndRole(["superadmin", "ketua", "pengurus", "admin"]);
+    await checkRole(["admin", "pengurus", "superadmin"]);
     await prisma.saving_types.update({
       where: { id: BigInt(id) },
       data: { is_active: isActive, updated_at: new Date() },

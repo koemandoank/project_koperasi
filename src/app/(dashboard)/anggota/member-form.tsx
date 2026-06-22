@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -23,11 +24,10 @@ import {
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createMember, updateMember, createUnit } from "@/lib/actions/members"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Upload, User } from "lucide-react"
 
 export function MemberForm({
   units: initialUnits,
@@ -40,7 +40,9 @@ export function MemberForm({
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [units, setUnits] = useState(initialUnits)
+  const router = useRouter()
 
   const [formData, setFormData] = useState({
     nik: memberToEdit?.nik || "",
@@ -49,6 +51,7 @@ export function MemberForm({
     phone: memberToEdit?.phone || "",
     unit_id: memberToEdit?.unit_id?.toString() || (initialUnits.length > 0 ? initialUnits[0].id.toString() : ""),
     role: memberToEdit?.role || "anggota",
+    photo_path: memberToEdit?.photo_path || "",
   })
 
   const [newUnitName, setNewUnitName] = useState("")
@@ -62,6 +65,7 @@ export function MemberForm({
         phone: memberToEdit.phone || "",
         unit_id: memberToEdit.unit_id?.toString() || (units.length > 0 ? units[0].id.toString() : ""),
         role: memberToEdit.role || "anggota",
+        photo_path: memberToEdit.photo_path || "",
       })
       setNewUnitName("")
     } else if (open && !memberToEdit) {
@@ -69,10 +73,42 @@ export function MemberForm({
         nik: "", full_name: "", email: "", phone: "",
         unit_id: units.length > 0 ? units[0].id.toString() : "",
         role: "anggota",
+        photo_path: "",
       })
       setNewUnitName("")
     }
   }, [open, memberToEdit, units])
+
+  /**
+   * Mengunggah berkas foto profil anggota ke server.
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Event perubahan input file
+   */
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) return toast.error("Hanya file gambar yang diperbolehkan")
+    if (file.size > 2 * 1024 * 1024) return toast.error("Max 2MB")
+
+    setUploading(true)
+    const fd = new FormData()
+    fd.append("file", file)
+    fd.append("folder", "koperasi/members")
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (data.url) {
+        setFormData(prev => ({ ...prev, photo_path: data.url }))
+        toast.success("Foto berhasil diunggah!")
+      } else {
+        toast.error("Gagal mengunggah foto")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Gagal mengunggah foto")
+    }
+    setUploading(false)
+  }
 
   /**
    * Handles form submission — creates or updates a member.
@@ -103,19 +139,26 @@ export function MemberForm({
         }
       }
 
+      // ── Optimistic update ────────────────────────────────────────────────────
+      // Close drawer immediately so UI feels instant
+      setOpen(false)
+      toast.loading(memberToEdit ? "Memperbarui anggota..." : "Menambah anggota...", { id: "member-save" })
+      // ─────────────────────────────────────────────────────────────────────────
+
       const payload = { ...formData, unit_id: finalUnitId }
-      const action = memberToEdit ? updateMember(memberToEdit.id, payload) : createMember(payload)
-      const res = await action
+      const res = await (memberToEdit ? updateMember(memberToEdit.id, payload) : createMember(payload))
 
       if (res.success) {
-        toast.success(memberToEdit ? "Anggota diperbarui" : "Anggota ditambahkan")
-        setOpen(false)
-        setTimeout(() => window.location.reload(), 500)
+        toast.success(memberToEdit ? "Anggota diperbarui" : "Anggota ditambahkan", { id: "member-save" })
+        router.refresh()  // Refresh server data without full page reload
       } else {
-        toast.error(res.error)
+        // Rollback: re-open drawer so user can fix errors
+        setOpen(true)
+        toast.error(res.error, { id: "member-save" })
       }
     } catch {
-      toast.error("Terjadi kesalahan sistem")
+      setOpen(true)  // rollback
+      toast.error("Terjadi kesalahan sistem", { id: "member-save" })
     }
     setLoading(false)
   }
@@ -143,6 +186,21 @@ export function MemberForm({
 
           <DrawerBody>
             <form onSubmit={handleSubmit} id="member-form" className="space-y-4">
+              {/* Photo Upload Section */}
+              <div className="flex flex-col items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="h-24 w-24 rounded-full border-2 border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900 flex items-center justify-center relative">
+                  {formData.photo_path ? (
+                    <img src={formData.photo_path} alt="Preview Foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="h-12 w-12 text-slate-300 dark:text-slate-700" />
+                  )}
+                </div>
+                <label className="cursor-pointer inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploading ? "Mengupload..." : "Unggah Foto"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">NIK</Label>
                 <Input
@@ -184,29 +242,56 @@ export function MemberForm({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="text-sm font-semibold">Unit / Dept / Lokasi</Label>
-                <Select
+                <RadioGroup
                   value={formData.unit_id}
                   onValueChange={v => setFormData({ ...formData, unit_id: v })}
+                  className="grid grid-cols-2 gap-2"
                 >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Pilih lokasi kerja">
-                      {formData.unit_id === "new"
-                        ? "+ Tambah Lokasi Baru..."
-                        : (formData.unit_id ? units.find(u => u.id.toString() === formData.unit_id)?.name : "Pilih lokasi kerja")
-                      }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map(u => (
-                      <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>
-                    ))}
-                    <SelectItem value="new" className="text-blue-600 font-medium border-t mt-1 pt-2">
-                      + Tambah Lokasi Baru...
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                  {units.map((u: any) => (
+                    <div
+                      key={u.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors active:bg-slate-50 dark:active:bg-slate-800 ${
+                        formData.unit_id === u.id.toString()
+                          ? "border-blue-500 bg-blue-50/20 dark:bg-blue-900/10"
+                          : "border-slate-200 dark:border-slate-800"
+                      }`}
+                      onClick={() => setFormData({ ...formData, unit_id: u.id.toString() })}
+                    >
+                      <RadioGroupItem
+                        value={u.id.toString()}
+                        id={`u-${u.id}-${memberToEdit?.id || 'new'}`}
+                      />
+                      <Label
+                        htmlFor={`u-${u.id}-${memberToEdit?.id || 'new'}`}
+                        className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300"
+                      >
+                        {u.name}
+                      </Label>
+                    </div>
+                  ))}
+
+                  <div
+                    className={`flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-colors active:bg-slate-50 dark:active:bg-slate-800 col-span-2 ${
+                      formData.unit_id === "new"
+                        ? "border-blue-500 bg-blue-50/20 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400"
+                        : "border-slate-300 dark:border-slate-700 text-slate-500"
+                    }`}
+                    onClick={() => setFormData({ ...formData, unit_id: "new" })}
+                  >
+                    <RadioGroupItem
+                      value="new"
+                      id={`u-new-${memberToEdit?.id || 'new'}`}
+                    />
+                    <Label
+                      htmlFor={`u-new-${memberToEdit?.id || 'new'}`}
+                      className="cursor-pointer text-sm font-semibold flex items-center gap-1.5"
+                    >
+                      <span>+ Tambah Lokasi Baru...</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               {formData.unit_id === "new" && (
@@ -236,7 +321,7 @@ export function MemberForm({
                     { value: "pengurus",   label: "Pengurus" },
                     { value: "admin",      label: "Admin" },
                     { value: "superadmin", label: "Superadmin", danger: true },
-                  ].map(({ value, label, danger }) => (
+                  ].map(({  value, label, danger  }: any) => (
                     <div
                       key={value}
                       className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 active:bg-slate-50 cursor-pointer"

@@ -1,61 +1,56 @@
+import { Suspense } from "react"
 import { auth } from "@/auth"
-import { PengurusDashboard } from "./pengurus-dashboard"
-import { KreditDashboard } from "./kredit-dashboard"
-import { KasirDashboard } from "./kasir-dashboard"
-import { MemberDashboard } from "./member-dashboard"
 import { redirect } from "next/navigation"
-import { getMySimpanan, getMyPinjaman, getMyOrders, getMyLoyalty } from "@/lib/actions/member-portal"
-import { getKoperasiStats } from "@/lib/actions/koperasi-stats"
-import { getAdminStats, getKreditStats, getKasirStats } from "@/lib/actions/dashboard-stats"
-import { getPromotions } from "@/lib/actions/promotions"
-import { getMemberDashboardConfig } from "@/lib/actions/settings"
+import { getAppSettings } from "@/lib/actions/settings"
 import { DashboardMobileRedirect } from "@/components/shared/dashboard-mobile-redirect"
-import { getSuppliers } from "@/lib/actions/procurement"
+import { DashboardSkeleton } from "@/components/ui/skeletons"
 
-export default async function DashboardPage() {
-  const session = await auth()
-  
-  if (!session?.user) {
-    redirect("/login")
-  }
+// ─── Lazy async sub-components (each fetches its own data) ────────────────────
 
-  const role = session.user.role
+// Pengurus / Superadmin / Petugas Akuntan
+async function PengurusDashboardSection({ role, companyName }: { role: string; companyName: string }) {
+  const { getAdminStats } = await import("@/lib/actions/dashboard-stats")
+  const { getSuppliers } = await import("@/lib/actions/procurement")
+  const { PengurusDashboard } = await import("./pengurus-dashboard")
 
-  if (["superadmin", "pengurus"].includes(role)) {
-    const [data, suppliersResult] = await Promise.all([
-      getAdminStats(),
-      getSuppliers(true)
-    ])
-    const suppliers = (suppliersResult.data ?? []).map(s => ({
-      id: Number(s.id),
-      supplier_name: s.supplier_name
-    }))
-    return (
-      <DashboardMobileRedirect>
-        <PengurusDashboard data={data} suppliers={suppliers} />
-      </DashboardMobileRedirect>
-    )
-  } 
-  
-  if (role === "admin") {
-    const data = await getKreditStats()
-    return (
-      <DashboardMobileRedirect>
-        <KreditDashboard data={data} />
-      </DashboardMobileRedirect>
-    )
-  }
-  
-  if (role === "kasir") {
-    const data = await getKasirStats()
-    return (
-      <DashboardMobileRedirect>
-        <KasirDashboard data={data} />
-      </DashboardMobileRedirect>
-    )
-  }
+  const [data, suppliersResult] = await Promise.all([
+    getAdminStats(),
+    getSuppliers(true),
+  ])
+  const suppliers = (suppliersResult.data ?? []).map((s: any) => ({
+    id: Number(s.id),
+    supplier_name: s.supplier_name,
+  }))
 
-  // default anggota
+  return <PengurusDashboard data={data} suppliers={suppliers} companyName={companyName} />
+}
+
+// Admin / Kredit
+async function KreditDashboardSection({ companyName }: { companyName: string }) {
+  const { getKreditStats } = await import("@/lib/actions/dashboard-stats")
+  const { KreditDashboard } = await import("./kredit-dashboard")
+
+  const data = await getKreditStats()
+  return <KreditDashboard data={data} companyName={companyName} />
+}
+
+// Kasir
+async function KasirDashboardSection({ companyName }: { companyName: string }) {
+  const { getKasirStats } = await import("@/lib/actions/dashboard-stats")
+  const { KasirDashboard } = await import("./kasir-dashboard")
+
+  const data = await getKasirStats()
+  return <KasirDashboard data={data} companyName={companyName} />
+}
+
+// Anggota
+async function MemberDashboardSection() {
+  const { getMySimpanan, getMyPinjaman, getMyOrders, getMyLoyalty } = await import("@/lib/actions/member-portal")
+  const { getKoperasiStats } = await import("@/lib/actions/koperasi-stats")
+  const { getPromotions } = await import("@/lib/actions/promotions")
+  const { getMemberDashboardConfig } = await import("@/lib/actions/settings")
+  const { MemberDashboard } = await import("./member-dashboard")
+
   const [simpanan, pinjaman, orders, stats, loyalty, allPromotions, dashboardConfig] = await Promise.all([
     getMySimpanan(),
     getMyPinjaman(),
@@ -63,15 +58,54 @@ export default async function DashboardPage() {
     getKoperasiStats(),
     getMyLoyalty(),
     getPromotions(),
-    getMemberDashboardConfig()
+    getMemberDashboardConfig(),
   ])
 
-  // Hanya ambil promosi yang aktif
-  const activePromotions = allPromotions.filter(p => p.is_active)
+  const activePromotions = allPromotions.filter((p: any) => p.is_active)
+
+  return (
+    <MemberDashboard
+      data={{ simpanan, pinjaman, orders, stats, loyalty, promotions: activePromotions, dashboardConfig }}
+    />
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function DashboardPage() {
+  const session = await auth()
+
+  if (!session?.user) {
+    redirect("/login")
+  }
+
+  const role = session.user.role
+  const settings = await getAppSettings()
+  const companyName = settings?.company_name ?? "Koperasi"
+
+  if (role === "pengawas") {
+    redirect("/pengawas")
+  }
 
   return (
     <DashboardMobileRedirect>
-      <MemberDashboard data={{ simpanan, pinjaman, orders, stats, loyalty, promotions: activePromotions, dashboardConfig }} />
+      {["superadmin", "pengurus", "petugas_akuntan"].includes(role) ? (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <PengurusDashboardSection role={role} companyName={companyName} />
+        </Suspense>
+      ) : role === "admin" ? (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <KreditDashboardSection companyName={companyName} />
+        </Suspense>
+      ) : role === "kasir" ? (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <KasirDashboardSection companyName={companyName} />
+        </Suspense>
+      ) : (
+        <Suspense fallback={<DashboardSkeleton />}>
+          <MemberDashboardSection />
+        </Suspense>
+      )}
     </DashboardMobileRedirect>
   )
 }

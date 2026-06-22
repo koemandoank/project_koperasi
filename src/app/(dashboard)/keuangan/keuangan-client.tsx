@@ -61,9 +61,9 @@ export function KeuanganClient({
   const [arPayAmount, setArPayAmount] = useState("");
   const [arPayMethod, setArPayMethod] = useState<"cash" | "transfer">("transfer");
 
-  const totalAP = aps.filter((a) => a.status !== "paid").reduce((s, a) => s + a.amount_due, 0);
-  const totalAR = ars.filter((a) => a.status !== "paid").reduce((s, a) => s + a.amount_due, 0);
-  const overdueAPs = aps.filter((a) => getDaysLeft(a.due_date) < 0 && a.status !== "paid").length;
+  const totalAP = aps.filter((a: any) => a.status !== "paid").reduce((s: any, a: any) => s + a.amount_due, 0);
+  const totalAR = ars.filter((a: any) => a.status !== "paid").reduce((s: any, a: any) => s + a.amount_due, 0);
+  const overdueAPs = aps.filter((a: any) => getDaysLeft(a.due_date) < 0 && a.status !== "paid").length;
 
   const handlePayAP = async () => {
     if (!apPayDialog) return;
@@ -76,7 +76,7 @@ export function KeuanganClient({
       if (res.success) {
         toast.success(`Pembayaran AP berhasil dicatat via ${apPayMethod.toUpperCase()}.`);
         setApPayDialog(null);
-        setAps((prev) => prev.map((a) => a.id === apPayDialog.id ? {
+        setAps((prev) => prev.map((a: any) => a.id === apPayDialog.id ? {
           ...a, amount_paid: a.amount_paid + amount, amount_due: Math.max(0, a.amount_due - amount),
           status: a.amount_due - amount <= 0 ? "paid" : "partial",
         } : a));
@@ -95,7 +95,7 @@ export function KeuanganClient({
       if (res.success) {
         toast.success(`Pembayaran AR berhasil dicatat via ${arPayMethod.toUpperCase()}.`);
         setArPayDialog(null);
-        setArs((prev) => prev.map((a) => a.id === arPayDialog.id ? {
+        setArs((prev) => prev.map((a: any) => a.id === arPayDialog.id ? {
           ...a, amount_paid: a.amount_paid + amount, amount_due: Math.max(0, a.amount_due - amount),
           status: a.amount_due - amount <= 0 ? "paid" : "partial",
         } : a));
@@ -168,7 +168,7 @@ export function KeuanganClient({
                   {aps.length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Belum ada hutang dagang.</TableCell></TableRow>
                   )}
-                  {aps.map((ap) => {
+                  {aps.map((ap: any) => {
                     const daysLeft = getDaysLeft(ap.due_date);
                     return (
                       <TableRow key={ap.id} className={daysLeft < 0 && ap.status !== "paid" ? "bg-red-50/30" : ""}>
@@ -229,7 +229,7 @@ export function KeuanganClient({
                   {ars.length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Belum ada piutang dagang.</TableCell></TableRow>
                   )}
-                  {ars.map((ar) => {
+                  {ars.map((ar: any) => {
                     const daysLeft = getDaysLeft(ar.due_date);
                     return (
                       <TableRow key={ar.id} className={daysLeft < 0 && ar.status !== "paid" ? "bg-yellow-50/30" : ""}>

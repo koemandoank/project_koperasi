@@ -15,7 +15,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import { generatePdfHeader, generateExcelHeader } from "@/lib/report-helpers"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -144,12 +144,13 @@ type Filters = {
 }
 
 export function LogClient({
-  result, roleSummary, timeline, filters,
+  result, roleSummary, timeline, filters, templateConfig,
 }: {
   result: AuditLogResult
   roleSummary: RoleSummaryRow[]
   timeline: TimelineDayRow[]
   filters: Filters
+  templateConfig?: any
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -213,16 +214,16 @@ export function LogClient({
       { header: "IP",       key: "ip",     width: 16 },
     ]
     ws.columns = COLS
-    const startRow = generateExcelHeader(ws, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, COLS.length)
+    const startRow = generateExcelHeader(ws, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, COLS.length, templateConfig)
     const hdr = ws.getRow(startRow)
-    hdr.values = COLS.map((c) => c.header)
+    hdr.values = COLS.map((c: any) => c.header)
     hdr.font   = { bold: true, color: { argb: "FFFFFFFF" } }
     hdr.eachCell((cell) => {
       cell.fill   = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } }
       cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } }
     })
     let cur = startRow + 1
-    data.forEach((r, i) => {
+    data.forEach((r: any, i: any) => {
       const row = ws.getRow(cur++)
       row.values = {
         no: i + 1, time: fmt(r.created_at),
@@ -238,6 +239,9 @@ export function LogClient({
         cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } }
       })
     })
+
+    generateExcelFooter(ws, cur + 2, COLS.length, templateConfig)
+
     const buf = await wb.xlsx.writeBuffer()
     saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `AuditLog_${dateFrom || "all"}.xlsx`)
   }
@@ -245,8 +249,8 @@ export function LogClient({
   // ── Export PDF ────────────────────────────────────────────────────────────────
   const handleExportPDF = () => {
     const doc    = new jsPDF({ orientation: "landscape" })
-    const startY = generatePdfHeader(doc, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`)
-    const rows   = data.map((r, i) => [
+    const startY = generatePdfHeader(doc, "LOG AKTIVITAS SISTEM", `${dateFrom || "Awal"} s/d ${dateTo || "Akhir"}`, templateConfig)
+    const rows   = data.map((r: any, i: any) => [
       i + 1, fmt(r.created_at),
       r.user?.full_name ?? r.user?.username ?? "-",
       r.user?.nik ?? "-",
@@ -263,6 +267,10 @@ export function LogClient({
       styles: { fontSize: 7, cellPadding: 2 },
       headStyles: { fillColor: [30, 64, 175] },
     })
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    generatePdfFooter(doc, finalY, templateConfig)
+
     doc.save(`AuditLog_${dateFrom || "all"}.pdf`)
   }
 
@@ -371,7 +379,7 @@ export function LogClient({
             Terapkan
           </Button>
           <span className="text-xs text-muted-foreground">Preset:</span>
-          {(["hari", "minggu", "bulan"] as const).map((p) => (
+          {(["hari", "minggu", "bulan"] as const).map((p: any) => (
             <Button key={p} variant="outline" size="sm" className="h-8 text-xs" onClick={() => setPreset(p)}>
               {p === "hari" ? "Hari Ini" : p === "minggu" ? "Minggu Ini" : "Bulan Ini"}
             </Button>
@@ -389,7 +397,7 @@ export function LogClient({
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({  id, label, icon: Icon  }: any) => (
           <button
             key={id}
             onClick={() => switchTab(id)}
@@ -451,7 +459,7 @@ export function LogClient({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data.map((log) => <LogDetailRow key={log.id} log={log} />)
+                  data.map((log: any) => <LogDetailRow key={log.id} log={log} />)
                 )}
               </TableBody>
             </Table>

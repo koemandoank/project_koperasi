@@ -1,5 +1,6 @@
 import { getMonthlyDeductionReport } from "@/lib/actions/reports"
 import { ReportClient } from "./report-client"
+import { getReportTemplateConfig } from "@/lib/actions/settings"
 
 export default async function PotonganGajiPage({
   searchParams,
@@ -13,6 +14,7 @@ export default async function PotonganGajiPage({
   const q = sp?.q || ""
 
   const data = await getMonthlyDeductionReport(from, to, q)
+  const templateConfig = await getReportTemplateConfig()
 
   return (
     <div className="p-6 space-y-6">
@@ -20,11 +22,11 @@ export default async function PotonganGajiPage({
         <h1 className="text-2xl font-bold tracking-tight">Laporan Potongan Gaji</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {from && to ? `Periode: ${from} s/d ${to}` : "Periode: Bulan Ini"}
-          {" · "} Mencakup: Cicilan Pinjaman (Uang / Barang / Kilat), Pay Later, Simpanan Wajib, Simpanan Salary Cut
+          {" · "} Mencakup: Cicilan Pinjaman (Uang / Barang / Kilat), Bayar Tempo, Simpanan Wajib, Simpanan Salary Cut
         </p>
       </div>
 
-      <ReportClient data={data} from={from} to={to} q={q} />
+      <ReportClient data={data} from={from} to={to} q={q} templateConfig={templateConfig} />
     </div>
   )
 }

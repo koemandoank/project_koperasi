@@ -1,28 +1,54 @@
+/**
+ * POST /api/upload
+ *
+ * Universal file upload endpoint — uploads ke Cloudinary (cloud storage).
+ * Kompatibel dengan Vercel serverless (tidak bergantung filesystem lokal).
+ *
+ * Request: multipart/form-data dengan field "file" dan optional "folder"
+ * Response: { url: string } — Cloudinary secure_url permanen
+ *
+ * @param {Request} req - Next.js Request object
+ * @returns {NextResponse<{ url: string } | { error: string }>}
+ */
+
 import { NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
+import { uploadToCloudinary } from "@/lib/cloudinary"
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
-    const file = formData.get("file") as File
-    if (!file) return NextResponse.json({ error: "No file" }, { status: 400 })
+    const file = formData.get("file") as File | null
+    const folder = (formData.get("folder") as string | null) ?? "koperasi/uploads"
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Format tidak didukung. Gunakan JPG, PNG, WEBP, atau GIF." },
+        { status: 400 }
+      )
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: "Ukuran file melebihi batas 5MB." },
+        { status: 400 }
+      )
+    }
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Ensure upload dir exists
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "products")
-    await mkdir(uploadDir, { recursive: true })
+    const { url } = await uploadToCloudinary(buffer, folder)
 
-    const ext = file.name.split(".").pop()
-    const filename = `product_${Date.now()}.${ext}`
-    const filepath = path.join(uploadDir, filename)
-    await writeFile(filepath, buffer)
-
-    return NextResponse.json({ url: `/uploads/products/${filename}` })
+    return NextResponse.json({ url })
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    console.error("[upload] Error:", err)
+    return NextResponse.json({ error: "Upload gagal, coba lagi." }, { status: 500 })
   }
 }

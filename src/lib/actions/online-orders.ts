@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
+import { checkRole } from "@/lib/auth-helpers"
+import { calculatePagination, getPaginationMeta } from "@/lib/utils/pagination"
 
 /**
  * Anggota membuat pesanan online dari portal
@@ -25,9 +27,12 @@ export async function createOnlineOrder(data: {
   note?: string
 }) {
   try {
+    // SECURITY FIX: Only logged-in members can create online orders
+    const session = await auth()
+    if (!session?.user?.id) throw new Error('Unauthorized')
+    
     // Validasi Zod untuk keranjang mencegah injeksi kuantitas negatif
     const parsedCart = z.array(OnlineOrderItemSchema).parse(data.cart)
-    const session = await auth()
     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
 
     const user = await prisma.user.findUnique({
@@ -41,7 +46,7 @@ export async function createOnlineOrder(data: {
     const count = await prisma.orders.count()
     const orderNo = `ONL-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(count + 1).padStart(4, "0")}`
 
-    const subtotal = data.cart.reduce((s, i) => s + i.price * i.qty, 0)
+    const subtotal = data.cart.reduce((s: any, i: any) => s + i.price * i.qty, 0)
     const grandTotal = subtotal
 
     const noteText = [
@@ -67,12 +72,12 @@ export async function createOnlineOrder(data: {
         
         const currentDebt = Number(existingPaylater._sum.grand_total || 0);
         if ((currentDebt + grandTotal) > rules.max_paylater_debt.value) {
-          return { success: false, error: `Limit Paylater ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
+          return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
         }
       }
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const order = await tx.orders.create({
         data: {
           order_no: orderNo,
@@ -133,21 +138,58 @@ export async function createOnlineOrder(data: {
 }
 
 /** Admin/Kasir: ambil semua pesanan online yg perlu diproses */
-export async function getOnlineOrders(status?: string) {
+export async function getOnlineOrders(status?: string): Promise<any[]>
+export async function getOnlineOrders(status: string | undefined, page: number, pageSize: number): Promise<{ data: any[]; pagination: any }>
+export async function getOnlineOrders(status?: string, page?: number, pageSize?: number): Promise<any> {
   try {
+    const session = await auth()
+    if (!session?.user?.id) return page !== undefined ? { data: [], pagination: null } : []
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"])
+
     const where: any = { channel: "online" }
     if (status && status !== "all") where.order_status = status
 
+    const isPaginated = page !== undefined && pageSize !== undefined
+
+    if (isPaginated) {
+      const { skip, take } = calculatePagination(page, pageSize)
+      const [orders, total] = await Promise.all([
+        prisma.orders.findMany({
+          where,
+          include: { members: true, order_items: true },
+          orderBy: { ordered_at: "desc" },
+          skip,
+          take,
+        }),
+        prisma.orders.count({ where }),
+      ])
+
+      const data = orders.map((o: any) => ({
+        id: Number(o.id),
+        order_no: o.order_no,
+        member_name: o.members?.full_name || "Umum",
+        member_phone: o.members?.phone || "-",
+        grand_total: Number(o.grand_total),
+        payment_method: o.payment_method,
+        payment_status: o.payment_status,
+        order_status: o.order_status,
+        note: o.note || "",
+        delivery_address: o.delivery_address || "",
+        ordered_at: o.ordered_at.toISOString(),
+        item_count: o.order_items.length,
+        items: o.order_items.map((i: any) => ({ name: i.product_name, qty: i.qty, subtotal: Number(i.subtotal) }))
+      }))
+
+      return { data, pagination: getPaginationMeta(total, page, pageSize) }
+    }
+
     const orders = await prisma.orders.findMany({
       where,
-      include: {
-        members: true,
-        order_items: true,
-      },
+      include: { members: true, order_items: true },
       orderBy: { ordered_at: "desc" }
     })
 
-    return orders.map(o => ({
+    return orders.map((o: any) => ({
       id: Number(o.id),
       order_no: o.order_no,
       member_name: o.members?.full_name || "Umum",
@@ -160,15 +202,11 @@ export async function getOnlineOrders(status?: string) {
       delivery_address: o.delivery_address || "",
       ordered_at: o.ordered_at.toISOString(),
       item_count: o.order_items.length,
-      items: o.order_items.map(i => ({
-        name: i.product_name,
-        qty: i.qty,
-        subtotal: Number(i.subtotal),
-      }))
+      items: o.order_items.map((i: any) => ({ name: i.product_name, qty: i.qty, subtotal: Number(i.subtotal) }))
     }))
   } catch (error) {
     console.error("getOnlineOrders error:", error)
-    return []
+    return page !== undefined ? { data: [], pagination: null } : []
   }
 }
 
@@ -178,6 +216,12 @@ export async function updateOnlineOrderStatus(
   status: "confirmed" | "processing" | "delivered" | "cancelled"
 ) {
   try {
+    // SECURITY FIX: Only kasir/admin can update online order status
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"]);
+    
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
+
     await prisma.orders.update({
       where: { id: BigInt(orderId) },
       data: {

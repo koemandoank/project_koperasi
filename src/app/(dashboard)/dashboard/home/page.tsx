@@ -18,7 +18,7 @@ export default async function DashboardHome() {
     getMemberDashboardConfig(),
   ])
 
-  const role = session.user.role
+  const role = session.user.role as string
   let orders: any[] = []
 
   if (role === "anggota") {
@@ -28,5 +28,13 @@ export default async function DashboardHome() {
   const today = new Date().toISOString().split("T")[0]
   const todayOrders = orders?.filter((o: any) => o.created_at?.split("T")[0] === today) || []
 
-  return <DashboardHomePage settings={settings} promotions={promotions} todayOrders={todayOrders} dashboardConfig={dashboardConfig} />
+  return (
+    <DashboardHomePage
+      settings={settings}
+      promotions={promotions}
+      todayOrders={todayOrders}
+      dashboardConfig={dashboardConfig}
+      role={role}
+    />
+  )
 }

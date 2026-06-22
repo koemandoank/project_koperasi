@@ -3,13 +3,15 @@
 import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/actions/log-audit";
+import { auth } from "@/auth";
+import { checkRole } from "@/lib/auth-helpers";
 
 export async function getLoanProducts() {
   try {
     const products = await prisma.loan_products.findMany({
       orderBy: { created_at: "desc" }
     });
-    return products.map(p => ({
+    return products.map((p: any) => ({
       id: Number(p.id),
       code: p.code,
       name: p.name,
@@ -32,6 +34,9 @@ export async function getLoanProducts() {
 
 export async function createLoanProduct(data: any) {
   try {
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
+
     const created = await prisma.loan_products.create({
       data: {
         code: data.code,
@@ -66,6 +71,9 @@ export async function createLoanProduct(data: any) {
 
 export async function updateLoanProduct(id: number, data: any) {
   try {
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
+
     const old = await prisma.loan_products.findUnique({ where: { id: BigInt(id) }, select: { code: true, name: true, interest_rate: true, max_tenor: true, max_amount: true, min_amount: true, admin_fee_pct: true, penalty_pct: true } });
 
     await prisma.loan_products.update({
@@ -102,6 +110,9 @@ export async function updateLoanProduct(id: number, data: any) {
 
 export async function toggleLoanProductStatus(id: number, isActive: boolean) {
   try {
+    // SECURITY FIX: Upgraded to centralized checkRole (no session param)
+    await checkRole(["superadmin", "admin", "pengurus"]);
+
     await prisma.loan_products.update({
       where: { id: BigInt(id) },
       data: { is_active: isActive }

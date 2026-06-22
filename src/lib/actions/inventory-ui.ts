@@ -34,7 +34,7 @@ export async function getInventarisReadModels() {
     return { success: false, error: "Unauthorized" } as const;
   }
 
-  const [locations, reorderPoints, balances] = await Promise.all([
+  const [locations, reorderPoints, balances, products] = await Promise.all([
     prisma.warehouse_locations.findMany({
       where: { unit_id: ctx.unitId, is_active: true },
 
@@ -69,13 +69,26 @@ export async function getInventarisReadModels() {
       take: 200,
       orderBy: { updated_at: "desc" },
     }),
+    prisma.products.findMany({
+      where: { unit_id: ctx.unitId, is_active: true, deleted_at: null },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return {
     success: true,
     data: {
       unitId: Number(ctx.unitId),
-      locations: locations.map((l) => ({
+      products: products.map((p: any) => ({
+        id: Number(p.id),
+        name: p.name,
+        sku: p.sku,
+        stock: p.stock,
+        purchase_price: Number(p.purchase_price),
+        price: Number(p.price),
+        unit_measure: p.unit_measure,
+      })),
+      locations: locations.map((l: any) => ({
         id: Number(l.id),
         location_code: l.location_code,
         location_name: l.location_name,

@@ -10,6 +10,8 @@ export default async function InventarisPage() {
 
   const readModel = await getInventarisReadModels();
   const locations = readModel.success ? readModel.data.locations : [];
+  const products = readModel.success ? readModel.data.products : [];
+  const balances = readModel.success ? readModel.data.balances : [];
 
   return (
     <div className="p-6 space-y-6">
@@ -23,8 +25,8 @@ export default async function InventarisPage() {
       <InventarisClient />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <TransferStockPanel locations={locations} />
-        <OpnameStockPanel locations={locations} />
+        <TransferStockPanel locations={locations} products={products} />
+        <OpnameStockPanel locations={locations} products={products} balances={balances} />
       </div>
     </div>
   );

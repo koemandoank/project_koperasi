@@ -53,7 +53,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
     { value: "rejected", label: "Ditolak" },
   ]
 
-  const filtered = applications.filter(a => {
+  const filtered = applications.filter((a: any) => {
     const matchSearch =
       a.member_name.toLowerCase().includes(search.toLowerCase()) ||
       a.member_nik.includes(search) ||
@@ -116,7 +116,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
         </div>
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {FILTERS.map(f => (
+          {FILTERS.map((f: any) => (
             <Button
               key={f.value}
               variant={filter === f.value ? "default" : "outline"}
@@ -139,7 +139,7 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
 
       {/* ── Card List ── */}
       <div className="space-y-3 mt-3">
-        {filtered.map(app => {
+        {filtered.map((app: any) => {
           const status = STATUS_CONFIG[app.status] || STATUS_CONFIG.draft
 
           return (
@@ -156,10 +156,32 @@ export function ApprovalClient({ applications }: { applications: any[] }) {
                     <User className="h-3 w-3" /> NIK: {app.member_nik}
                   </p>
                 </div>
-                <Badge className={`${status.className} shrink-0 text-xs border`}>
-                  {status.label}
-                </Badge>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <Badge className={`${status.className} text-xs border`}>
+                    {status.label}
+                  </Badge>
+                  {app.status === "approved" && app.queue_number && (
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 text-emerald-700 dark:text-emerald-450 whitespace-nowrap">
+                      Antrean #{app.queue_number}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Rule Violations Alert Box */}
+              {app.status === "pending" && app.rule_violations && app.rule_violations.length > 0 && (
+                <div className="mx-4 mb-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 rounded-xl flex items-start gap-2.5 shadow-sm">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-red-800 dark:text-red-300">Peringatan Pelanggaran Aturan</p>
+                    {app.rule_violations.map((violation: string, idx: number) => (
+                      <p key={idx} className="text-xs font-medium text-red-700 dark:text-red-400 leading-relaxed">
+                        {violation}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Card Body — Loan Details */}
               <div className="px-4 pb-3 grid grid-cols-2 gap-2 border-t border-slate-50 dark:border-slate-800 pt-3">

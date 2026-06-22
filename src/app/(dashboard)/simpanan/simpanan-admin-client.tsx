@@ -23,6 +23,8 @@ const SAVING_TYPE_LABEL: Record<string, string> = {
   interest:     "Bunga SHU",
   transfer_in:  "Transfer Masuk",
   transfer_out: "Transfer Keluar",
+  salary_cut:   "Potong Gaji",
+  shu_credit:   "SHU Anggota",
 }
 
 type GroupedSaving = { type_name: string; total: number }
@@ -88,7 +90,7 @@ export function SimpananAdminClient({ data }: { data: AdminData }) {
         ) : (
           <div className="space-y-2">
             {data.recentTransactions.map((t: RecentTransaction) => {
-              const isDeposit = t.type === "deposit" || t.type === "transfer_in" || t.type === "interest"
+              const isDeposit = ["deposit", "salary_cut", "shu_credit", "transfer_in", "interest"].includes(t.type)
               const AmountIcon = isDeposit ? ArrowUpCircle : ArrowDownCircle
 
               return (

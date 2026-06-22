@@ -93,7 +93,7 @@ export function RestockNotificationWidget({ restockAlerts, suppliers }: Props) {
     setLines(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const subtotal = lines.reduce((s, l) => s + l.qtyOrdered * l.unitPrice, 0)
+  const subtotal = lines.reduce((s: any, l: any) => s + l.qtyOrdered * l.unitPrice, 0)
   const tax      = subtotal * 0.1
   const total    = subtotal + tax
 

@@ -3,13 +3,13 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                                                     BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id                                              BigInt?                   @unique(map: "users_member_id_unique") @db.UnsignedBigInt
+  id                                                     BigInt                    @id @default(autoincrement())
+  member_id                                              BigInt?                   @unique(map: "users_member_id_unique")
   username                                               String                    @unique(map: "users_username_unique") @db.VarChar(50)
   email                                                  String                    @unique(map: "users_email_unique") @db.VarChar(100)
   password                                               String                    @db.VarChar(255)
@@ -41,10 +41,10 @@ model User {
 
 model Session {
   id            String  @id @default(cuid()) @db.VarChar(255)
-  user_id       BigInt? @db.UnsignedBigInt
+  user_id       BigInt?
   ip_address    String? @db.VarChar(45)
   user_agent    String? @db.Text
-  payload       String  @db.LongText
+  payload       String
   last_activity Int
 
   @@index([last_activity], map: "sessions_last_activity_index")
@@ -53,7 +53,7 @@ model Session {
 }
 
 model Member {
-  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  id                  BigInt                @id @default(autoincrement())
   member_code         String                @unique(map: "members_member_code_unique") @db.VarChar(20)
   nik                 String                @unique(map: "members_nik_unique") @db.VarChar(16)
   full_name           String                @db.VarChar(150)
@@ -65,7 +65,7 @@ model Member {
   join_date           DateTime              @db.Date
   photo_path          String?               @db.VarChar(255)
   status              members_status        @default(active)
-  unit_id             BigInt                @db.UnsignedBigInt
+  unit_id             BigInt
   created_at          DateTime?             @db.Timestamp(0)
   updated_at          DateTime?             @db.Timestamp(0)
   deleted_at          DateTime?             @db.Timestamp(0)
@@ -82,16 +82,17 @@ model Member {
   users               User?
 
   @@index([status, unit_id], map: "members_status_unit_id_index")
-  @@index([unit_id], map: "members_unit_id_foreign")
+  @@index([unit_id], map: "idx_members_unit_id_foreign")
+  @@index([status, created_at(sort: Desc)], map: "idx_member_status_created")
   @@map("members")
 }
 
 model Unit {
-  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  id                  BigInt                @id @default(autoincrement())
   code                String                @unique(map: "units_code_unique") @db.VarChar(20)
   name                String                @db.VarChar(150)
   type                units_type            @default(simpan_pinjam)
-  parent_id           BigInt?               @db.UnsignedBigInt
+  parent_id           BigInt?
   address             String?               @db.VarChar(255)
   phone               String?               @db.VarChar(20)
   is_active           Boolean               @default(true)
@@ -108,16 +109,16 @@ model Unit {
   other_units         Unit[]                @relation("unitsTounits")
   warehouse_locations warehouse_locations[]
 
-  @@index([parent_id], map: "units_parent_id_foreign")
+  @@index([parent_id], map: "idx_units_parent_id_foreign")
   @@map("units")
 }
 
 model AuditLog {
-  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  user_id    BigInt?  @db.UnsignedBigInt
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt?
   action     String   @db.VarChar(50)
   model_type String?  @db.VarChar(100)
-  model_id   BigInt?  @db.UnsignedBigInt
+  model_id   BigInt?
   old_values Json?
   new_values Json?
   ip_address String?  @db.VarChar(45)
@@ -134,7 +135,7 @@ model AuditLog {
 
 model cache {
   key        String @id @db.VarChar(255)
-  value      String @db.MediumText
+  value      String
   expiration Int
 }
 
@@ -146,13 +147,13 @@ model cache_locks {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model chart_of_accounts {
-  id                      BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id                 BigInt                           @db.UnsignedBigInt
+  id                      BigInt                           @id @default(autoincrement())
+  unit_id                 BigInt
   code                    String                           @db.VarChar(20)
   name                    String                           @db.VarChar(150)
   type                    chart_of_accounts_type
   normal_balance          chart_of_accounts_normal_balance
-  parent_id               BigInt?                          @db.UnsignedBigInt
+  parent_id               BigInt?
   level                   Int                              @default(1) @db.SmallInt
   is_header               Boolean                          @default(false)
   is_active               Boolean                          @default(true)
@@ -164,17 +165,17 @@ model chart_of_accounts {
   journal_lines           journal_lines[]
 
   @@unique([unit_id, code], map: "uq_unit_account_code")
-  @@index([parent_id], map: "chart_of_accounts_parent_id_foreign")
+  @@index([parent_id], map: "idx_chart_of_accounts_parent_id_foreign")
   @@index([unit_id, type], map: "chart_of_accounts_unit_id_type_index")
 }
 
 model failed_jobs {
-  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  id         BigInt   @id @default(autoincrement())
   uuid       String   @unique(map: "failed_jobs_uuid_unique") @db.VarChar(255)
   connection String   @db.Text
   queue      String   @db.Text
-  payload    String   @db.LongText
-  exception  String   @db.LongText
+  payload    String
+  exception  String
   failed_at  DateTime @default(now()) @db.Timestamp(0)
 }
 
@@ -184,39 +185,39 @@ model job_batches {
   total_jobs     Int
   pending_jobs   Int
   failed_jobs    Int
-  failed_job_ids String  @db.LongText
-  options        String? @db.MediumText
+  failed_job_ids String
+  options        String?
   cancelled_at   Int?
   created_at     Int
   finished_at    Int?
 }
 
 model jobs {
-  id           BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  id           BigInt @id @default(autoincrement())
   queue        String @db.VarChar(255)
-  payload      String @db.LongText
-  attempts     Int    @db.UnsignedTinyInt
-  reserved_at  Int?   @db.UnsignedInt
-  available_at Int    @db.UnsignedInt
-  created_at   Int    @db.UnsignedInt
+  payload      String
+  attempts     Int
+  reserved_at  Int?
+  available_at Int
+  created_at   Int
 
   @@index([queue], map: "jobs_queue_index")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model journal_entries {
-  id                    BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id               BigInt                 @db.UnsignedBigInt
+  id                    BigInt                 @id @default(autoincrement())
+  unit_id               BigInt
   entry_no              String                 @unique(map: "journal_entries_entry_no_unique") @db.VarChar(60)
   entry_date            DateTime               @db.Date
   description           String                 @db.VarChar(255)
   reference             String?                @db.VarChar(100)
   source                journal_entries_source @default(manual)
-  posted_by             BigInt?                @db.UnsignedBigInt
+  posted_by             BigInt?
   posted_at             DateTime?              @db.Timestamp(0)
   is_posted             Boolean                @default(false)
   is_reversed           Boolean                @default(false)
-  reversed_by_entry_id  BigInt?                @db.UnsignedBigInt
+  reversed_by_entry_id  BigInt?
   created_at            DateTime?              @db.Timestamp(0)
   updated_at            DateTime?              @db.Timestamp(0)
   users                 User?                  @relation(fields: [posted_by], references: [id], onUpdate: NoAction, map: "journal_entries_posted_by_foreign")
@@ -225,16 +226,17 @@ model journal_entries {
   units                 Unit                   @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "journal_entries_unit_id_foreign")
   journal_lines         journal_lines[]
 
-  @@index([posted_by], map: "journal_entries_posted_by_foreign")
-  @@index([reversed_by_entry_id], map: "journal_entries_reversed_by_entry_id_foreign")
+  @@index([posted_by], map: "idx_journal_entries_posted_by_foreign")
+  @@index([reversed_by_entry_id], map: "idx_journal_entries_reversed_by_entry_id_foreign")
   @@index([unit_id, entry_date], map: "journal_entries_unit_id_entry_date_index")
   @@index([unit_id, is_posted, entry_date], map: "journal_entries_unit_id_is_posted_entry_date_index")
+  @@index([is_posted, entry_date], map: "idx_journal_entries_posted_date")
 }
 
 model journal_lines {
-  id                BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
-  journal_id        BigInt            @db.UnsignedBigInt
-  account_id        BigInt            @db.UnsignedBigInt
+  id                BigInt            @id @default(autoincrement())
+  journal_id        BigInt
+  account_id        BigInt
   debit             Decimal           @default(0.00) @db.Decimal(15, 2)
   credit            Decimal           @default(0.00) @db.Decimal(15, 2)
   description       String?           @db.VarChar(255)
@@ -249,9 +251,9 @@ model journal_lines {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model loan_applications {
-  id                                         BigInt                             @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id                                  BigInt                             @db.UnsignedBigInt
-  loan_product_id                            BigInt                             @db.UnsignedBigInt
+  id                                         BigInt                             @id @default(autoincrement())
+  member_id                                  BigInt
+  loan_product_id                            BigInt
   application_no                             String                             @unique(map: "loan_applications_application_no_unique") @db.VarChar(60)
   amount_requested                           Decimal                            @db.Decimal(15, 2)
   tenor_months                               Int                                @db.SmallInt
@@ -259,9 +261,9 @@ model loan_applications {
   purpose                                    String                             @db.Text
   status                                     loan_applications_status           @default(draft)
   submitted_at                               DateTime?                          @db.Timestamp(0)
-  reviewed_by                                BigInt?                            @db.UnsignedBigInt
+  reviewed_by                                BigInt?
   reviewed_at                                DateTime?                          @db.Timestamp(0)
-  approved_by                                BigInt?                            @db.UnsignedBigInt
+  approved_by                                BigInt?
   approved_at                                DateTime?                          @db.Timestamp(0)
   rejection_note                             String?                            @db.Text
   guarantor_name                             String?                            @db.VarChar(150)
@@ -274,17 +276,18 @@ model loan_applications {
   users_loan_applications_reviewed_byTousers User?                              @relation("loan_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction, map: "loan_applications_reviewed_by_foreign")
   loans                                      loans?
 
-  @@index([approved_by], map: "loan_applications_approved_by_foreign")
-  @@index([loan_product_id], map: "loan_applications_loan_product_id_foreign")
+  @@index([approved_by], map: "idx_loan_applications_approved_by_foreign")
+  @@index([loan_product_id], map: "idx_loan_applications_loan_product_id_foreign")
   @@index([member_id, status], map: "loan_applications_member_id_status_index")
-  @@index([reviewed_by], map: "loan_applications_reviewed_by_foreign")
+  @@index([reviewed_by], map: "idx_loan_applications_reviewed_by_foreign")
+  @@index([status], map: "idx_loan_applications_status")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model loan_payments {
-  id                BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
-  loan_id           BigInt                       @db.UnsignedBigInt
-  schedule_id       BigInt?                      @db.UnsignedBigInt
+  id                BigInt                       @id @default(autoincrement())
+  loan_id           BigInt
+  schedule_id       BigInt?
   payment_no        String                       @unique(map: "loan_payments_payment_no_unique") @db.VarChar(60)
   amount_paid       Decimal                      @db.Decimal(15, 2)
   principal_portion Decimal                      @db.Decimal(15, 2)
@@ -292,7 +295,7 @@ model loan_payments {
   penalty_amount    Decimal                      @default(0.00) @db.Decimal(15, 2)
   payment_method    loan_payments_payment_method
   reference         String?                      @db.VarChar(100)
-  processed_by      BigInt?                      @db.UnsignedBigInt
+  processed_by      BigInt?
   paid_at           DateTime                     @db.Timestamp(0)
   note              String?                      @db.Text
   created_at        DateTime?                    @db.Timestamp(0)
@@ -302,13 +305,13 @@ model loan_payments {
   loan_schedules    loan_schedules?              @relation(fields: [schedule_id], references: [id], onUpdate: NoAction, map: "loan_payments_schedule_id_foreign")
 
   @@index([loan_id, paid_at], map: "loan_payments_loan_id_paid_at_index")
-  @@index([processed_by], map: "loan_payments_processed_by_foreign")
-  @@index([schedule_id], map: "loan_payments_schedule_id_foreign")
+  @@index([processed_by], map: "idx_loan_payments_processed_by_foreign")
+  @@index([schedule_id], map: "idx_loan_payments_schedule_id_foreign")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model loan_products {
-  id                 BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
+  id                 BigInt                        @id @default(autoincrement())
   code               String                        @unique(map: "loan_products_code_unique") @db.VarChar(20)
   name               String                        @db.VarChar(100)
   interest_rate      Decimal                       @db.Decimal(5, 2)
@@ -329,8 +332,8 @@ model loan_products {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model loan_schedules {
-  id             BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  loan_id        BigInt                @db.UnsignedBigInt
+  id             BigInt                @id @default(autoincrement())
+  loan_id        BigInt
   installment_no Int                   @db.SmallInt
   due_date       DateTime              @db.Date
   principal_due  Decimal               @db.Decimal(15, 2)
@@ -353,9 +356,9 @@ model loan_schedules {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model loans {
-  id                    BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  application_id        BigInt                 @unique(map: "loans_application_id_unique") @db.UnsignedBigInt
-  member_id             BigInt                 @db.UnsignedBigInt
+  id                    BigInt                 @id @default(autoincrement())
+  application_id        BigInt                 @unique(map: "loans_application_id_unique")
+  member_id             BigInt
   loan_no               String                 @unique(map: "loans_loan_no_unique") @db.VarChar(60)
   principal             Decimal                @db.Decimal(15, 2)
   interest_rate         Decimal                @db.Decimal(5, 2)
@@ -382,20 +385,21 @@ model loans {
 }
 
 model migrations {
-  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  id        Int    @id @default(autoincrement())
   migration String @db.VarChar(255)
   batch     Int
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model order_items {
-  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id     BigInt    @db.UnsignedBigInt
-  product_id   BigInt    @db.UnsignedBigInt
+  id           BigInt    @id @default(autoincrement())
+  order_id     BigInt
+  product_id   BigInt
   product_name String    @db.VarChar(200)
   qty          Int
-  unit_price   Decimal   @db.Decimal(15, 2)
-  discount     Decimal   @default(0.00) @db.Decimal(15, 2)
+  unit_price     Decimal   @db.Decimal(15, 2)
+  purchase_price Decimal   @default(0.00) @db.Decimal(15, 2)
+  discount       Decimal   @default(0.00) @db.Decimal(15, 2)
   subtotal     Decimal   @db.Decimal(15, 2)
   created_at   DateTime? @db.Timestamp(0)
   updated_at   DateTime? @db.Timestamp(0)
@@ -403,15 +407,15 @@ model order_items {
   products     products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "order_items_product_id_foreign")
 
   @@index([order_id], map: "order_items_order_id_index")
-  @@index([product_id], map: "order_items_product_id_foreign")
+  @@index([product_id], map: "idx_order_items_product_id_foreign")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model orders {
-  id               BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  id               BigInt                @id @default(autoincrement())
   order_no         String                @unique(map: "orders_order_no_unique") @db.VarChar(60)
-  member_id        BigInt?               @db.UnsignedBigInt
-  unit_id          BigInt                @db.UnsignedBigInt
+  member_id        BigInt?
+  unit_id          BigInt
   channel          orders_channel        @default(pos)
   subtotal         Decimal               @db.Decimal(15, 2)
   discount         Decimal               @default(0.00) @db.Decimal(15, 2)
@@ -419,7 +423,7 @@ model orders {
   payment_method   orders_payment_method @default(cash)
   payment_status   orders_payment_status @default(unpaid)
   order_status     orders_order_status   @default(pending)
-  cashier_id       BigInt?               @db.UnsignedBigInt
+  cashier_id       BigInt?
   note             String?               @db.Text
   delivery_address String?               @db.VarChar(255)
   ordered_at       DateTime              @db.Timestamp(0)
@@ -433,10 +437,11 @@ model orders {
   members          Member?               @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "orders_member_id_foreign")
   units            Unit                  @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "orders_unit_id_foreign")
 
-  @@index([cashier_id], map: "orders_cashier_id_foreign")
+  @@index([cashier_id], map: "idx_orders_cashier_id_foreign")
   @@index([member_id, ordered_at], map: "orders_member_id_ordered_at_index")
   @@index([payment_status, order_status], map: "orders_payment_status_order_status_index")
   @@index([unit_id, ordered_at], map: "orders_unit_id_ordered_at_index")
+  @@index([ordered_at(sort: Desc)], map: "idx_orders_ordered_at")
 }
 
 model password_reset_tokens {
@@ -446,9 +451,9 @@ model password_reset_tokens {
 }
 
 model personal_access_tokens {
-  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  id             BigInt    @id @default(autoincrement())
   tokenable_type String    @db.VarChar(255)
-  tokenable_id   BigInt    @db.UnsignedBigInt
+  tokenable_id   BigInt
   name           String    @db.Text
   token          String    @unique(map: "personal_access_tokens_token_unique") @db.VarChar(64)
   abilities      String?   @db.Text
@@ -463,8 +468,8 @@ model personal_access_tokens {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model ppob_transactions {
-  id             BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id      BigInt                           @db.UnsignedBigInt
+  id             BigInt                           @id @default(autoincrement())
+  member_id      BigInt
   trx_no         String                           @unique(map: "ppob_transactions_trx_no_unique") @db.VarChar(60)
   product_type   ppob_transactions_product_type
   product_code   String                           @db.VarChar(50)
@@ -473,7 +478,7 @@ model ppob_transactions {
   amount         Decimal                          @db.Decimal(15, 2)
   admin_fee      Decimal                          @default(0.00) @db.Decimal(15, 2)
   total_amount   Decimal                          @db.Decimal(15, 2)
-  payment_method ppob_transactions_payment_method @default(saving_deduct)
+  payment_method ppob_transactions_payment_method @default(paylater)
   provider_ref   String?                          @db.VarChar(100)
   sn             String?                          @db.VarChar(255)
   status         ppob_transactions_status         @default(pending)
@@ -489,8 +494,8 @@ model ppob_transactions {
 }
 
 model product_categories {
-  id                       BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  parent_id                BigInt?              @db.UnsignedBigInt
+  id                       BigInt               @id @default(autoincrement())
+  parent_id                BigInt?
   name                     String               @db.VarChar(100)
   slug                     String               @unique(map: "product_categories_slug_unique") @db.VarChar(120)
   icon_url                 String?              @db.VarChar(255)
@@ -502,14 +507,14 @@ model product_categories {
   other_product_categories product_categories[] @relation("product_categoriesToproduct_categories")
   products                 products[]
 
-  @@index([parent_id], map: "product_categories_parent_id_foreign")
+  @@index([parent_id], map: "idx_product_categories_parent_id_foreign")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model products {
-  id                   BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id              BigInt                        @db.UnsignedBigInt
-  category_id          BigInt                        @db.UnsignedBigInt
+  id                   BigInt                        @id @default(autoincrement())
+  unit_id              BigInt
+  category_id          BigInt
   sku                  String                        @unique(map: "products_sku_unique") @db.VarChar(50)
   name                 String                        @db.VarChar(200)
   description          String?                       @db.Text
@@ -549,16 +554,16 @@ model products {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model saving_transactions {
-  id             BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
-  savings_id     BigInt                   @db.UnsignedBigInt
-  member_id      BigInt                   @db.UnsignedBigInt
+  id             BigInt                   @id @default(autoincrement())
+  savings_id     BigInt
+  member_id      BigInt
   type           saving_transactions_type
   amount         Decimal                  @db.Decimal(15, 2)
   balance_before Decimal                  @db.Decimal(15, 2)
   balance_after  Decimal                  @db.Decimal(15, 2)
   reference_no   String                   @unique(map: "saving_transactions_reference_no_unique") @db.VarChar(60)
   note           String?                  @db.Text
-  processed_by   BigInt?                  @db.UnsignedBigInt
+  processed_by   BigInt?
   transaction_at DateTime                 @db.Timestamp(0)
   created_at     DateTime?                @db.Timestamp(0)
   updated_at     DateTime?                @db.Timestamp(0)
@@ -567,13 +572,13 @@ model saving_transactions {
   savings        savings                  @relation(fields: [savings_id], references: [id], onUpdate: NoAction, map: "saving_transactions_savings_id_foreign")
 
   @@index([member_id, transaction_at], map: "saving_transactions_member_id_transaction_at_index")
-  @@index([processed_by], map: "saving_transactions_processed_by_foreign")
+  @@index([processed_by], map: "idx_saving_transactions_processed_by_foreign")
   @@index([savings_id, transaction_at], map: "saving_transactions_savings_id_transaction_at_index")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model saving_types {
-  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  id              BigInt    @id @default(autoincrement())
   code            String    @unique(map: "saving_types_code_unique") @db.VarChar(20)
   name            String    @db.VarChar(100)
   is_mandatory    Boolean   @default(false)
@@ -589,9 +594,9 @@ model saving_types {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model savings {
-  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id           BigInt                @db.UnsignedBigInt
-  saving_type_id      BigInt                @db.UnsignedBigInt
+  id                  BigInt                @id @default(autoincrement())
+  member_id           BigInt
+  saving_type_id      BigInt
   balance             Decimal               @default(0.00) @db.Decimal(15, 2)
   total_deposit       Decimal               @default(0.00) @db.Decimal(15, 2)
   total_withdraw      Decimal               @default(0.00) @db.Decimal(15, 2)
@@ -603,14 +608,14 @@ model savings {
 
   @@unique([member_id, saving_type_id], map: "uq_member_saving_type")
   @@index([member_id], map: "savings_member_id_index")
-  @@index([saving_type_id], map: "savings_saving_type_id_foreign")
+  @@index([saving_type_id], map: "idx_savings_saving_type_id_foreign")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model shu_distributions {
-  id                  BigInt                                 @id @default(autoincrement()) @db.UnsignedBigInt
-  shu_period_id       BigInt                                 @db.UnsignedBigInt
-  member_id           BigInt                                 @db.UnsignedBigInt
+  id                  BigInt                                 @id @default(autoincrement())
+  shu_period_id       BigInt
+  member_id           BigInt
   savings_weight      Decimal                                @default(0.0000) @db.Decimal(10, 4)
   activity_weight     Decimal                                @default(0.0000) @db.Decimal(10, 4)
   shu_amount          Decimal                                @db.Decimal(15, 2)
@@ -623,14 +628,14 @@ model shu_distributions {
   shu_periods         shu_periods                            @relation(fields: [shu_period_id], references: [id], onUpdate: NoAction, map: "shu_distributions_shu_period_id_foreign")
 
   @@unique([shu_period_id, member_id], map: "uq_shu_member")
-  @@index([member_id], map: "shu_distributions_member_id_foreign")
+  @@index([member_id], map: "idx_shu_distributions_member_id_foreign")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model shu_periods {
-  id                BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id           BigInt              @db.UnsignedBigInt
-  period_year       Int                 @db.Year
+  id                BigInt              @id @default(autoincrement())
+  unit_id           BigInt
+  period_year       Int
   total_revenue     Decimal             @default(0.00) @db.Decimal(15, 2)
   total_expense     Decimal             @default(0.00) @db.Decimal(15, 2)
   total_shu         Decimal             @default(0.00) @db.Decimal(15, 2)
@@ -651,26 +656,26 @@ model shu_periods {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model stock_movements {
-  id           BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id   BigInt               @db.UnsignedBigInt
+  id           BigInt               @id @default(autoincrement())
+  product_id   BigInt
   type         stock_movements_type
   qty          Int
   stock_before Int
   stock_after  Int
   reference    String?              @db.VarChar(100)
   note         String?              @db.Text
-  created_by   BigInt?              @db.UnsignedBigInt
+  created_by   BigInt?
   created_at   DateTime?            @db.Timestamp(0)
   updated_at   DateTime?            @db.Timestamp(0)
   users        User?                @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "stock_movements_created_by_foreign")
   products     products             @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_movements_product_id_foreign")
 
-  @@index([created_by], map: "stock_movements_created_by_foreign")
+  @@index([created_by], map: "idx_stock_movements_created_by_foreign")
   @@index([product_id, created_at], map: "stock_movements_product_id_created_at_index")
 }
 
 model app_settings {
-  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  id           BigInt    @id @default(autoincrement())
   company_name String    @default("Koperasi Digital") @db.VarChar(150)
   address      String?   @db.Text
   phone        String?   @db.VarChar(50)
@@ -683,14 +688,34 @@ model app_settings {
   @@map("app_settings")
 }
 
+model ppob_settings {
+  id                       BigInt    @id @default(autoincrement())
+  api_key                  String    @db.VarChar(255)
+  private_key              String    @db.VarChar(255)
+  merchant_code            String    @db.VarChar(100)
+  environment              String    @default("sandbox") @db.VarChar(20)
+  default_margin           Decimal   @default(0.00) @db.Decimal(15, 2)
+  shu_percentage           Decimal   @default(0.00) @db.Decimal(5, 2)
+  dynamic_pricing_by_level Boolean   @default(true)
+  webhook_url              String?   @db.VarChar(255)
+  enable_pulsa             Boolean   @default(true)
+  enable_pln               Boolean   @default(true)
+  enable_ewallet           Boolean   @default(true)
+  enable_bills             Boolean   @default(true)
+  created_at               DateTime? @db.Timestamp(0)
+  updated_at               DateTime? @db.Timestamp(0)
+
+  @@map("ppob_settings")
+}
+
 model monthly_closures {
-  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  id            BigInt   @id @default(autoincrement())
   month         Int      @db.SmallInt
   year          Int      @db.SmallInt
   total_revenue Decimal  @default(0.00) @db.Decimal(15, 2)
   total_expense Decimal  @default(0.00) @db.Decimal(15, 2)
   net_income    Decimal  @default(0.00) @db.Decimal(15, 2)
-  closed_by     BigInt?  @db.UnsignedBigInt
+  closed_by     BigInt?
   closed_at     DateTime @default(now()) @db.Timestamp(0)
   notes         String?  @db.Text
 
@@ -699,8 +724,8 @@ model monthly_closures {
 }
 
 model cash_registers {
-  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id                BigInt                   @db.UnsignedBigInt
+  id                     BigInt                   @id @default(autoincrement())
+  unit_id                BigInt
   register_no            String                   @unique @db.VarChar(50)
   register_name          String                   @db.VarChar(100)
   location               String?                  @db.VarChar(100)
@@ -715,11 +740,11 @@ model cash_registers {
 }
 
 model cash_register_sessions {
-  id               BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
-  cash_register_id BigInt                        @db.UnsignedBigInt
+  id               BigInt                        @id @default(autoincrement())
+  cash_register_id BigInt
   session_date     DateTime                      @db.Date
-  opened_by        BigInt                        @db.UnsignedBigInt
-  closed_by        BigInt?                       @db.UnsignedBigInt
+  opened_by        BigInt
+  closed_by        BigInt?
   opening_balance  Decimal                       @db.Decimal(15, 2)
   closing_balance  Decimal?                      @db.Decimal(15, 2)
   expected_balance Decimal?                      @db.Decimal(15, 2)
@@ -739,8 +764,8 @@ model cash_register_sessions {
 }
 
 model order_payments {
-  id             BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id       BigInt                @db.UnsignedBigInt
+  id             BigInt                @id @default(autoincrement())
+  order_id       BigInt
   payment_method order_payments_method
   amount         Decimal               @db.Decimal(15, 2)
   reference_no   String?               @db.VarChar(100)
@@ -756,14 +781,14 @@ model order_payments {
 }
 
 model order_returns {
-  id            BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id      BigInt                      @db.UnsignedBigInt
+  id            BigInt                      @id @default(autoincrement())
+  order_id      BigInt
   return_no     String                      @unique @db.VarChar(60)
   reason        String                      @db.Text
   return_status order_returns_status        @default(pending)
   refund_amount Decimal                     @db.Decimal(15, 2)
   refund_method order_returns_refund_method
-  processed_by  BigInt?                     @db.UnsignedBigInt
+  processed_by  BigInt?
   approved_at   DateTime?                   @db.Timestamp(0)
   completed_at  DateTime?                   @db.Timestamp(0)
   created_at    DateTime?                   @db.Timestamp(0)
@@ -778,8 +803,8 @@ model order_returns {
 }
 
 model warehouse_locations {
-  id                   BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id              BigInt                  @db.UnsignedBigInt
+  id                   BigInt                  @id @default(autoincrement())
+  unit_id              BigInt
   location_code        String                  @unique @db.VarChar(50)
   location_name        String                  @db.VarChar(150)
   location_type        warehouse_location_type @default(main)
@@ -797,9 +822,9 @@ model warehouse_locations {
 }
 
 model stock_balances {
-  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id          BigInt              @db.UnsignedBigInt
-  location_id         BigInt              @db.UnsignedBigInt
+  id                  BigInt              @id @default(autoincrement())
+  product_id          BigInt
+  location_id         BigInt
   qty_on_hand         Int                 @default(0)
   qty_reserved        Int                 @default(0)
   qty_available       Int                 @default(0)
@@ -814,8 +839,8 @@ model stock_balances {
 }
 
 model stock_reorder_points {
-  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id     BigInt    @unique @db.UnsignedBigInt
+  id             BigInt    @id @default(autoincrement())
+  product_id     BigInt    @unique
   reorder_qty    Int
   reorder_point  Int
   lead_time_days Int       @default(7)
@@ -828,14 +853,14 @@ model stock_reorder_points {
 }
 
 model stock_transfer_orders {
-  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  id               BigInt                 @id @default(autoincrement())
   transfer_no      String                 @unique @db.VarChar(60)
-  from_location_id BigInt                 @db.UnsignedBigInt
-  to_location_id   BigInt                 @db.UnsignedBigInt
+  from_location_id BigInt
+  to_location_id   BigInt
   status           stock_transfer_status  @default(pending)
-  requested_by     BigInt                 @db.UnsignedBigInt
-  approved_by      BigInt?                @db.UnsignedBigInt
-  transferred_by   BigInt?                @db.UnsignedBigInt
+  requested_by     BigInt
+  approved_by      BigInt?
+  transferred_by   BigInt?
   approved_at      DateTime?              @db.Timestamp(0)
   transferred_at   DateTime?              @db.Timestamp(0)
   notes            String?                @db.Text
@@ -852,9 +877,9 @@ model stock_transfer_orders {
 }
 
 model stock_transfer_items {
-  id                    BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  transfer_order_id     BigInt                @db.UnsignedBigInt
-  product_id            BigInt                @db.UnsignedBigInt
+  id                    BigInt                @id @default(autoincrement())
+  transfer_order_id     BigInt
+  product_id            BigInt
   qty_requested         Int
   qty_transferred       Int                   @default(0)
   created_at            DateTime?             @db.Timestamp(0)
@@ -867,14 +892,14 @@ model stock_transfer_items {
 }
 
 model stock_opname {
-  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  id             BigInt                 @id @default(autoincrement())
   opname_no      String                 @unique @db.VarChar(60)
-  location_id    BigInt?                @db.UnsignedBigInt
+  location_id    BigInt?
   opname_date    DateTime               @db.Date
   status         stock_opname_status    @default(draft)
   notes          String?                @db.Text
-  conducted_by   BigInt                 @db.UnsignedBigInt
-  approved_by    BigInt?                @db.UnsignedBigInt
+  conducted_by   BigInt
+  approved_by    BigInt?
   approved_at    DateTime?              @db.Timestamp(0)
   created_at     DateTime?              @db.Timestamp(0)
   updated_at     DateTime?              @db.Timestamp(0)
@@ -885,9 +910,9 @@ model stock_opname {
 }
 
 model stock_opname_details {
-  id           BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
-  opname_id    BigInt       @db.UnsignedBigInt
-  product_id   BigInt       @db.UnsignedBigInt
+  id           BigInt       @id @default(autoincrement())
+  opname_id    BigInt
+  product_id   BigInt
   qty_system   Int
   qty_physical Int
   variance     Int
@@ -902,8 +927,8 @@ model stock_opname_details {
 }
 
 model product_costing {
-  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id     BigInt                 @unique @db.UnsignedBigInt
+  id             BigInt                 @id @default(autoincrement())
+  product_id     BigInt                 @unique
   costing_method product_costing_method @default(average_cost)
   current_cost   Decimal                @db.Decimal(15, 2)
   created_at     DateTime?              @db.Timestamp(0)
@@ -914,9 +939,9 @@ model product_costing {
 }
 
 model consignment_items {
-  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id       BigInt                 @db.UnsignedBigInt
-  supplier_id      BigInt                 @db.UnsignedBigInt
+  id               BigInt                 @id @default(autoincrement())
+  product_id       BigInt
+  supplier_id      BigInt
   consignment_date DateTime               @db.Date
   qty_received     Int
   qty_sold         Int                    @default(0)
@@ -937,9 +962,9 @@ model consignment_items {
 }
 
 model consignment_payables {
-  id                BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
-  consignment_id    BigInt                     @db.UnsignedBigInt
-  supplier_id       BigInt                     @db.UnsignedBigInt
+  id                BigInt                     @id @default(autoincrement())
+  consignment_id    BigInt
+  supplier_id       BigInt
   qty_sold          Int
   unit_price        Decimal                    @db.Decimal(15, 2)
   total_amount      Decimal                    @db.Decimal(15, 2)
@@ -956,14 +981,14 @@ model consignment_payables {
 }
 
 model consignment_settlements {
-  id                   BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  payable_id           BigInt               @db.UnsignedBigInt
+  id                   BigInt               @id @default(autoincrement())
+  payable_id           BigInt
   settlement_no        String               @unique @db.VarChar(60)
   settlement_date      DateTime             @db.Date
   amount_paid          Decimal              @db.Decimal(15, 2)
   payment_method       payment_method_type
   reference_no         String?              @db.VarChar(100)
-  processed_by         BigInt               @db.UnsignedBigInt
+  processed_by         BigInt
   created_at           DateTime?            @db.Timestamp(0)
   consignment_payables consignment_payables @relation(fields: [payable_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_settlements_payable_foreign")
   users                User                 @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "consignment_settlements_user_foreign")
@@ -974,8 +999,8 @@ model consignment_settlements {
 }
 
 model accounts_payable {
-  id           BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
-  supplier_id  BigInt                     @db.UnsignedBigInt
+  id           BigInt                     @id @default(autoincrement())
+  supplier_id  BigInt
   invoice_no   String                     @unique @db.VarChar(60)
   invoice_date DateTime                   @db.Date
   due_date     DateTime                   @db.Date
@@ -997,9 +1022,9 @@ model accounts_payable {
 }
 
 model accounts_payable_details {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  ap_id            BigInt           @db.UnsignedBigInt
-  product_id       BigInt?          @db.UnsignedBigInt
+  id               BigInt           @id @default(autoincrement())
+  ap_id            BigInt
+  product_id       BigInt?
   description      String           @db.VarChar(255)
   qty              Int              @default(1)
   unit_price       Decimal          @db.Decimal(15, 2)
@@ -1014,8 +1039,8 @@ model accounts_payable_details {
 }
 
 model accounts_receivable {
-  id            BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id     BigInt?                       @db.UnsignedBigInt
+  id            BigInt                        @id @default(autoincrement())
+  member_id     BigInt?
   customer_name String                        @db.VarChar(150)
   invoice_no    String                        @unique @db.VarChar(60)
   invoice_date  DateTime                      @db.Date
@@ -1039,9 +1064,9 @@ model accounts_receivable {
 }
 
 model accounts_receivable_details {
-  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  ar_id               BigInt              @db.UnsignedBigInt
-  product_id          BigInt?             @db.UnsignedBigInt
+  id                  BigInt              @id @default(autoincrement())
+  ar_id               BigInt
+  product_id          BigInt?
   description         String              @db.VarChar(255)
   qty                 Int                 @default(1)
   unit_price          Decimal             @db.Decimal(15, 2)
@@ -1056,8 +1081,8 @@ model accounts_receivable_details {
 }
 
 model tax_calculations {
-  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id       BigInt?   @db.UnsignedBigInt
+  id             BigInt    @id @default(autoincrement())
+  order_id       BigInt?
   invoice_id     String?   @db.VarChar(60)
   tax_type       tax_type
   tax_percentage Decimal   @db.Decimal(5, 2)
@@ -1070,7 +1095,7 @@ model tax_calculations {
 }
 
 model suppliers {
-  id                   BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  id                   BigInt                 @id @default(autoincrement())
   supplier_code        String                 @unique @db.VarChar(50)
   supplier_name        String                 @db.VarChar(200)
   contact_person       String?                @db.VarChar(150)
@@ -1094,8 +1119,8 @@ model suppliers {
 }
 
 model purchase_orders {
-  id                BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  supplier_id       BigInt                 @db.UnsignedBigInt
+  id                BigInt                 @id @default(autoincrement())
+  supplier_id       BigInt
   po_no             String                 @unique @db.VarChar(60)
   po_date           DateTime               @db.Date
   expected_delivery DateTime               @db.Date
@@ -1104,8 +1129,8 @@ model purchase_orders {
   tax_amount        Decimal                @default(0.00) @db.Decimal(15, 2)
   total_amount      Decimal                @db.Decimal(15, 2)
   notes             String?                @db.Text
-  created_by        BigInt                 @db.UnsignedBigInt
-  approved_by       BigInt?                @db.UnsignedBigInt
+  created_by        BigInt
+  approved_by       BigInt?
   approved_at       DateTime?              @db.Timestamp(0)
   created_at        DateTime?              @db.Timestamp(0)
   updated_at        DateTime?              @db.Timestamp(0)
@@ -1119,9 +1144,9 @@ model purchase_orders {
 }
 
 model purchase_order_items {
-  id              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  po_id           BigInt          @db.UnsignedBigInt
-  product_id      BigInt          @db.UnsignedBigInt
+  id              BigInt          @id @default(autoincrement())
+  po_id           BigInt
+  product_id      BigInt
   qty_ordered     Int
   qty_received    Int             @default(0)
   unit_price      Decimal         @db.Decimal(15, 2)
@@ -1136,13 +1161,13 @@ model purchase_order_items {
 }
 
 model good_receipts {
-  id              BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  po_id           BigInt               @db.UnsignedBigInt
-  supplier_id     BigInt               @db.UnsignedBigInt
+  id              BigInt               @id @default(autoincrement())
+  po_id           BigInt
+  supplier_id     BigInt
   gr_no           String               @unique @db.VarChar(60)
   gr_date         DateTime             @db.Date
   status          gr_status            @default(received)
-  received_by     BigInt               @db.UnsignedBigInt
+  received_by     BigInt
   notes           String?              @db.Text
   created_at      DateTime?            @db.Timestamp(0)
   updated_at      DateTime?            @db.Timestamp(0)
@@ -1157,9 +1182,9 @@ model good_receipts {
 }
 
 model good_receipt_items {
-  id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  gr_id         BigInt        @db.UnsignedBigInt
-  product_id    BigInt        @db.UnsignedBigInt
+  id            BigInt        @id @default(autoincrement())
+  gr_id         BigInt
+  product_id    BigInt
   qty_received  Int
   qty_accepted  Int           @default(0)
   qty_rejected  Int           @default(0)
@@ -1174,7 +1199,7 @@ model good_receipt_items {
 }
 
 model approval_workflows {
-  id                BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  id                BigInt               @id @default(autoincrement())
   workflow_code     String               @unique @db.VarChar(50)
   workflow_name     String               @db.VarChar(150)
   module_type       approval_module_type
@@ -1190,18 +1215,18 @@ model approval_workflows {
 }
 
 model approval_requests {
-  id                 BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
-  workflow_id        BigInt             @db.UnsignedBigInt
+  id                 BigInt             @id @default(autoincrement())
+  workflow_id        BigInt
   reference_type     String             @db.VarChar(100)
-  reference_id       BigInt             @db.UnsignedBigInt
-  requested_by       BigInt             @db.UnsignedBigInt
+  reference_id       BigInt
+  requested_by       BigInt
   current_level      Int                @default(1)
   status             approval_status    @default(pending)
   rejection_reason   String?            @db.Text
   created_at         DateTime?          @db.Timestamp(0)
   updated_at         DateTime?          @db.Timestamp(0)
   approved_at        DateTime?          @db.Timestamp(0)
-  approved_by        BigInt?            @db.UnsignedBigInt
+  approved_by        BigInt?
   approval_workflows approval_workflows @relation(fields: [workflow_id], references: [id], onUpdate: NoAction, map: "approval_requests_workflow_foreign")
 
   @@index([reference_type, reference_id])
@@ -1211,7 +1236,7 @@ model approval_requests {
 }
 
 model loyalty_programs {
-  id                BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  id                BigInt                @id @default(autoincrement())
   program_code      String                @unique @db.VarChar(50)
   program_name      String                @db.VarChar(150)
   description       String?               @db.Text
@@ -1227,9 +1252,9 @@ model loyalty_programs {
 }
 
 model loyalty_memberships {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id        BigInt           @db.UnsignedBigInt
-  program_id       BigInt           @db.UnsignedBigInt
+  id               BigInt           @id @default(autoincrement())
+  member_id        BigInt
+  program_id       BigInt
   membership_level membership_level @default(bronze)
   total_points     Decimal          @default(0.00) @db.Decimal(15, 2)
   points_used      Decimal          @default(0.00) @db.Decimal(15, 2)
@@ -1248,10 +1273,10 @@ model loyalty_memberships {
 }
 
 model loyalty_redemptions {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  membership_id    BigInt           @db.UnsignedBigInt
-  program_id       BigInt           @db.UnsignedBigInt
-  order_id         BigInt?          @db.UnsignedBigInt
+  id               BigInt           @id @default(autoincrement())
+  membership_id    BigInt
+  program_id       BigInt
+  order_id         BigInt?
   points_redeemed  Decimal          @db.Decimal(15, 2)
   discount_amount  Decimal          @db.Decimal(15, 2)
   redemption_date  DateTime         @db.Timestamp(0)
@@ -1264,8 +1289,8 @@ model loyalty_redemptions {
 }
 
 model price_tiers {
-  id           BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id   BigInt          @db.UnsignedBigInt
+  id           BigInt          @id @default(autoincrement())
+  product_id   BigInt
   tier_name    price_tier_name
   min_qty      Int             @default(1)
   price        Decimal         @db.Decimal(15, 2)
@@ -1281,7 +1306,7 @@ model price_tiers {
 }
 
 model customer_segments {
-  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  id               BigInt    @id @default(autoincrement())
   segment_code     String    @unique @db.VarChar(50)
   segment_name     String    @db.VarChar(150)
   description      String?   @db.Text
@@ -1295,9 +1320,9 @@ model customer_segments {
 }
 
 model sales_analytics {
-  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  id                 BigInt    @id @default(autoincrement())
   date               DateTime  @db.Date
-  unit_id            BigInt    @db.UnsignedBigInt
+  unit_id            BigInt
   total_sales        Decimal   @db.Decimal(15, 2)
   total_transactions Int
   avg_transaction    Decimal   @db.Decimal(15, 2)
@@ -1312,8 +1337,8 @@ model sales_analytics {
 }
 
 model product_analytics {
-  id              BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id      BigInt                  @db.UnsignedBigInt
+  id              BigInt                  @id @default(autoincrement())
+  product_id      BigInt
   period_date     DateTime                @db.Date
   qty_sold        Int
   revenue         Decimal                 @db.Decimal(15, 2)
@@ -1703,3 +1728,63 @@ enum tax_type {
   pph
   other
 }
+
+model budgets {
+  id         BigInt    @id @default(autoincrement())
+  code       String    @unique(map: "budgets_code_unique") @db.VarChar(50)
+  name       String    @db.VarChar(150)
+  allocated  Decimal   @db.Decimal(15, 2)
+  used       Decimal   @default(0.00) @db.Decimal(15, 2)
+  color      String    @default("bg-indigo-600") @db.VarChar(50)
+  year       Int       @default(2026)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@map("budgets")
+}
+
+model Promotion {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  image_url   String    @db.VarChar(255)
+  link_url    String?   @db.VarChar(255)
+  is_active   Boolean   @default(true)
+  sort_order  Int       @default(0)
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+
+  @@map("promotions")
+}
+
+model RatAttendance {
+  id          BigInt    @id @default(autoincrement())
+  member_id   BigInt
+  year        Int
+  is_present  Boolean   @default(true)
+  voted       Boolean   @default(false)
+  attended_at DateTime  @default(now()) @db.Timestamp(0)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  updated_at  DateTime? @default(now()) @db.Timestamp(0) @updatedAt
+  member      Member    @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "rat_attendance_member_id_foreign")
+
+  @@unique([member_id, year], map: "uq_member_year_rat")
+  @@index([year], map: "rat_attendance_year_index")
+  @@map("rat_attendances")
+}
+
+model ppob_favorites {
+  id              BigInt    @id @default(autoincrement())
+  member_id       BigInt
+  label           String    @db.VarChar(100)
+  customer_no     String    @db.VarChar(100)
+  product_type    String    @db.VarChar(50) // 'pulsa', 'data', 'listrik', 'other', etc.
+  created_at      DateTime? @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(now()) @db.Timestamp(0) @updatedAt
+  members         Member    @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ppob_favorites_member_id_foreign")
+
+  @@unique([member_id, customer_no, product_type], map: "uq_member_customer_ppob")
+  @@index([member_id], map: "idx_ppob_favorites_member_id")
+  @@map("ppob_favorites")
+}
+

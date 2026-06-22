@@ -67,6 +67,44 @@ async function main() {
     },
   });
 
+  // 3c) Akuntan user
+  await prisma.user.upsert({
+    where: { username: 'akuntan01' },
+    update: {
+      password: hashedPassword,
+      email: 'akuntan01@koperasi.digital',
+      is_active: true,
+    },
+    create: {
+      username: 'akuntan01',
+      email: 'akuntan01@koperasi.digital',
+      password: hashedPassword,
+      role: 'petugas_akuntan',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  // 3d) Pengawas user
+  await prisma.user.upsert({
+    where: { username: 'pengawas01' },
+    update: {
+      password: hashedPassword,
+      email: 'pengawas01@koperasi.digital',
+      is_active: true,
+    },
+    create: {
+      username: 'pengawas01',
+      email: 'pengawas01@koperasi.digital',
+      password: hashedPassword,
+      role: 'pengawas',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
 
   // 4) Seed members (20)
   const memberNames = [
@@ -333,6 +371,94 @@ async function main() {
           },
         },
       });
+    }
+  }
+
+  // 9) Seed promotions using raw SQL
+  console.log('🚀 Mempersiapkan tabel promosi jika belum ada...');
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS promotions (
+      id BIGSERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT NULL,
+      image_url VARCHAR(255) NOT NULL,
+      link_url VARCHAR(255) NULL,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log('🚀 Menambahkan 4 data promosi dummy...');
+  const promotionsData = [
+    {
+      title: "MEGA DISKON 50% Akhir Bulan!",
+      description: "Nikmati potongan harga hingga 50% untuk berbagai kebutuhan pokok dan sembako di Toko Koperasi. Belanja hemat, anggota untung!",
+      image_url: "/uploads/promosi/promo-diskon-toko.png",
+      link_url: "/toko",
+      is_active: 1,
+      sort_order: 1,
+    },
+    {
+      title: "Restock Terlaris: Rokok Dunhill Menthol",
+      description: "Barang paling laku kini sudah tersedia kembali! Dapatkan Rokok Dunhill Menthol dengan harga spesial khusus anggota di mesin POS/Toko kami.",
+      image_url: "/uploads/promosi/promo-dunhill-menthol.png",
+      link_url: "/toko/produk",
+      is_active: 1,
+      sort_order: 2,
+    },
+    {
+      title: "Segera Hadir: Layanan PPOB Koperasi",
+      description: "Pengembangan layanan loket pembayaran PPOB (Listrik, Air, Pulsa, dll) sedang berlangsung. Bersiaplah menikmati kemudahan bayar tagihan langsung dari saldo simpanan Anda!",
+      image_url: "/uploads/promosi/promo-ppob-coming-soon.png",
+      link_url: "",
+      is_active: 1,
+      sort_order: 3,
+    },
+    {
+      title: "Dana Pinjaman Kilat Telah Tersedia!",
+      description: "Butuh dana cepat cair? Produk Pinjaman Kilat kini sudah bisa diajukan dengan proses persetujuan cepat (maksimal tenor 1 bulan). Ajukan sekarang di menu Pinjaman.",
+      image_url: "/uploads/promosi/promo-pinjaman-kilat.png",
+      link_url: "/pinjaman",
+      is_active: 1,
+      sort_order: 4,
+    }
+  ];
+
+  for (const promo of promotionsData) {
+    try {
+      const existing = await prisma.$queryRawUnsafe<any[]>(
+        "SELECT id FROM promotions WHERE title = $1 LIMIT 1",
+        promo.title
+      );
+
+      if (existing.length === 0) {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO promotions (title, description, image_url, link_url, is_active, sort_order, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+          promo.title,
+          promo.description,
+          promo.image_url,
+          promo.link_url,
+          promo.is_active === 1,
+          promo.sort_order
+        );
+        console.log(`✅ Ditambahkan promosi: ${promo.title}`);
+      } else {
+        await prisma.$executeRawUnsafe(
+          `UPDATE promotions SET description = $1, image_url = $2, link_url = $3, is_active = $4, sort_order = $5, updated_at = NOW() WHERE title = $6`,
+          promo.description,
+          promo.image_url,
+          promo.link_url,
+          promo.is_active === 1,
+          promo.sort_order,
+          promo.title
+        );
+        console.log(`♻️ Diperbarui promosi: ${promo.title}`);
+      }
+    } catch (e) {
+      console.warn(`⚠️ Warning seeding promotion '${promo.title}': Table 'promotions' might not exist yet.`, e);
     }
   }
 

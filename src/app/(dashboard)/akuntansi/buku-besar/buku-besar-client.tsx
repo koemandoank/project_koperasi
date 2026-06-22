@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, ChevronDown, ChevronRight, Filter } from "lucide-react"
+import { Search, ChevronDown, ChevronRight, Filter, AlertTriangle, AlertCircle, Info } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 const formatRp = (v: number) =>
   v > 0 ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v) : "-"
@@ -22,13 +23,21 @@ const SOURCE_BADGE: Record<string, string> = {
   salary_cut: "bg-pink-100 text-pink-700",
 }
 
-export function BukuBesarClient({ data }: { data: any }) {
+interface NotificationItem {
+  type: "info" | "warning" | "error"
+  message: string
+  detail?: string
+  actionLink?: string
+}
+
+export function BukuBesarClient({ data, notifications = [] }: { data: any; notifications?: NotificationItem[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState(searchParams.get("search") || "")
   const [startDate, setStartDate] = useState(searchParams.get("startDate") || "")
   const [endDate, setEndDate] = useState(searchParams.get("endDate") || "")
+  const [dismissedNotifs, setDismissedNotifs] = useState<Set<number>>(new Set())
 
   const toggleExpand = (id: number) => {
     setExpandedIds(prev => {
@@ -53,8 +62,100 @@ export function BukuBesarClient({ data }: { data: any }) {
     router.push(`/akuntansi/buku-besar?${params.toString()}`)
   }
 
+  const activeNotifs = notifications.filter((_: any, idx: any) => !dismissedNotifs.has(idx))
+  const errorCount = activeNotifs.filter((n: any) => n.type === "error").length
+  const warningCount = activeNotifs.filter((n: any) => n.type === "warning").length
+
   return (
     <div className="space-y-4">
+      {/* Notifications Panel */}
+      {activeNotifs.length > 0 && (
+        <div className="space-y-2.5">
+          {/* Summary badges */}
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Tindakan Diperlukan</span>
+            {errorCount > 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+                {errorCount} Kritis
+              </span>
+            )}
+            {warningCount > 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                {warningCount} Peringatan
+              </span>
+            )}
+          </div>
+
+          {/* Individual notification cards */}
+          {notifications.map((notif: any, idx: any) => {
+            if (dismissedNotifs.has(idx)) return null
+            const isError = notif.type === "error"
+            const isWarning = notif.type === "warning"
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "p-4 rounded-2xl border flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm",
+                  isError
+                    ? "bg-rose-50 border-rose-100 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-355"
+                    : isWarning
+                    ? "bg-amber-50 border-amber-100 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-355"
+                    : "bg-blue-50 border-blue-100 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900/40 dark:text-blue-355"
+                )}
+              >
+                <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                  <div className="mt-0.5 shrink-0">
+                    {isError ? (
+                      <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-450 shrink-0" />
+                    ) : isWarning ? (
+                      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-450 shrink-0" />
+                    ) : (
+                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-450 shrink-0" />
+                    )}
+                  </div>
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="text-sm font-semibold leading-relaxed">
+                      {notif.message}
+                    </p>
+                    {notif.detail && (
+                      <p className="text-xs opacity-80 leading-relaxed">
+                        {notif.detail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {notif.actionLink && (
+                    <Button
+                      size="sm"
+                      variant="link"
+                      className={cn(
+                        "p-0 h-auto font-bold flex items-center gap-1 text-xs",
+                        isError
+                          ? "text-rose-700 dark:text-rose-400 hover:text-rose-800"
+                          : isWarning
+                          ? "text-amber-700 dark:text-amber-400 hover:text-amber-800"
+                          : "text-blue-700 dark:text-blue-400 hover:text-blue-800"
+                      )}
+                      onClick={() => router.push(notif.actionLink!)}
+                    >
+                      Proses <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => setDismissedNotifs(prev => new Set([...prev, idx]))}
+                    className="text-xs opacity-50 hover:opacity-80 transition-opacity leading-none p-1 rounded"
+                    aria-label="Tutup notifikasi"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Filter Bar */}
       <div className="flex flex-wrap md:flex-nowrap gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border shadow-sm items-center">
         <div className="relative flex-1 min-w-[200px] w-full">
@@ -173,7 +274,7 @@ export function BukuBesarClient({ data }: { data: any }) {
             return (
               <div key={entry.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all">
                 {/* Entry Summary Card Header */}
-                <div 
+                <div
                   className="p-4 space-y-3 cursor-pointer hover:bg-slate-50/50"
                   onClick={() => toggleExpand(entry.id)}
                 >
@@ -186,7 +287,7 @@ export function BukuBesarClient({ data }: { data: any }) {
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-slate-50 text-sm line-clamp-2">{entry.description || "Tanpa Keterangan"}</h4>
                     {entry.reference && <p className="text-[11px] text-slate-400 mt-0.5">Ref: {entry.reference}</p>}
@@ -199,7 +300,7 @@ export function BukuBesarClient({ data }: { data: any }) {
                       </span>
                       <span className="text-[11px] text-slate-450">{entry.entry_date}</span>
                     </div>
-                    
+
                     <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">
                       {entry.lines?.length ?? 0} Transaksi
                     </span>
@@ -226,7 +327,7 @@ export function BukuBesarClient({ data }: { data: any }) {
                             </div>
                             {line.description && (
                               <p className="text-xs text-slate-450 italic border-t border-slate-50 dark:border-slate-800/30 pt-1.5">
-                                "{line.description}"
+                                &ldquo;{line.description}&rdquo;
                               </p>
                             )}
                           </div>
@@ -244,7 +345,7 @@ export function BukuBesarClient({ data }: { data: any }) {
       {/* Pagination */}
       {data.totalPages > 1 && (
         <div className="flex justify-center gap-2 pt-4">
-          {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(p => (
+          {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((p: any) => (
             <Button key={p} variant={data.page === p ? "default" : "outline"} className="h-11 w-11 rounded-xl font-bold" onClick={() => handlePage(p)}>
               {p}
             </Button>

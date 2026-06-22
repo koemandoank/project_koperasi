@@ -18,19 +18,21 @@ import {
   validateShuConfig,
   SHU_CONFIG_ALLOWED_ROLES,
 } from "@/lib/types/shu-config.types";
+import { saveShuConfig } from "@/lib/actions/shu-calculation";
 
 const formatRp = (v: number) => `${v.toFixed(1)}%`;
 
-const ALOKASI_META: Record<keyof AlokasiFeksi, { label: string; law: string; min?: number }> = {
+const ALOKASI_META: Record<string, { label: string; law: string; min?: number }> = {
   cadangan:          { label: "Dana Cadangan",              law: "Ps.45 ayat (2a)", min: 20 },
   jasa_anggota:      { label: "Total Jasa Anggota",         law: "Ps.45 ayat (2b)" },
   pengurus:          { label: "Honorarium Pengurus & Pengawas", law: "Ps.45 ayat (2c)" },
+  ketua:             { label: "Honorarium Ketua Koperasi",  law: "Ps.45 ayat (2c-k)" },
   pegawai:           { label: "Tunjangan Karyawan/Pegawai", law: "Ps.45 ayat (2d)" },
   pendidikan:        { label: "Dana Pendidikan Koperasi",   law: "Ps.45 ayat (2e)" },
   sosial_pembangunan:{ label: "Dana Sosial & Pembangunan Daerah", law: "Ps.45 ayat (2f-g)" },
 };
 
-const PIE_COLORS = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-purple-500","bg-pink-500","bg-amber-500"];
+const PIE_COLORS = ["bg-blue-500", "bg-indigo-500", "bg-violet-500", "bg-purple-500", "bg-fuchsia-500", "bg-pink-500", "bg-amber-500"];
 
 function TotalBar({ current, label }: { current: number; label: string }) {
   const valid = Math.abs(current - 100) < 0.01;
@@ -80,7 +82,7 @@ export function ShuConfigForm({
   const setAlokasi = (k: keyof AlokasiFeksi, v: number) =>
     setCfg(p => ({ ...p, alokasi: { ...p.alokasi, [k]: v } }));
 
-  const totalAlokasi = Object.values(cfg.alokasi).reduce((a, b) => a + b, 0);
+  const totalAlokasi = Object.values(cfg.alokasi).reduce((a: any, b: any) => a + b, 0);
   const totalBobotJasa = cfg.jasa_anggota_bobot.modal + cfg.jasa_anggota_bobot.usaha;
   const totalBobotUnit = cfg.bobot_unit.simpan_pinjam + cfg.bobot_unit.toko;
 
@@ -93,19 +95,14 @@ export function ShuConfigForm({
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/shu-config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cfg),
-        });
-        const json = await res.json() as { success?: boolean; error?: string };
-        if (json.success) {
+        const res = await saveShuConfig(cfg);
+        if (res.success) {
           toast.success("Konfigurasi SHU berhasil disimpan dan dicatat di audit log!");
         } else {
-          toast.error(json.error || "Gagal menyimpan konfigurasi SHU.");
+          toast.error(res.error || "Gagal menyimpan konfigurasi SHU.");
         }
-      } catch {
-        toast.error("Terjadi kesalahan jaringan. Coba lagi.");
+      } catch (error: any) {
+        toast.error(error?.message || "Terjadi kesalahan saat menyimpan.");
       }
     });
   };
@@ -132,12 +129,13 @@ export function ShuConfigForm({
       </div>
 
       <Tabs defaultValue="alokasi">
-        <TabsList className="grid grid-cols-5 h-auto">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 h-auto gap-1 bg-slate-100 p-1">
           <TabsTrigger value="alokasi" className="text-xs py-2">A. Alokasi SHU</TabsTrigger>
           <TabsTrigger value="bobot_jasa" className="text-xs py-2">B. Bobot Jasa</TabsTrigger>
           <TabsTrigger value="bobot_unit" className="text-xs py-2">C. Bobot Unit</TabsTrigger>
           <TabsTrigger value="formula_modal" className="text-xs py-2">D. Formula Modal</TabsTrigger>
           <TabsTrigger value="formula_usaha" className="text-xs py-2">E. Formula Usaha</TabsTrigger>
+          <TabsTrigger value="zakat_csr" className="text-xs py-2">F. Zakat & CSR</TabsTrigger>
         </TabsList>
 
         {/* ===== TAB A: ALOKASI SHU ===== */}
@@ -152,21 +150,21 @@ export function ShuConfigForm({
               <div className="overflow-hidden rounded-full h-4 flex border">
                 {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map((k, i) => (
                   <div key={k} className={`${PIE_COLORS[i]} transition-all duration-300`}
-                    style={{ width: `${(cfg.alokasi[k] / Math.max(totalAlokasi, 0.01)) * 100}%` }}
-                    title={`${ALOKASI_META[k].label}: ${cfg.alokasi[k]}%`}
+                    style={{ width: `${((cfg.alokasi as Record<string, number>)[k] / Math.max(totalAlokasi, 0.01)) * 100}%` }}
+                    title={`${ALOKASI_META[k].label}: ${(cfg.alokasi as Record<string, number>)[k]}%`}
                   />
                 ))}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map(k => (
+                {(Object.keys(cfg.alokasi) as (keyof AlokasiFeksi)[]).map((k: any) => (
                   <div key={k} className="p-3 border rounded-lg bg-slate-50/50 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="font-semibold text-sm">{ALOKASI_META[k].label}</Label>
                       <Badge variant="outline" className="text-xs font-mono">{ALOKASI_META[k].law}</Badge>
                     </div>
                     <PctInput
-                      value={cfg.alokasi[k]}
+                      value={(cfg.alokasi as Record<string, number>)[k]}
                       onChange={v => setAlokasi(k, v)}
                       min={ALOKASI_META[k].min}
                     />
@@ -246,8 +244,8 @@ export function ShuConfigForm({
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label className="font-semibold">Komponen Simpanan yang Dihitung</Label>
-                {(["pokok", "wajib", "sukarela_berjangka"] as const).map(k => {
-                  const labels = { pokok: "Simpanan Pokok", wajib: "Simpanan Wajib", sukarela_berjangka: "Simpanan Sukarela Berjangka (Deposito)" };
+                {(["pokok", "wajib", "sukarela_berjangka"] as const).map((k) => {
+                  const labels: Record<string, string> = { pokok: "Simpanan Pokok", wajib: "Simpanan Wajib", sukarela_berjangka: "Simpanan Sukarela Berjangka (Deposito)" };
                   const checked = cfg.formula_jasa_modal.komponen_simpanan.includes(k);
                   return (
                     <div key={k} className="flex items-center gap-3 p-3 border rounded-lg">
@@ -258,7 +256,7 @@ export function ShuConfigForm({
                         onCheckedChange={v => {
                           const list = v
                             ? [...cfg.formula_jasa_modal.komponen_simpanan, k]
-                            : cfg.formula_jasa_modal.komponen_simpanan.filter(x => x !== k);
+                            : cfg.formula_jasa_modal.komponen_simpanan.filter((x: any) => x !== k);
                           setCfg(p => ({ ...p, formula_jasa_modal: { ...p.formula_jasa_modal, komponen_simpanan: list } }));
                         }}
                       />
@@ -357,6 +355,62 @@ export function ShuConfigForm({
                     </Label>
                   </div>
                 </RadioGroup>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ===== TAB F: ZAKAT & CSR ===== */}
+        <TabsContent value="zakat_csr">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">F. Alokasi Zakat & CSR Koperasi</CardTitle>
+              <CardDescription>
+                Pemotongan langsung dari SHU Bersih sebelum didistribusikan ke anggota sesuai dengan prinsip Koperasi Syariah/Karyawan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-semibold text-sm">Persentase Zakat (%)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Biasanya 2.5% dari SHU Bersih.</p>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="h-9 w-28 text-right"
+                    disabled={!canEdit}
+                    value={cfg.zakat_rate ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setCfg((p) => ({ ...p, zakat_rate: val }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-semibold text-sm">Persentase CSR / Dana Sosial Keagamaan (%)</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Untuk alokasi tanggung jawab sosial kemasyarakatan.</p>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="h-9 w-28 text-right"
+                    disabled={!canEdit}
+                    value={cfg.csr_rate ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setCfg((p) => ({ ...p, csr_rate: val }));
+                    }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -38,17 +38,17 @@ export async function getLaporanHarian(from?: string, to?: string, search?: stri
 
     const totalTransaksi = orders.length
     const totalPendapatan = orders
-      .filter(o => o.payment_status === "paid")
-      .reduce((sum, o) => sum + Number(o.grand_total), 0)
+      .filter((o: any) => o.payment_status === "paid")
+      .reduce((sum: any, o: any) => sum + Number(o.grand_total), 0)
     const totalPaylater = orders
-      .filter(o => o.payment_method === "paylater")
-      .reduce((sum, o) => sum + Number(o.grand_total), 0)
+      .filter((o: any) => o.payment_method === "paylater")
+      .reduce((sum: any, o: any) => sum + Number(o.grand_total), 0)
     const totalTunai = orders
-      .filter(o => o.payment_method === "cash")
-      .reduce((sum, o) => sum + Number(o.grand_total), 0)
+      .filter((o: any) => o.payment_method === "cash")
+      .reduce((sum: any, o: any) => sum + Number(o.grand_total), 0)
     const totalQris = orders
-      .filter(o => o.payment_method === "qris")
-      .reduce((sum, o) => sum + Number(o.grand_total), 0)
+      .filter((o: any) => o.payment_method === "qris")
+      .reduce((sum: any, o: any) => sum + Number(o.grand_total), 0)
 
     return {
       tanggal: `${startDate.toISOString().split("T")[0]} - ${endDate.toISOString().split("T")[0]}`,
@@ -57,7 +57,7 @@ export async function getLaporanHarian(from?: string, to?: string, search?: stri
       totalPaylater,
       totalTunai,
       totalQris,
-      orders: orders.map(o => ({
+      orders: orders.map((o: any) => ({
         id: Number(o.id),
         order_no: o.order_no,
         member_name: o.members?.full_name || "Umum",

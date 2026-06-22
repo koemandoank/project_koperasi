@@ -18,7 +18,7 @@ import { toast } from "sonner"
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
-const PM_LABEL: Record<string, string> = { cash: "Tunai", paylater: "Paylater", qris: "QRIS" }
+const PM_LABEL: Record<string, string> = { cash: "Tunai", paylater: "Bayar Tempo", qris: "QRIS" }
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending:    { label: "Menunggu Konfirmasi", cls: "bg-amber-100 text-amber-700" },
   confirmed:  { label: "Dikonfirmasi",        cls: "bg-blue-100 text-blue-700" },
@@ -39,31 +39,31 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
   const [loading, setLoading] = useState(false)
   const [successOrder, setSuccessOrder] = useState("")
 
-  const filtered = products.filter(p =>
+  const filtered = products.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   )
 
   const addToCart = (product: any) => {
     setCart(prev => {
-      const exist = prev.find(i => i.id === product.id)
+      const exist = prev.find((i: any) => i.id === product.id)
       if (exist) {
         if (exist.qty >= product.stock) return toast.error("Stok habis!"), prev
-        return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i)
+        return prev.map((i: any) => i.id === product.id ? { ...i, qty: i.qty + 1 } : i)
       }
       return [...prev, { id: product.id, name: product.name, price: product.price, qty: 1, stock: product.stock }]
     })
   }
 
   const updateQty = (id: number, delta: number) => {
-    setCart(prev => prev.map(i => {
+    setCart(prev => prev.map((i: any) => {
       if (i.id !== id) return i
       const nq = i.qty + delta
       if (nq > i.stock) { toast.error("Melebihi stok"); return i }
       return nq > 0 ? { ...i, qty: nq } : i
-    }).filter(i => i.qty > 0))
+    }).filter((i: any) => i.qty > 0))
   }
 
-  const grandTotal = cart.reduce((s, i) => s + i.price * i.qty, 0)
+  const grandTotal = cart.reduce((s: any, i: any) => s + i.price * i.qty, 0)
 
   const handleCheckout = async () => {
     if (cart.length === 0) return toast.error("Keranjang kosong")
@@ -119,7 +119,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
             </div>
             <div className="pb-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {filtered.map(p => (
+                {filtered.map((p: any) => (
                   <Card key={p.id} className="cursor-pointer hover:border-blue-400 hover:shadow-md transition-all" onClick={() => addToCart(p)}>
                     <CardContent className="p-3 text-center flex flex-col items-center gap-2">
                       <div className="h-16 w-16 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
@@ -153,7 +153,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                   Keranjang
                   {cart.length > 0 && (
                     <span className="ml-auto bg-white/20 text-white text-xs font-bold rounded-full px-2 py-0.5">
-                      {cart.reduce((s, i) => s + i.qty, 0)} item
+                      {cart.reduce((s: any, i: any) => s + i.qty, 0)} item
                     </span>
                   )}
                 </h3>
@@ -167,7 +167,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                     Klik barang untuk menambah
                   </div>
                 ) : (
-                  cart.map(item => (
+                  cart.map((item: any) => (
                     <div key={item.id} className="flex justify-between items-center gap-2 border-b pb-2 last:border-0">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{item.name}</p>
@@ -181,7 +181,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                         <button onClick={() => updateQty(item.id, 1)} className="h-5 w-5 rounded-full border flex items-center justify-center hover:bg-slate-100">
                           <Plus className="h-2.5 w-2.5" />
                         </button>
-                        <button onClick={() => setCart(c => c.filter(i => i.id !== item.id))} className="ml-1 text-red-400 hover:text-red-600">
+                        <button onClick={() => setCart(c => c.filter((i: any) => i.id !== item.id))} className="ml-1 text-red-400 hover:text-red-600">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -210,14 +210,14 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white rounded-t-2xl">
               <h3 className="font-bold flex items-center gap-2 text-sm">
                 <ShoppingCart className="h-4 w-4" /> Keranjang
-                {cart.length > 0 && <span className="ml-auto font-normal text-xs opacity-80">{cart.reduce((s,i)=>s+i.qty,0)} item</span>}
+                {cart.length > 0 && <span className="ml-auto font-normal text-xs opacity-80">{cart.reduce((s: any, i: any) =>s+i.qty,0)} item</span>}
               </h3>
             </div>
             <div className="overflow-y-auto max-h-40 p-3 space-y-2">
               {cart.length === 0 ? (
                 <p className="text-center text-muted-foreground py-3 text-xs">Klik barang untuk menambah</p>
               ) : (
-                cart.map(item => (
+                cart.map((item: any) => (
                   <div key={item.id} className="flex justify-between items-center gap-2 border-b pb-1.5 last:border-0">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{item.name}</p>
@@ -231,7 +231,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
                       <button onClick={() => updateQty(item.id, 1)} className="h-8 w-8 rounded-full border flex items-center justify-center active:bg-slate-100">
                         <Plus className="h-3 w-3" />
                       </button>
-                      <button onClick={() => setCart(c => c.filter(i => i.id !== item.id))} className="ml-1 p-2 text-red-400 active:text-red-600">
+                      <button onClick={() => setCart(c => c.filter((i: any) => i.id !== item.id))} className="ml-1 p-2 text-red-400 active:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -257,7 +257,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
           {orders.length === 0 ? (
             <Card><CardContent className="pt-10 pb-10 text-center text-muted-foreground">Belum ada riwayat pesanan.</CardContent></Card>
           ) : (
-            orders.map(o => {
+            orders.map((o: any) => {
               const sc = ORDER_STATUS[o.order_status] || ORDER_STATUS.pending
               return (
                 <Card key={o.id} className="hover:shadow-md transition-shadow">
@@ -308,7 +308,7 @@ export function TokoAnggotaClient({ products, orders }: { products: any[]; order
             <div className="space-y-2">
               <Label className="text-xs uppercase font-semibold text-muted-foreground">Pembayaran</Label>
               <div className="grid grid-cols-3 gap-2">
-                {(["cash", "paylater", "qris"] as const).map(m => (
+                {(["cash", "paylater", "qris"] as const).map((m: any) => (
                   <Button key={m} type="button" variant={paymentMethod === m ? "default" : "outline"}
                     className="flex-col h-auto py-3 gap-1 active:bg-slate-100" onClick={() => setPaymentMethod(m)}>
                     {m === "cash" && <Banknote className="h-5 w-5" />}

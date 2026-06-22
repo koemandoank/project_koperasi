@@ -35,155 +35,209 @@ export type AnalyticsResult = {
 }
 
 /**
- * Fetch analytics data for a given date range and optional payment method filter.
- * All Decimal / BigInt values are serialized to plain JS numbers.
+ * Mengambil data analitik keuangan (omzet, HPP riil, laba kotor, margin, produk lambat)
+ * untuk rentang tanggal dan metode pembayaran tertentu secara akurat dari database.
+ *
+ * @param {AnalyticsParams} params Parameter kueri analitik (startDate, endDate, paymentMethod)
+ * @returns {Promise<AnalyticsResult>} Laporan analitik terhitung 100% akurat dari database
+ * @throws {Error} Mengembalikan error jika kueri database gagal
  */
 export async function getAnalyticsData(params: AnalyticsParams): Promise<AnalyticsResult> {
-  const start = new Date(params.startDate)
-  const end   = new Date(params.endDate)
-  end.setHours(23, 59, 59, 999)
+  try {
+    const start = new Date(params.startDate)
+    const end   = new Date(params.endDate)
+    end.setHours(23, 59, 59, 999)
 
-  const paymentFilter = params.paymentMethod && params.paymentMethod !== 'all'
-    ? { payment_method: params.paymentMethod }
-    : {}
+    const paymentFilter = params.paymentMethod && params.paymentMethod !== 'all'
+      ? { payment_method: params.paymentMethod }
+      : {}
 
-  // Paylater orders have paid_at = NULL but payment_status = 'paid'.
-  // We use ordered_at as fallback: include rows where paid_at IS in range,
-  // OR paid_at IS NULL and ordered_at IS in range.
-  const orderWhere = {
-    payment_status: 'paid',
-    OR: [
-      { paid_at:    { gte: start, lte: end } },
-      { paid_at:    null, ordered_at: { gte: start, lte: end } },
-    ],
-    ...paymentFilter,
-  } as any
+    // Paylater orders have paid_at = NULL but payment_status = 'paid'.
+    // We use ordered_at as fallback: include rows where paid_at IS in range,
+    // OR paid_at IS NULL and ordered_at IS in range.
+    const orderWhere = {
+      payment_status: 'paid',
+      OR: [
+        { paid_at:    { gte: start, lte: end } },
+        { paid_at:    null, ordered_at: { gte: start, lte: end } },
+      ],
+      ...paymentFilter,
+    } as any
 
-  // ── Parallel queries ─────────────────────────────────────
-  const [
-    revAgg,
-    byPayment,
-    itemGroups,
-    slowRaw,
-    dailyRaw,
-  ] = await Promise.all([
-    // 1. Aggregate omzet
-    prisma.orders.aggregate({
-      where:  orderWhere,
-      _sum:   { grand_total: true },
-      _count: true,
-    }),
+    // ── Parallel queries ─────────────────────────────────────
+    const [
+      revAgg,
+      byPayment,
+      itemGroups,
+      slowRaw,
+      dailyRaw,
+      allSoldItems,
+    ] = await Promise.all([
+      // 1. Aggregate omzet
+      prisma.orders.aggregate({
+        where:  orderWhere,
+        _sum:   { grand_total: true },
+        _count: true,
+      }),
 
-    // 2. By payment method
-    prisma.orders.groupBy({
-      by:    ['payment_method'],
-      where: orderWhere,
-      _sum:  { grand_total: true },
-      _count: true,
-    }),
+      // 2. By payment method
+      prisma.orders.groupBy({
+        by:    ['payment_method'],
+        where: orderWhere,
+        _sum:  { grand_total: true },
+        _count: true,
+      }),
 
-    // 3. Top products (qty + subtotal)
-    prisma.order_items.groupBy({
-      by:      ['product_id', 'product_name'],
-      where:   { orders: orderWhere },
-      _sum:    { qty: true, subtotal: true },
-      orderBy: { _sum: { subtotal: 'desc' } },
-      take:    20,
-    }),
+      // 3. Top products (qty + subtotal)
+      prisma.order_items.groupBy({
+        by:      ['product_id', 'product_name'],
+        where:   { orders: orderWhere },
+        _sum:    { qty: true, subtotal: true },
+        orderBy: { _sum: { subtotal: 'desc' } },
+        take:    20,
+      }),
 
-    // 4. Slow moving (active products with stock but no sales in period)
-    prisma.products.findMany({
-      where: {
-        is_active: true,
-        stock:     { gt: 0 },
-        order_items: {
-          none: { orders: { paid_at: { gte: start, lte: end }, payment_status: 'paid' } }
+      // 4. Slow moving (active products with stock but no sales in period)
+      prisma.products.findMany({
+        where: {
+          is_active: true,
+          stock:     { gt: 0 },
+          order_items: {
+            none: { orders: { paid_at: { gte: start, lte: end }, payment_status: 'paid' } }
+          },
         },
+        select: {
+          id: true, name: true, stock: true, purchase_price: true,
+          product_categories: { select: { name: true } },
+        },
+        take:    20,
+        orderBy: { stock: 'desc' },
+      }),
+
+      // 5. Daily series per date — HPP riil dihitung via LEFT JOIN subquery untuk mencegah inflasi omzet
+      //    COALESCE(paid_at, ordered_at) menangani paylater yang paid_at = NULL
+      prisma.$queryRaw`
+        SELECT 
+          dom.date,
+          dom.omzet,
+          COALESCE(dc.cogs, 0) AS cogs
+        FROM (
+          SELECT 
+            to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD') AS date,
+            SUM(o.grand_total) AS omzet
+          FROM orders o
+          WHERE o.payment_status = 'paid'
+            AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
+            AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
+          GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
+        ) dom
+        LEFT JOIN (
+          SELECT 
+            to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD') AS date,
+            SUM(oi.qty * oi.purchase_price) AS cogs
+          FROM orders o
+          INNER JOIN order_items oi ON oi.order_id = o.id
+          WHERE o.payment_status = 'paid'
+            AND COALESCE(o.paid_at, o.ordered_at) >= ${start}
+            AND COALESCE(o.paid_at, o.ordered_at) <= ${end}
+          GROUP BY to_char(COALESCE(o.paid_at, o.ordered_at), 'YYYY-MM-DD')
+        ) dc ON dom.date = dc.date
+        ORDER BY dom.date
+      `,
+
+      // 6. Fetch ALL sold items to compute exact COGS summary (no limit)
+      prisma.order_items.findMany({
+        where: { orders: orderWhere },
+        select: {
+          qty: true,
+          purchase_price: true
+        }
+      })
+    ])
+
+    // ── Fetch historical COGS for top products ────────────────
+    const soldIds = itemGroups.map((p: any) => p.product_id)
+    const topOrderItems = await prisma.order_items.findMany({
+      where: {
+        product_id: { in: soldIds },
+        orders: orderWhere,
       },
       select: {
-        id: true, name: true, stock: true, purchase_price: true,
-        product_categories: { select: { name: true } },
+        product_id: true,
+        qty: true,
+        purchase_price: true,
       },
-      take:    20,
-      orderBy: { stock: 'desc' },
-    }),
-
-    // 5. Daily series per date — COALESCE handles paylater (paid_at = NULL)
-    prisma.$queryRaw<{ date: string; omzet: number }[]>`
-      SELECT 
-        DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-%d') as \`date\`,
-        SUM(grand_total) as omzet
-      FROM orders
-      WHERE payment_status = 'paid'
-        AND COALESCE(paid_at, ordered_at) >= ${start}
-        AND COALESCE(paid_at, ordered_at) <= ${end}
-      GROUP BY DATE_FORMAT(COALESCE(paid_at, ordered_at), '%Y-%m-%d')
-      ORDER BY \`date\`
-    `,
-  ])
-
-  // ── Fetch HPP for all sold products ──────────────────────
-  const soldIds = itemGroups.map(p => p.product_id)
-  const hppRows = await prisma.products.findMany({
-    where:  { id: { in: soldIds } },
-    select: { id: true, purchase_price: true },
-  })
-  const hppMap = new Map(hppRows.map(p => [Number(p.id), Number(p.purchase_price)]))
-
-  // ── Build top products with margin ───────────────────────
-  const topProducts = itemGroups.map(p => {
-    const qty     = p._sum.qty ?? 0
-    const revenue = Number(p._sum.subtotal ?? 0)
-    const hpp     = hppMap.get(Number(p.product_id)) ?? 0
-    const cogs    = hpp * qty
-    const profit  = revenue - cogs
-    return {
-      product_id:    Number(p.product_id),
-      product_name:  p.product_name,
-      total_qty:     qty,
-      total_revenue: revenue,
-      total_cogs:    cogs,
-      gross_profit:  profit,
-      margin_pct:    revenue > 0 ? Math.round((profit / revenue) * 1000) / 10 : 0,
+    })
+    const cogsMap = new Map<number, number>()
+    for (const item of topOrderItems) {
+      const pid = Number(item.product_id)
+      const itemCogs = item.qty * Number(item.purchase_price)
+      cogsMap.set(pid, (cogsMap.get(pid) ?? 0) + itemCogs)
     }
-  })
 
-  // ── Summary ───────────────────────────────────────────────
-  const omzet   = Number(revAgg._sum.grand_total ?? 0)
-  const cogs    = topProducts.reduce((s, p) => s + p.total_cogs, 0)
-  const profit  = omzet - cogs
-  const txCount = revAgg._count
+    // ── Build top products with margin ───────────────────────
+    const topProducts = itemGroups.map((p: any) => {
+      const qty     = p._sum.qty ?? 0
+      const revenue = Number(p._sum.subtotal ?? 0)
+      const cogs    = cogsMap.get(Number(p.product_id)) ?? 0
+      const profit  = revenue - cogs
+      return {
+        product_id:    Number(p.product_id),
+        product_name:  p.product_name,
+        total_qty:     qty,
+        total_revenue: revenue,
+        total_cogs:    cogs,
+        gross_profit:  profit,
+        margin_pct:    revenue > 0 ? Math.round((profit / revenue) * 1000) / 10 : 0,
+      }
+    })
 
-  const avgHppPerRevenue = omzet > 0 ? cogs / omzet : 0
-  const dailySeries = (dailyRaw as any[]).map(row => ({
-    date:  String(row.date),
-    omzet: Number(row.omzet),
-    cogs:  Math.round(Number(row.omzet) * avgHppPerRevenue),
-  }))
+    // ── Calculate total real COGS from all sold items ─────────
+    const totalRealCogs = allSoldItems.reduce((sum: any, item: any) => {
+      const price = Number(item.purchase_price ?? 0)
+      return sum + (item.qty * price)
+    }, 0)
 
-  return {
-    summary: {
-      omzet,
-      cogs,
-      gross_profit:      profit,
-      margin_pct:        omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0,
-      transaction_count: txCount,
-      avg_transaction:   txCount > 0 ? Math.round(omzet / txCount) : 0,
-    },
-    byPaymentMethod: byPayment.map(g => ({
-      method: g.payment_method,
-      total:  Number(g._sum.grand_total ?? 0),
-      count:  g._count,
-    })),
-    topProducts,
-    slowMoving: slowRaw.map(p => ({
-      id:             Number(p.id),
-      name:           p.name,
-      stock:          p.stock,
-      purchase_price: Number(p.purchase_price),
-      category:       (p.product_categories as any)?.name ?? '-',
-      stock_value:    Number(p.purchase_price) * p.stock,
-    })),
-    dailySeries,
+    // ── Summary ───────────────────────────────────────────────
+    const omzet   = Number(revAgg._sum.grand_total ?? 0)
+    const cogs    = totalRealCogs
+    const profit  = omzet - cogs
+    const txCount = revAgg._count
+
+    // dailySeries menggunakan HPP riil per hari dari SQL JOIN (bukan estimasi rasio)
+    const dailySeries = (dailyRaw as any[]).map((row: any) => ({
+      date:  String(row.date),
+      omzet: Number(row.omzet),
+      cogs:  Number(row.cogs ?? 0),
+    }))
+
+    return {
+      summary: {
+        omzet,
+        cogs,
+        gross_profit:      profit,
+        margin_pct:        omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0,
+        transaction_count: txCount,
+        avg_transaction:   txCount > 0 ? Math.round(omzet / txCount) : 0,
+      },
+      byPaymentMethod: byPayment.map((g: any) => ({
+        method: g.payment_method,
+        total:  Number(g._sum.grand_total ?? 0),
+        count:  g._count,
+      })),
+      topProducts,
+      slowMoving: slowRaw.map((p: any) => ({
+        id:             Number(p.id),
+        name:           p.name,
+        stock:          p.stock,
+        purchase_price: Number(p.purchase_price),
+        category:       (p.product_categories as any)?.name ?? '-',
+        stock_value:    Number(p.purchase_price) * p.stock,
+      })),
+      dailySeries,
+    }
+  } catch (error: any) {
+    console.error("[laporan-analitik] Error in getAnalyticsData:", error)
+    throw new Error(`Gagal memproses Laporan Analitik Keuangan: ${error.message || error}`)
   }
 }
