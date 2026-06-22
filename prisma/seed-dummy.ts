@@ -18,7 +18,7 @@ async function main() {
   const pwd = await bcrypt.hash('654321', 10);
 
   // ── UNIT ──────────────────────────────────────────────────────
-  const unit = await prisma.unit.upsert({
+  const unit = await prisma.units.upsert({
     where: { code: 'U-001' }, update: {},
     create: { code: 'U-001', name: 'Kantor Pusat', type: 'induk', is_active: true, created_at: now, updated_at: now },
   });
@@ -32,7 +32,7 @@ async function main() {
     { username: 'akuntan01',  email: 'akuntan01@kop.id',   role: 'petugas_akuntan' },
     { username: 'pengawas01', email: 'pengawas01@kop.id',  role: 'pengawas' },
   ]) {
-    await prisma.user.upsert({
+    await prisma.users.upsert({
       where: { username: u.username }, update: { password: pwd },
       create: { username: u.username, email: u.email, password: pwd, role: u.role as any, is_active: true, created_at: now, updated_at: now },
     });
@@ -51,7 +51,7 @@ async function main() {
     // 15 members join in May 2025 to have 1-year history
     // 5 members join exactly in Jan 2026 as requested
     const joinDate = i < 15 ? getRandomDate(startOf2025, startOf2026) : getRandomDate(startOf2026, new Date('2026-01-31T23:59:59Z'));
-    const m = await prisma.member.upsert({
+    const m = await prisma.members.upsert({
       where: { member_code: `MBR-${String(idx).padStart(4,'0')}` }, update: { photo_path: `https://ui-avatars.com/api/?name=${encodeURIComponent(names[i])}&background=random` },
       create: {
         member_code: `MBR-${String(idx).padStart(4,'0')}`,
@@ -64,7 +64,7 @@ async function main() {
         unit_id: unit.id, created_at: joinDate, updated_at: joinDate,
       },
     });
-    await prisma.user.upsert({
+    await prisma.users.upsert({
       where: { member_id: m.id }, update: {},
       create: {
         username: `anggota${String(idx).padStart(2,'0')}`,
@@ -86,7 +86,7 @@ async function main() {
   ]);
 
   // Savings for each member
-  const adminUser = await prisma.user.findFirst({ where:{ username:'admin' } });
+  const adminUser = await prisma.users.findFirst({ where:{ username:'admin' } });
   for (const m of members) {
     for (const [st, amt] of [[stPokok,100000],[stWajib,50000],[stSuka,500000]] as const) {
       const isWajib = (st as any).code === 'SW';
