@@ -383,7 +383,7 @@ async function main() {
         invoice_date:subMonths(now,1), due_date:addDays(now,5),
         subtotal:2700000, tax_amount:270000, total_amount:2970000,
         amount_paid:0, amount_due:2970000, status:'open',
-        ap_details:{create:[{description:'Beras 5kg x60',qty:60,unit_price:45000,line_total:2700000}]},
+        accounts_payable_details:{create:[{description:'Beras 5kg x60',qty:60,unit_price:45000,line_total:2700000}]},
       },
     });
     await prisma.accounts_payable.create({
@@ -392,7 +392,7 @@ async function main() {
         invoice_date:subMonths(now,2), due_date:subMonths(now,1),
         subtotal:1500000, tax_amount:150000, total_amount:1650000,
         amount_paid:825000, amount_due:825000, status:'partial',
-        ap_details:{create:[{description:'Minyak Goreng x60',qty:60,unit_price:25000,line_total:1500000}]},
+        accounts_payable_details:{create:[{description:'Minyak Goreng x60',qty:60,unit_price:25000,line_total:1500000}]},
       },
     });
   }
@@ -406,7 +406,7 @@ async function main() {
         invoice_no:'AR-CUS-001', invoice_date:subMonths(now,1),
         due_date:addDays(now,10), subtotal:500000, tax_amount:0,
         total_amount:500000, amount_paid:0, amount_due:500000, status:'open',
-        ar_details:{create:[{description:'Bon Belanja',qty:1,unit_price:500000,line_total:500000}]},
+        accounts_receivable_details:{create:[{description:'Bon Belanja',qty:1,unit_price:500000,line_total:500000}]},
       },
     });
   }
