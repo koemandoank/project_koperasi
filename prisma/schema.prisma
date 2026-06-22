@@ -862,7 +862,7 @@ model products {
   product_costing             product_costing?
   product_categories          product_categories            @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: "products_category_id_foreign")
   units                       units                         @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "products_unit_id_foreign")
-  purchase_order_items        purchase_order_items[]
+  po_items purchase_order_items[]
   stock_balances              stock_balances[]
   stock_movements             stock_movements[]
   stock_opname_details        stock_opname_details[]
@@ -918,7 +918,7 @@ model purchase_orders {
   created_at           DateTime?              @db.Timestamp(0)
   updated_at           DateTime?              @db.Timestamp(0)
   good_receipts        good_receipts[]
-  purchase_order_items purchase_order_items[]
+  po_items purchase_order_items[]
   suppliers            suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "purchase_orders_supplier_foreign")
 
   @@index([po_date])

@@ -145,7 +145,7 @@ export async function getMyPinjaman() {
           status: s.status,
         })),
       })),
-      applications: member.loan_applications.map(a => ({
+      applications: member.loan_applications.map((a: any) => ({
         id: Number(a.id),
         application_no: a.application_no,
         product_name: a.loan_products.name,

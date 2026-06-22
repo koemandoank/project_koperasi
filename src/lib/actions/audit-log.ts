@@ -154,7 +154,7 @@ export async function getAuditLogs(
 
   try {
     // Base where: hanya user dengan role yang relevan
-    const where: Prisma.AuditLogWhereInput = {
+    const where: Prisma.audit_logsWhereInput = {
       created_at: { gte: startDate, lte: endDate },
       users: {
         role: filters.role && filters.role !== "all"

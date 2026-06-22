@@ -354,7 +354,7 @@ async function main() {
         status:'approved', subtotal:sub, tax_amount:sub*0.1,
         total_amount:sub*1.1, notes:'PO rutin bulanan',
         created_by:adminUser!.id,
-        purchase_order_items:{
+        po_items:{
           create: poItems.map(p=>({product_id:p.id,qty_ordered:20,unit_price:p.pp,line_total:p.pp*20})),
         },
       },
@@ -369,7 +369,7 @@ async function main() {
         po_date:now, expected_delivery:addDays(now,7),
         status:'draft', subtotal:sub2, tax_amount:sub2*0.1,
         total_amount:sub2*1.1, created_by:adminUser!.id,
-        purchase_order_items:{create:[{product_id:prods[3].id,qty_ordered:50,unit_price:prods[3].pp,line_total:prods[3].pp*50}]},
+        po_items:{create:[{product_id:prods[3].id,qty_ordered:50,unit_price:prods[3].pp,line_total:prods[3].pp*50}]},
       },
     });
   }
