@@ -127,6 +127,7 @@ export async function getMyPinjaman() {
           code: l.loan_applications.loan_products.code,
           interest_rate: Number(l.loan_applications.loan_products.interest_rate),
           max_tenor: l.loan_applications.loan_products.max_tenor,
+          description: l.loan_applications.loan_products.description || "",
         } : null,
         next_due: l.loan_schedules.find(s => s.status === "pending")?.due_date?.toISOString().split("T")[0] || null,
         loan_schedules: l.loan_schedules.map(s => ({
@@ -145,6 +146,7 @@ export async function getMyPinjaman() {
         id: Number(a.id),
         application_no: a.application_no,
         product_name: a.loan_products.name,
+        product_description: a.loan_products.description || "",
         amount_requested: Number(a.amount_requested),
         tenor_months: a.tenor_months,
         status: a.status,

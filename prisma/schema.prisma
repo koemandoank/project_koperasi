@@ -24,16 +24,16 @@ model User {
   updated_at                                             DateTime?                 @db.Timestamp(0)
   deleted_at                                             DateTime?                 @db.Timestamp(0)
   audit_logs                                             AuditLog[]
+  consignment_settlements                                consignment_settlements[]
   journal_entries                                        journal_entries[]
   loan_applications_loan_applications_approved_byTousers loan_applications[]       @relation("loan_applications_approved_byTousers")
   loan_applications_loan_applications_reviewed_byTousers loan_applications[]       @relation("loan_applications_reviewed_byTousers")
   loan_payments                                          loan_payments[]
+  order_returns                                          order_returns[]
   orders                                                 orders[]
   saving_transactions                                    saving_transactions[]
   stock_movements                                        stock_movements[]
   members                                                Member?                   @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "users_member_id_foreign")
-  order_returns                                          order_returns[]
-  consignment_settlements                                consignment_settlements[]
 
   @@index([role, is_active], map: "users_role_is_active_index")
   @@map("users")
@@ -69,8 +69,10 @@ model Member {
   created_at          DateTime?             @db.Timestamp(0)
   updated_at          DateTime?             @db.Timestamp(0)
   deleted_at          DateTime?             @db.Timestamp(0)
+  accounts_receivable accounts_receivable[]
   loan_applications   loan_applications[]
   loans               loans[]
+  loyalty_memberships loyalty_memberships[]
   units               Unit                  @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "members_unit_id_foreign")
   orders              orders[]
   ppob_transactions   ppob_transactions[]
@@ -78,8 +80,6 @@ model Member {
   savings             savings[]
   shu_distributions   shu_distributions[]
   users               User?
-  loyalty_memberships loyalty_memberships[]
-  accounts_receivable accounts_receivable[]
 
   @@index([status, unit_id], map: "members_status_unit_id_index")
   @@index([unit_id], map: "members_unit_id_foreign")
@@ -97,6 +97,7 @@ model Unit {
   is_active           Boolean               @default(true)
   created_at          DateTime?             @db.Timestamp(0)
   updated_at          DateTime?             @db.Timestamp(0)
+  cash_registers      cash_registers[]
   chart_of_accounts   chart_of_accounts[]
   journal_entries     journal_entries[]
   members             Member[]
@@ -105,7 +106,6 @@ model Unit {
   shu_periods         shu_periods[]
   units               Unit?                 @relation("unitsTounits", fields: [parent_id], references: [id], onUpdate: NoAction, map: "units_parent_id_foreign")
   other_units         Unit[]                @relation("unitsTounits")
-  cash_registers      cash_registers[]
   warehouse_locations warehouse_locations[]
 
   @@index([parent_id], map: "units_parent_id_foreign")
@@ -323,6 +323,7 @@ model loan_products {
   is_active          Boolean                       @default(true)
   created_at         DateTime?                     @db.Timestamp(0)
   updated_at         DateTime?                     @db.Timestamp(0)
+  description        String?                       @db.Text
   loan_applications  loan_applications[]
 }
 
@@ -521,24 +522,24 @@ model products {
   image_path           String?                       @db.VarChar(255)
   is_active            Boolean                       @default(true)
   is_online            Boolean                       @default(true)
-  restock_requested    Boolean                       @default(false)
   created_at           DateTime?                     @db.Timestamp(0)
   updated_at           DateTime?                     @db.Timestamp(0)
   deleted_at           DateTime?                     @db.Timestamp(0)
-  order_items          order_items[]
-  product_categories   product_categories            @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: "products_category_id_foreign")
-  units                Unit                          @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "products_unit_id_foreign")
-  stock_movements      stock_movements[]
-  stock_balances       stock_balances[]
-  stock_opname_details stock_opname_details[]
-  consignment_items    consignment_items[]
-  product_costing      product_costing?
-  price_tiers          price_tiers[]
-  product_analytics    product_analytics[]
-  purchase_order_items purchase_order_items[]
-  good_receipt_items   good_receipt_items[]
+  restock_requested    Boolean                       @default(false)
   ap_details           accounts_payable_details[]
   ar_details           accounts_receivable_details[]
+  consignment_items    consignment_items[]
+  good_receipt_items   good_receipt_items[]
+  order_items          order_items[]
+  price_tiers          price_tiers[]
+  product_analytics    product_analytics[]
+  product_costing      product_costing?
+  product_categories   product_categories            @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: "products_category_id_foreign")
+  units                Unit                          @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "products_unit_id_foreign")
+  purchase_order_items purchase_order_items[]
+  stock_balances       stock_balances[]
+  stock_movements      stock_movements[]
+  stock_opname_details stock_opname_details[]
   stock_reorder_points stock_reorder_points?
   stock_transfer_items stock_transfer_items[]
 
@@ -666,6 +667,678 @@ model stock_movements {
 
   @@index([created_by], map: "stock_movements_created_by_foreign")
   @@index([product_id, created_at], map: "stock_movements_product_id_created_at_index")
+}
+
+model app_settings {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  company_name String    @default("Koperasi Digital") @db.VarChar(150)
+  address      String?   @db.Text
+  phone        String?   @db.VarChar(50)
+  logo_url     String?   @default("/koperasi.png") @db.VarChar(255)
+  created_at   DateTime? @db.Timestamp(0)
+  updated_at   DateTime? @db.Timestamp(0)
+  shu_config   String?   @db.Text
+  loan_rules   String?   @db.Text
+
+  @@map("app_settings")
+}
+
+model monthly_closures {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  month         Int      @db.SmallInt
+  year          Int      @db.SmallInt
+  total_revenue Decimal  @default(0.00) @db.Decimal(15, 2)
+  total_expense Decimal  @default(0.00) @db.Decimal(15, 2)
+  net_income    Decimal  @default(0.00) @db.Decimal(15, 2)
+  closed_by     BigInt?  @db.UnsignedBigInt
+  closed_at     DateTime @default(now()) @db.Timestamp(0)
+  notes         String?  @db.Text
+
+  @@unique([month, year])
+  @@map("monthly_closures")
+}
+
+model cash_registers {
+  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  unit_id                BigInt                   @db.UnsignedBigInt
+  register_no            String                   @unique @db.VarChar(50)
+  register_name          String                   @db.VarChar(100)
+  location               String?                  @db.VarChar(100)
+  is_active              Boolean                  @default(true)
+  created_at             DateTime?                @db.Timestamp(0)
+  updated_at             DateTime?                @db.Timestamp(0)
+  cash_register_sessions cash_register_sessions[]
+  units                  Unit                     @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "cash_registers_unit_id_foreign")
+
+  @@index([unit_id])
+  @@map("cash_registers")
+}
+
+model cash_register_sessions {
+  id               BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
+  cash_register_id BigInt                        @db.UnsignedBigInt
+  session_date     DateTime                      @db.Date
+  opened_by        BigInt                        @db.UnsignedBigInt
+  closed_by        BigInt?                       @db.UnsignedBigInt
+  opening_balance  Decimal                       @db.Decimal(15, 2)
+  closing_balance  Decimal?                      @db.Decimal(15, 2)
+  expected_balance Decimal?                      @db.Decimal(15, 2)
+  difference       Decimal?                      @db.Decimal(15, 2)
+  status           cash_register_sessions_status @default(open)
+  notes            String?                       @db.Text
+  opened_at        DateTime                      @db.Timestamp(0)
+  closed_at        DateTime?                     @db.Timestamp(0)
+  created_at       DateTime?                     @db.Timestamp(0)
+  updated_at       DateTime?                     @db.Timestamp(0)
+  cash_registers   cash_registers                @relation(fields: [cash_register_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cash_register_sessions_cash_register_id_foreign")
+
+  @@unique([cash_register_id, session_date])
+  @@index([cash_register_id])
+  @@index([session_date, status])
+  @@map("cash_register_sessions")
+}
+
+model order_payments {
+  id             BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  order_id       BigInt                @db.UnsignedBigInt
+  payment_method order_payments_method
+  amount         Decimal               @db.Decimal(15, 2)
+  reference_no   String?               @db.VarChar(100)
+  payment_status order_payments_status @default(pending)
+  paid_at        DateTime?             @db.Timestamp(0)
+  created_at     DateTime?             @db.Timestamp(0)
+  updated_at     DateTime?             @db.Timestamp(0)
+  orders         orders                @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_payments_order_id_foreign")
+
+  @@index([order_id])
+  @@index([payment_method, paid_at])
+  @@map("order_payments")
+}
+
+model order_returns {
+  id            BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  order_id      BigInt                      @db.UnsignedBigInt
+  return_no     String                      @unique @db.VarChar(60)
+  reason        String                      @db.Text
+  return_status order_returns_status        @default(pending)
+  refund_amount Decimal                     @db.Decimal(15, 2)
+  refund_method order_returns_refund_method
+  processed_by  BigInt?                     @db.UnsignedBigInt
+  approved_at   DateTime?                   @db.Timestamp(0)
+  completed_at  DateTime?                   @db.Timestamp(0)
+  created_at    DateTime?                   @db.Timestamp(0)
+  updated_at    DateTime?                   @db.Timestamp(0)
+  orders        orders                      @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_returns_order_id_foreign")
+  users         User?                       @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "order_returns_processed_by_foreign")
+
+  @@index([order_id])
+  @@index([return_status])
+  @@index([processed_by], map: "order_returns_processed_by_foreign")
+  @@map("order_returns")
+}
+
+model warehouse_locations {
+  id                   BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  unit_id              BigInt                  @db.UnsignedBigInt
+  location_code        String                  @unique @db.VarChar(50)
+  location_name        String                  @db.VarChar(150)
+  location_type        warehouse_location_type @default(main)
+  address              String?                 @db.Text
+  is_active            Boolean                 @default(true)
+  created_at           DateTime?               @db.Timestamp(0)
+  updated_at           DateTime?               @db.Timestamp(0)
+  stock_balances       stock_balances[]
+  from_stock_transfers stock_transfer_orders[] @relation("from_location")
+  to_stock_transfers   stock_transfer_orders[] @relation("to_location")
+  units                Unit                    @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "warehouse_locations_unit_id_foreign")
+
+  @@index([unit_id])
+  @@map("warehouse_locations")
+}
+
+model stock_balances {
+  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id          BigInt              @db.UnsignedBigInt
+  location_id         BigInt              @db.UnsignedBigInt
+  qty_on_hand         Int                 @default(0)
+  qty_reserved        Int                 @default(0)
+  qty_available       Int                 @default(0)
+  updated_at          DateTime?           @db.Timestamp(0)
+  warehouse_locations warehouse_locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_location_id_foreign")
+  products            products            @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_product_id_foreign")
+
+  @@unique([product_id, location_id])
+  @@index([product_id])
+  @@index([location_id])
+  @@map("stock_balances")
+}
+
+model stock_reorder_points {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id     BigInt    @unique @db.UnsignedBigInt
+  reorder_qty    Int
+  reorder_point  Int
+  lead_time_days Int       @default(7)
+  is_active      Boolean   @default(true)
+  created_at     DateTime? @db.Timestamp(0)
+  updated_at     DateTime? @db.Timestamp(0)
+  products       products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_reorder_points_product_id_foreign")
+
+  @@map("stock_reorder_points")
+}
+
+model stock_transfer_orders {
+  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  transfer_no      String                 @unique @db.VarChar(60)
+  from_location_id BigInt                 @db.UnsignedBigInt
+  to_location_id   BigInt                 @db.UnsignedBigInt
+  status           stock_transfer_status  @default(pending)
+  requested_by     BigInt                 @db.UnsignedBigInt
+  approved_by      BigInt?                @db.UnsignedBigInt
+  transferred_by   BigInt?                @db.UnsignedBigInt
+  approved_at      DateTime?              @db.Timestamp(0)
+  transferred_at   DateTime?              @db.Timestamp(0)
+  notes            String?                @db.Text
+  created_at       DateTime?              @db.Timestamp(0)
+  updated_at       DateTime?              @db.Timestamp(0)
+  transfer_items   stock_transfer_items[]
+  from_location    warehouse_locations    @relation("from_location", fields: [from_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_from_location_foreign")
+  to_location      warehouse_locations    @relation("to_location", fields: [to_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_to_location_foreign")
+
+  @@index([from_location_id])
+  @@index([to_location_id])
+  @@index([status])
+  @@map("stock_transfer_orders")
+}
+
+model stock_transfer_items {
+  id                    BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  transfer_order_id     BigInt                @db.UnsignedBigInt
+  product_id            BigInt                @db.UnsignedBigInt
+  qty_requested         Int
+  qty_transferred       Int                   @default(0)
+  created_at            DateTime?             @db.Timestamp(0)
+  stock_transfer_orders stock_transfer_orders @relation(fields: [transfer_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_transfer_items_order_foreign")
+  products              products              @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_transfer_items_product_foreign")
+
+  @@index([transfer_order_id])
+  @@index([product_id])
+  @@map("stock_transfer_items")
+}
+
+model stock_opname {
+  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  opname_no      String                 @unique @db.VarChar(60)
+  location_id    BigInt?                @db.UnsignedBigInt
+  opname_date    DateTime               @db.Date
+  status         stock_opname_status    @default(draft)
+  notes          String?                @db.Text
+  conducted_by   BigInt                 @db.UnsignedBigInt
+  approved_by    BigInt?                @db.UnsignedBigInt
+  approved_at    DateTime?              @db.Timestamp(0)
+  created_at     DateTime?              @db.Timestamp(0)
+  updated_at     DateTime?              @db.Timestamp(0)
+  opname_details stock_opname_details[]
+
+  @@index([opname_date, status])
+  @@map("stock_opname")
+}
+
+model stock_opname_details {
+  id           BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  opname_id    BigInt       @db.UnsignedBigInt
+  product_id   BigInt       @db.UnsignedBigInt
+  qty_system   Int
+  qty_physical Int
+  variance     Int
+  notes        String?      @db.Text
+  created_at   DateTime?    @db.Timestamp(0)
+  stock_opname stock_opname @relation(fields: [opname_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_opname_details_opname_foreign")
+  products     products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_opname_details_product_foreign")
+
+  @@index([opname_id])
+  @@index([product_id])
+  @@map("stock_opname_details")
+}
+
+model product_costing {
+  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id     BigInt                 @unique @db.UnsignedBigInt
+  costing_method product_costing_method @default(average_cost)
+  current_cost   Decimal                @db.Decimal(15, 2)
+  created_at     DateTime?              @db.Timestamp(0)
+  updated_at     DateTime?              @db.Timestamp(0)
+  products       products               @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_costing_product_foreign")
+
+  @@map("product_costing")
+}
+
+model consignment_items {
+  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id       BigInt                 @db.UnsignedBigInt
+  supplier_id      BigInt                 @db.UnsignedBigInt
+  consignment_date DateTime               @db.Date
+  qty_received     Int
+  qty_sold         Int                    @default(0)
+  qty_returned     Int                    @default(0)
+  status           consignment_status     @default(active)
+  created_at       DateTime?              @db.Timestamp(0)
+  updated_at       DateTime?              @db.Timestamp(0)
+  return_reason    String?                @db.Text
+  return_date      DateTime?              @db.DateTime(0)
+  products         products               @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "consignment_items_product_foreign")
+  suppliers        suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "consignment_items_supplier_foreign")
+  payables         consignment_payables[]
+
+  @@index([product_id, supplier_id])
+  @@index([status])
+  @@index([supplier_id], map: "consignment_items_supplier_foreign")
+  @@map("consignment_items")
+}
+
+model consignment_payables {
+  id                BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  consignment_id    BigInt                     @db.UnsignedBigInt
+  supplier_id       BigInt                     @db.UnsignedBigInt
+  qty_sold          Int
+  unit_price        Decimal                    @db.Decimal(15, 2)
+  total_amount      Decimal                    @db.Decimal(15, 2)
+  status            consignment_payable_status @default(pending)
+  created_at        DateTime?                  @db.Timestamp(0)
+  updated_at        DateTime?                  @db.Timestamp(0)
+  consignment_items consignment_items          @relation(fields: [consignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_payables_consignment_foreign")
+  suppliers         suppliers                  @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "consignment_payables_supplier_foreign")
+  settlements       consignment_settlements[]
+
+  @@index([supplier_id, status])
+  @@index([consignment_id], map: "consignment_payables_consignment_foreign")
+  @@map("consignment_payables")
+}
+
+model consignment_settlements {
+  id                   BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  payable_id           BigInt               @db.UnsignedBigInt
+  settlement_no        String               @unique @db.VarChar(60)
+  settlement_date      DateTime             @db.Date
+  amount_paid          Decimal              @db.Decimal(15, 2)
+  payment_method       payment_method_type
+  reference_no         String?              @db.VarChar(100)
+  processed_by         BigInt               @db.UnsignedBigInt
+  created_at           DateTime?            @db.Timestamp(0)
+  consignment_payables consignment_payables @relation(fields: [payable_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_settlements_payable_foreign")
+  users                User                 @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "consignment_settlements_user_foreign")
+
+  @@index([payable_id])
+  @@index([processed_by], map: "consignment_settlements_user_foreign")
+  @@map("consignment_settlements")
+}
+
+model accounts_payable {
+  id           BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  supplier_id  BigInt                     @db.UnsignedBigInt
+  invoice_no   String                     @unique @db.VarChar(60)
+  invoice_date DateTime                   @db.Date
+  due_date     DateTime                   @db.Date
+  subtotal     Decimal                    @db.Decimal(15, 2)
+  tax_amount   Decimal                    @default(0.00) @db.Decimal(15, 2)
+  total_amount Decimal                    @db.Decimal(15, 2)
+  amount_paid  Decimal                    @default(0.00) @db.Decimal(15, 2)
+  amount_due   Decimal                    @db.Decimal(15, 2)
+  status       ap_ar_status               @default(open)
+  notes        String?                    @db.Text
+  created_at   DateTime?                  @db.Timestamp(0)
+  updated_at   DateTime?                  @db.Timestamp(0)
+  suppliers    suppliers                  @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "accounts_payable_supplier_foreign")
+  ap_details   accounts_payable_details[]
+
+  @@index([supplier_id, status])
+  @@index([due_date, status])
+  @@map("accounts_payable")
+}
+
+model accounts_payable_details {
+  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  ap_id            BigInt           @db.UnsignedBigInt
+  product_id       BigInt?          @db.UnsignedBigInt
+  description      String           @db.VarChar(255)
+  qty              Int              @default(1)
+  unit_price       Decimal          @db.Decimal(15, 2)
+  line_total       Decimal          @db.Decimal(15, 2)
+  created_at       DateTime?        @db.Timestamp(0)
+  accounts_payable accounts_payable @relation(fields: [ap_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ap_details_ap_foreign")
+  products         products?        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ap_details_product_foreign")
+
+  @@index([ap_id])
+  @@index([product_id], map: "ap_details_product_foreign")
+  @@map("accounts_payable_details")
+}
+
+model accounts_receivable {
+  id            BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
+  member_id     BigInt?                       @db.UnsignedBigInt
+  customer_name String                        @db.VarChar(150)
+  invoice_no    String                        @unique @db.VarChar(60)
+  invoice_date  DateTime                      @db.Date
+  due_date      DateTime                      @db.Date
+  subtotal      Decimal                       @db.Decimal(15, 2)
+  tax_amount    Decimal                       @default(0.00) @db.Decimal(15, 2)
+  total_amount  Decimal                       @db.Decimal(15, 2)
+  amount_paid   Decimal                       @default(0.00) @db.Decimal(15, 2)
+  amount_due    Decimal                       @db.Decimal(15, 2)
+  status        ap_ar_status                  @default(open)
+  credit_limit  Decimal?                      @db.Decimal(15, 2)
+  notes         String?                       @db.Text
+  created_at    DateTime?                     @db.Timestamp(0)
+  updated_at    DateTime?                     @db.Timestamp(0)
+  members       Member?                       @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "accounts_receivable_member_foreign")
+  ar_details    accounts_receivable_details[]
+
+  @@index([member_id, status])
+  @@index([due_date, status])
+  @@map("accounts_receivable")
+}
+
+model accounts_receivable_details {
+  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  ar_id               BigInt              @db.UnsignedBigInt
+  product_id          BigInt?             @db.UnsignedBigInt
+  description         String              @db.VarChar(255)
+  qty                 Int                 @default(1)
+  unit_price          Decimal             @db.Decimal(15, 2)
+  line_total          Decimal             @db.Decimal(15, 2)
+  created_at          DateTime?           @db.Timestamp(0)
+  accounts_receivable accounts_receivable @relation(fields: [ar_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ar_details_ar_foreign")
+  products            products?           @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ar_details_product_foreign")
+
+  @@index([ar_id])
+  @@index([product_id], map: "ar_details_product_foreign")
+  @@map("accounts_receivable_details")
+}
+
+model tax_calculations {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  order_id       BigInt?   @db.UnsignedBigInt
+  invoice_id     String?   @db.VarChar(60)
+  tax_type       tax_type
+  tax_percentage Decimal   @db.Decimal(5, 2)
+  taxable_amount Decimal   @db.Decimal(15, 2)
+  tax_amount     Decimal   @db.Decimal(15, 2)
+  created_at     DateTime? @db.Timestamp(0)
+
+  @@index([order_id])
+  @@map("tax_calculations")
+}
+
+model suppliers {
+  id                   BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  supplier_code        String                 @unique @db.VarChar(50)
+  supplier_name        String                 @db.VarChar(200)
+  contact_person       String?                @db.VarChar(150)
+  phone                String?                @db.VarChar(20)
+  email                String?                @db.VarChar(100)
+  address              String?                @db.Text
+  city                 String?                @db.VarChar(50)
+  payment_terms        Int?                   @db.SmallInt
+  avg_delivery_days    Int?                   @db.SmallInt
+  is_active            Boolean                @default(true)
+  notes                String?                @db.Text
+  created_at           DateTime?              @db.Timestamp(0)
+  updated_at           DateTime?              @db.Timestamp(0)
+  ap                   accounts_payable[]
+  consignments         consignment_items[]
+  consignment_payables consignment_payables[]
+  good_receipts        good_receipts[]
+  purchase_orders      purchase_orders[]
+
+  @@map("suppliers")
+}
+
+model purchase_orders {
+  id                BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  supplier_id       BigInt                 @db.UnsignedBigInt
+  po_no             String                 @unique @db.VarChar(60)
+  po_date           DateTime               @db.Date
+  expected_delivery DateTime               @db.Date
+  status            po_status              @default(draft)
+  subtotal          Decimal                @db.Decimal(15, 2)
+  tax_amount        Decimal                @default(0.00) @db.Decimal(15, 2)
+  total_amount      Decimal                @db.Decimal(15, 2)
+  notes             String?                @db.Text
+  created_by        BigInt                 @db.UnsignedBigInt
+  approved_by       BigInt?                @db.UnsignedBigInt
+  approved_at       DateTime?              @db.Timestamp(0)
+  created_at        DateTime?              @db.Timestamp(0)
+  updated_at        DateTime?              @db.Timestamp(0)
+  good_receipts     good_receipts[]
+  po_items          purchase_order_items[]
+  suppliers         suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "purchase_orders_supplier_foreign")
+
+  @@index([supplier_id, status])
+  @@index([po_date])
+  @@map("purchase_orders")
+}
+
+model purchase_order_items {
+  id              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  po_id           BigInt          @db.UnsignedBigInt
+  product_id      BigInt          @db.UnsignedBigInt
+  qty_ordered     Int
+  qty_received    Int             @default(0)
+  unit_price      Decimal         @db.Decimal(15, 2)
+  line_total      Decimal         @db.Decimal(15, 2)
+  created_at      DateTime?       @db.Timestamp(0)
+  purchase_orders purchase_orders @relation(fields: [po_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "po_items_po_foreign")
+  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "po_items_product_foreign")
+
+  @@index([po_id])
+  @@index([product_id])
+  @@map("purchase_order_items")
+}
+
+model good_receipts {
+  id              BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  po_id           BigInt               @db.UnsignedBigInt
+  supplier_id     BigInt               @db.UnsignedBigInt
+  gr_no           String               @unique @db.VarChar(60)
+  gr_date         DateTime             @db.Date
+  status          gr_status            @default(received)
+  received_by     BigInt               @db.UnsignedBigInt
+  notes           String?              @db.Text
+  created_at      DateTime?            @db.Timestamp(0)
+  updated_at      DateTime?            @db.Timestamp(0)
+  gr_items        good_receipt_items[]
+  purchase_orders purchase_orders      @relation(fields: [po_id], references: [id], onUpdate: NoAction, map: "good_receipts_po_foreign")
+  suppliers       suppliers            @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "good_receipts_supplier_foreign")
+
+  @@index([po_id])
+  @@index([gr_date])
+  @@index([supplier_id], map: "good_receipts_supplier_foreign")
+  @@map("good_receipts")
+}
+
+model good_receipt_items {
+  id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  gr_id         BigInt        @db.UnsignedBigInt
+  product_id    BigInt        @db.UnsignedBigInt
+  qty_received  Int
+  qty_accepted  Int           @default(0)
+  qty_rejected  Int           @default(0)
+  notes         String?       @db.Text
+  created_at    DateTime?     @db.Timestamp(0)
+  good_receipts good_receipts @relation(fields: [gr_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "gr_items_gr_foreign")
+  products      products      @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "gr_items_product_foreign")
+
+  @@index([gr_id])
+  @@index([product_id])
+  @@map("good_receipt_items")
+}
+
+model approval_workflows {
+  id                BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  workflow_code     String               @unique @db.VarChar(50)
+  workflow_name     String               @db.VarChar(150)
+  module_type       approval_module_type
+  action_type       approval_action_type
+  requires_approval Boolean              @default(true)
+  approval_levels   Int                  @default(1)
+  is_active         Boolean              @default(true)
+  created_at        DateTime?            @db.Timestamp(0)
+  updated_at        DateTime?            @db.Timestamp(0)
+  approval_requests approval_requests[]
+
+  @@map("approval_workflows")
+}
+
+model approval_requests {
+  id                 BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  workflow_id        BigInt             @db.UnsignedBigInt
+  reference_type     String             @db.VarChar(100)
+  reference_id       BigInt             @db.UnsignedBigInt
+  requested_by       BigInt             @db.UnsignedBigInt
+  current_level      Int                @default(1)
+  status             approval_status    @default(pending)
+  rejection_reason   String?            @db.Text
+  created_at         DateTime?          @db.Timestamp(0)
+  updated_at         DateTime?          @db.Timestamp(0)
+  approved_at        DateTime?          @db.Timestamp(0)
+  approved_by        BigInt?            @db.UnsignedBigInt
+  approval_workflows approval_workflows @relation(fields: [workflow_id], references: [id], onUpdate: NoAction, map: "approval_requests_workflow_foreign")
+
+  @@index([reference_type, reference_id])
+  @@index([status, current_level])
+  @@index([workflow_id], map: "approval_requests_workflow_foreign")
+  @@map("approval_requests")
+}
+
+model loyalty_programs {
+  id                BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  program_code      String                @unique @db.VarChar(50)
+  program_name      String                @db.VarChar(150)
+  description       String?               @db.Text
+  points_per_rupiah Decimal               @db.Decimal(10, 6)
+  minimum_purchase  Decimal               @db.Decimal(15, 2)
+  is_active         Boolean               @default(true)
+  created_at        DateTime?             @db.Timestamp(0)
+  updated_at        DateTime?             @db.Timestamp(0)
+  memberships       loyalty_memberships[]
+  redemptions       loyalty_redemptions[]
+
+  @@map("loyalty_programs")
+}
+
+model loyalty_memberships {
+  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  member_id        BigInt           @db.UnsignedBigInt
+  program_id       BigInt           @db.UnsignedBigInt
+  membership_level membership_level @default(bronze)
+  total_points     Decimal          @default(0.00) @db.Decimal(15, 2)
+  points_used      Decimal          @default(0.00) @db.Decimal(15, 2)
+  points_available Decimal          @default(0.00) @db.Decimal(15, 2)
+  member_since     DateTime         @db.Date
+  last_activity    DateTime?        @db.Timestamp(0)
+  created_at       DateTime?        @db.Timestamp(0)
+  updated_at       DateTime?        @db.Timestamp(0)
+  members          Member           @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "loyalty_memberships_member_foreign")
+  loyalty_programs loyalty_programs @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_memberships_program_foreign")
+
+  @@unique([member_id, program_id])
+  @@index([member_id, membership_level])
+  @@index([program_id], map: "loyalty_memberships_program_foreign")
+  @@map("loyalty_memberships")
+}
+
+model loyalty_redemptions {
+  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  membership_id    BigInt           @db.UnsignedBigInt
+  program_id       BigInt           @db.UnsignedBigInt
+  order_id         BigInt?          @db.UnsignedBigInt
+  points_redeemed  Decimal          @db.Decimal(15, 2)
+  discount_amount  Decimal          @db.Decimal(15, 2)
+  redemption_date  DateTime         @db.Timestamp(0)
+  created_at       DateTime?        @db.Timestamp(0)
+  loyalty_programs loyalty_programs @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_redemptions_program_foreign")
+
+  @@index([membership_id, redemption_date])
+  @@index([program_id], map: "loyalty_redemptions_program_foreign")
+  @@map("loyalty_redemptions")
+}
+
+model price_tiers {
+  id           BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id   BigInt          @db.UnsignedBigInt
+  tier_name    price_tier_name
+  min_qty      Int             @default(1)
+  price        Decimal         @db.Decimal(15, 2)
+  discount_pct Decimal?        @db.Decimal(5, 2)
+  is_active    Boolean         @default(true)
+  created_at   DateTime?       @db.Timestamp(0)
+  updated_at   DateTime?       @db.Timestamp(0)
+  products     products        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "price_tiers_product_foreign")
+
+  @@unique([product_id, tier_name, min_qty])
+  @@index([product_id, tier_name])
+  @@map("price_tiers")
+}
+
+model customer_segments {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  segment_code     String    @unique @db.VarChar(50)
+  segment_name     String    @db.VarChar(150)
+  description      String?   @db.Text
+  min_purchase_amt Decimal?  @db.Decimal(15, 2)
+  max_purchase_amt Decimal?  @db.Decimal(15, 2)
+  is_active        Boolean   @default(true)
+  created_at       DateTime? @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+
+  @@map("customer_segments")
+}
+
+model sales_analytics {
+  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  date               DateTime  @db.Date
+  unit_id            BigInt    @db.UnsignedBigInt
+  total_sales        Decimal   @db.Decimal(15, 2)
+  total_transactions Int
+  avg_transaction    Decimal   @db.Decimal(15, 2)
+  cash_sales         Decimal   @db.Decimal(15, 2)
+  credit_sales       Decimal   @db.Decimal(15, 2)
+  gross_margin       Decimal   @db.Decimal(15, 2)
+  created_at         DateTime? @db.Timestamp(0)
+
+  @@unique([date, unit_id])
+  @@index([date])
+  @@map("sales_analytics")
+}
+
+model product_analytics {
+  id              BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  product_id      BigInt                  @db.UnsignedBigInt
+  period_date     DateTime                @db.Date
+  qty_sold        Int
+  revenue         Decimal                 @db.Decimal(15, 2)
+  turn_ratio      Decimal                 @db.Decimal(10, 2)
+  last_sold_date  DateTime?               @db.Date
+  days_in_stock   Int?
+  movement_status product_movement_status @default(normal)
+  created_at      DateTime?               @db.Timestamp(0)
+  products        products                @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_analytics_product_foreign")
+
+  @@unique([product_id, period_date])
+  @@index([product_id, movement_status])
+  @@map("product_analytics")
+}
+
+model promotions {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  image_url   String    @db.VarChar(255)
+  link_url    String?   @db.VarChar(255)
+  is_active   Boolean   @default(true)
+  sort_order  Int       @default(0)
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
 }
 
 enum stock_movements_type {
@@ -866,692 +1539,6 @@ enum loans_status {
   restructured
   written_off
 }
-
-model app_settings {
-  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  company_name String    @default("Koperasi Digital") @db.VarChar(150)
-  address      String?   @db.Text
-  phone        String?   @db.VarChar(50)
-  logo_url     String?   @default("/koperasi.png") @db.VarChar(255)
-  shu_config   String?   @db.Text
-  loan_rules   String?   @db.Text
-  created_at   DateTime? @db.Timestamp(0)
-  updated_at   DateTime? @db.Timestamp(0)
-
-  @@map("app_settings")
-}
-
-model monthly_closures {
-  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  month         Int      @db.SmallInt
-  year          Int      @db.SmallInt
-  total_revenue Decimal  @default(0.00) @db.Decimal(15, 2)
-  total_expense Decimal  @default(0.00) @db.Decimal(15, 2)
-  net_income    Decimal  @default(0.00) @db.Decimal(15, 2)
-  closed_by     BigInt?  @db.UnsignedBigInt
-  closed_at     DateTime @default(now()) @db.Timestamp(0)
-  notes         String?  @db.Text
-
-  @@unique([month, year])
-  @@map("monthly_closures")
-}
-
-// ============================================
-// MODUL 1: CASH REGISTER & POS TRANSACTIONS
-// ============================================
-
-model cash_registers {
-  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id                BigInt                   @db.UnsignedBigInt
-  register_no            String                   @unique @db.VarChar(50)
-  register_name          String                   @db.VarChar(100)
-  location               String?                  @db.VarChar(100)
-  is_active              Boolean                  @default(true)
-  created_at             DateTime?                @db.Timestamp(0)
-  updated_at             DateTime?                @db.Timestamp(0)
-  units                  Unit                     @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "cash_registers_unit_id_foreign")
-  cash_register_sessions cash_register_sessions[]
-
-  @@index([unit_id])
-  @@map("cash_registers")
-}
-
-model cash_register_sessions {
-  id               BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
-  cash_register_id BigInt                        @db.UnsignedBigInt
-  session_date     DateTime                      @db.Date
-  opened_by        BigInt                        @db.UnsignedBigInt
-  closed_by        BigInt?                       @db.UnsignedBigInt
-  opening_balance  Decimal                       @db.Decimal(15, 2)
-  closing_balance  Decimal?                      @db.Decimal(15, 2)
-  expected_balance Decimal?                      @db.Decimal(15, 2)
-  difference       Decimal?                      @db.Decimal(15, 2)
-  status           cash_register_sessions_status @default(open)
-  notes            String?                       @db.Text
-  opened_at        DateTime                      @db.Timestamp(0)
-  closed_at        DateTime?                     @db.Timestamp(0)
-  created_at       DateTime?                     @db.Timestamp(0)
-  updated_at       DateTime?                     @db.Timestamp(0)
-  cash_registers   cash_registers                @relation(fields: [cash_register_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cash_register_sessions_cash_register_id_foreign")
-
-  @@unique([cash_register_id, session_date])
-  @@index([cash_register_id])
-  @@index([session_date, status])
-  @@map("cash_register_sessions")
-}
-
-model order_payments {
-  id             BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id       BigInt                @db.UnsignedBigInt
-  payment_method order_payments_method
-  amount         Decimal               @db.Decimal(15, 2)
-  reference_no   String?               @db.VarChar(100)
-  payment_status order_payments_status @default(pending)
-  paid_at        DateTime?             @db.Timestamp(0)
-  created_at     DateTime?             @db.Timestamp(0)
-  updated_at     DateTime?             @db.Timestamp(0)
-  orders         orders                @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_payments_order_id_foreign")
-
-  @@index([order_id])
-  @@index([payment_method, paid_at])
-  @@map("order_payments")
-}
-
-model order_returns {
-  id            BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id      BigInt                      @db.UnsignedBigInt
-  return_no     String                      @unique @db.VarChar(60)
-  reason        String                      @db.Text
-  return_status order_returns_status        @default(pending)
-  refund_amount Decimal                     @db.Decimal(15, 2)
-  refund_method order_returns_refund_method
-  processed_by  BigInt?                     @db.UnsignedBigInt
-  approved_at   DateTime?                   @db.Timestamp(0)
-  completed_at  DateTime?                   @db.Timestamp(0)
-  created_at    DateTime?                   @db.Timestamp(0)
-  updated_at    DateTime?                   @db.Timestamp(0)
-  orders        orders                      @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_returns_order_id_foreign")
-  users         User?                       @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "order_returns_processed_by_foreign")
-
-  @@index([order_id])
-  @@index([return_status])
-  @@map("order_returns")
-}
-
-// ============================================
-// MODUL 2: INVENTORY & STOCK MANAGEMENT (ADVANCED)
-// ============================================
-
-model warehouse_locations {
-  id                   BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  unit_id              BigInt                  @db.UnsignedBigInt
-  location_code        String                  @unique @db.VarChar(50)
-  location_name        String                  @db.VarChar(150)
-  location_type        warehouse_location_type @default(main)
-  address              String?                 @db.Text
-  is_active            Boolean                 @default(true)
-  created_at           DateTime?               @db.Timestamp(0)
-  updated_at           DateTime?               @db.Timestamp(0)
-  units                Unit                    @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "warehouse_locations_unit_id_foreign")
-  stock_balances       stock_balances[]
-  from_stock_transfers stock_transfer_orders[] @relation("from_location")
-  to_stock_transfers   stock_transfer_orders[] @relation("to_location")
-
-  @@index([unit_id])
-  @@map("warehouse_locations")
-}
-
-model stock_balances {
-  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id          BigInt              @db.UnsignedBigInt
-  location_id         BigInt              @db.UnsignedBigInt
-  qty_on_hand         Int                 @default(0)
-  qty_reserved        Int                 @default(0)
-  qty_available       Int                 @default(0)
-  updated_at          DateTime?           @db.Timestamp(0)
-  products            products            @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_product_id_foreign")
-  warehouse_locations warehouse_locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_location_id_foreign")
-
-  @@unique([product_id, location_id])
-  @@index([product_id])
-  @@index([location_id])
-  @@map("stock_balances")
-}
-
-model stock_reorder_points {
-  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id     BigInt    @unique @db.UnsignedBigInt
-  reorder_qty    Int
-  reorder_point  Int
-  lead_time_days Int       @default(7)
-  is_active      Boolean   @default(true)
-  created_at     DateTime? @db.Timestamp(0)
-  updated_at     DateTime? @db.Timestamp(0)
-  products       products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_reorder_points_product_id_foreign")
-
-  @@map("stock_reorder_points")
-}
-
-model stock_transfer_orders {
-  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  transfer_no      String                 @unique @db.VarChar(60)
-  from_location_id BigInt                 @db.UnsignedBigInt
-  to_location_id   BigInt                 @db.UnsignedBigInt
-  status           stock_transfer_status  @default(pending)
-  requested_by     BigInt                 @db.UnsignedBigInt
-  approved_by      BigInt?                @db.UnsignedBigInt
-  transferred_by   BigInt?                @db.UnsignedBigInt
-  approved_at      DateTime?              @db.Timestamp(0)
-  transferred_at   DateTime?              @db.Timestamp(0)
-  notes            String?                @db.Text
-  created_at       DateTime?              @db.Timestamp(0)
-  updated_at       DateTime?              @db.Timestamp(0)
-  from_location    warehouse_locations    @relation("from_location", fields: [from_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_from_location_foreign")
-  to_location      warehouse_locations    @relation("to_location", fields: [to_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_to_location_foreign")
-  transfer_items   stock_transfer_items[]
-
-  @@index([from_location_id])
-  @@index([to_location_id])
-  @@index([status])
-  @@map("stock_transfer_orders")
-}
-
-model stock_transfer_items {
-  id                    BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  transfer_order_id     BigInt                @db.UnsignedBigInt
-  product_id            BigInt                @db.UnsignedBigInt
-  qty_requested         Int
-  qty_transferred       Int                   @default(0)
-  created_at            DateTime?             @db.Timestamp(0)
-  stock_transfer_orders stock_transfer_orders @relation(fields: [transfer_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_transfer_items_order_foreign")
-  products              products              @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_transfer_items_product_foreign")
-
-  @@index([transfer_order_id])
-  @@index([product_id])
-  @@map("stock_transfer_items")
-}
-
-model stock_opname {
-  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  opname_no      String                 @unique @db.VarChar(60)
-  location_id    BigInt?                @db.UnsignedBigInt
-  opname_date    DateTime               @db.Date
-  status         stock_opname_status    @default(draft)
-  notes          String?                @db.Text
-  conducted_by   BigInt                 @db.UnsignedBigInt
-  approved_by    BigInt?                @db.UnsignedBigInt
-  approved_at    DateTime?              @db.Timestamp(0)
-  created_at     DateTime?              @db.Timestamp(0)
-  updated_at     DateTime?              @db.Timestamp(0)
-  opname_details stock_opname_details[]
-
-  @@index([opname_date, status])
-  @@map("stock_opname")
-}
-
-model stock_opname_details {
-  id           BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
-  opname_id    BigInt       @db.UnsignedBigInt
-  product_id   BigInt       @db.UnsignedBigInt
-  qty_system   Int
-  qty_physical Int
-  variance     Int
-  notes        String?      @db.Text
-  created_at   DateTime?    @db.Timestamp(0)
-  stock_opname stock_opname @relation(fields: [opname_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_opname_details_opname_foreign")
-  products     products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_opname_details_product_foreign")
-
-  @@index([opname_id])
-  @@index([product_id])
-  @@map("stock_opname_details")
-}
-
-model product_costing {
-  id             BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id     BigInt                 @unique @db.UnsignedBigInt
-  costing_method product_costing_method @default(average_cost)
-  current_cost   Decimal                @db.Decimal(15, 2)
-  created_at     DateTime?              @db.Timestamp(0)
-  updated_at     DateTime?              @db.Timestamp(0)
-  products       products               @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_costing_product_foreign")
-
-  @@map("product_costing")
-}
-
-// ============================================
-// MODUL 3: KONSINYASI (CONSIGNMENT/TITIP JUAL)
-// ============================================
-
-model consignment_items {
-  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id       BigInt                 @db.UnsignedBigInt
-  supplier_id      BigInt                 @db.UnsignedBigInt
-  consignment_date DateTime               @db.Date
-  qty_received     Int
-  qty_sold         Int                    @default(0)
-  qty_returned     Int                    @default(0)
-  return_reason    String?                @db.VarChar(500)
-  return_date      DateTime?              @db.Timestamp(0)
-  status           consignment_status     @default(active)
-  created_at       DateTime?              @db.Timestamp(0)
-  updated_at       DateTime?              @db.Timestamp(0)
-  products         products               @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "consignment_items_product_foreign")
-  suppliers        suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "consignment_items_supplier_foreign")
-  payables         consignment_payables[]
-
-  @@index([product_id, supplier_id])
-  @@index([status])
-  @@map("consignment_items")
-}
-
-model consignment_payables {
-  id                BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
-  consignment_id    BigInt                     @db.UnsignedBigInt
-  supplier_id       BigInt                     @db.UnsignedBigInt
-  qty_sold          Int
-  unit_price        Decimal                    @db.Decimal(15, 2)
-  total_amount      Decimal                    @db.Decimal(15, 2)
-  status            consignment_payable_status @default(pending)
-  created_at        DateTime?                  @db.Timestamp(0)
-  updated_at        DateTime?                  @db.Timestamp(0)
-  consignment_items consignment_items          @relation(fields: [consignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_payables_consignment_foreign")
-  suppliers         suppliers                  @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "consignment_payables_supplier_foreign")
-  settlements       consignment_settlements[]
-
-  @@index([supplier_id, status])
-  @@map("consignment_payables")
-}
-
-model consignment_settlements {
-  id                   BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  payable_id           BigInt               @db.UnsignedBigInt
-  settlement_no        String               @unique @db.VarChar(60)
-  settlement_date      DateTime             @db.Date
-  amount_paid          Decimal              @db.Decimal(15, 2)
-  payment_method       payment_method_type
-  reference_no         String?              @db.VarChar(100)
-  processed_by         BigInt               @db.UnsignedBigInt
-  created_at           DateTime?            @db.Timestamp(0)
-  consignment_payables consignment_payables @relation(fields: [payable_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_settlements_payable_foreign")
-  users                User                 @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "consignment_settlements_user_foreign")
-
-  @@index([payable_id])
-  @@map("consignment_settlements")
-}
-
-// ============================================
-// MODUL 4: KEUANGAN (ACCOUNTS PAYABLE & RECEIVABLE)
-// ============================================
-
-model accounts_payable {
-  id           BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
-  supplier_id  BigInt                     @db.UnsignedBigInt
-  invoice_no   String                     @unique @db.VarChar(60)
-  invoice_date DateTime                   @db.Date
-  due_date     DateTime                   @db.Date
-  subtotal     Decimal                    @db.Decimal(15, 2)
-  tax_amount   Decimal                    @default(0.00) @db.Decimal(15, 2)
-  total_amount Decimal                    @db.Decimal(15, 2)
-  amount_paid  Decimal                    @default(0.00) @db.Decimal(15, 2)
-  amount_due   Decimal                    @db.Decimal(15, 2)
-  status       ap_ar_status               @default(open)
-  notes        String?                    @db.Text
-  created_at   DateTime?                  @db.Timestamp(0)
-  updated_at   DateTime?                  @db.Timestamp(0)
-  suppliers    suppliers                  @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "accounts_payable_supplier_foreign")
-  ap_details   accounts_payable_details[]
-
-  @@index([supplier_id, status])
-  @@index([due_date, status])
-  @@map("accounts_payable")
-}
-
-model accounts_payable_details {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  ap_id            BigInt           @db.UnsignedBigInt
-  product_id       BigInt?          @db.UnsignedBigInt
-  description      String           @db.VarChar(255)
-  qty              Int              @default(1)
-  unit_price       Decimal          @db.Decimal(15, 2)
-  line_total       Decimal          @db.Decimal(15, 2)
-  created_at       DateTime?        @db.Timestamp(0)
-  accounts_payable accounts_payable @relation(fields: [ap_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ap_details_ap_foreign")
-  products         products?        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ap_details_product_foreign")
-
-  @@index([ap_id])
-  @@map("accounts_payable_details")
-}
-
-model accounts_receivable {
-  id            BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id     BigInt?                       @db.UnsignedBigInt
-  customer_name String                        @db.VarChar(150)
-  invoice_no    String                        @unique @db.VarChar(60)
-  invoice_date  DateTime                      @db.Date
-  due_date      DateTime                      @db.Date
-  subtotal      Decimal                       @db.Decimal(15, 2)
-  tax_amount    Decimal                       @default(0.00) @db.Decimal(15, 2)
-  total_amount  Decimal                       @db.Decimal(15, 2)
-  amount_paid   Decimal                       @default(0.00) @db.Decimal(15, 2)
-  amount_due    Decimal                       @db.Decimal(15, 2)
-  status        ap_ar_status                  @default(open)
-  credit_limit  Decimal?                      @db.Decimal(15, 2)
-  notes         String?                       @db.Text
-  created_at    DateTime?                     @db.Timestamp(0)
-  updated_at    DateTime?                     @db.Timestamp(0)
-  members       Member?                       @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "accounts_receivable_member_foreign")
-  ar_details    accounts_receivable_details[]
-
-  @@index([member_id, status])
-  @@index([due_date, status])
-  @@map("accounts_receivable")
-}
-
-model accounts_receivable_details {
-  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  ar_id               BigInt              @db.UnsignedBigInt
-  product_id          BigInt?             @db.UnsignedBigInt
-  description         String              @db.VarChar(255)
-  qty                 Int                 @default(1)
-  unit_price          Decimal             @db.Decimal(15, 2)
-  line_total          Decimal             @db.Decimal(15, 2)
-  created_at          DateTime?           @db.Timestamp(0)
-  accounts_receivable accounts_receivable @relation(fields: [ar_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ar_details_ar_foreign")
-  products            products?           @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ar_details_product_foreign")
-
-  @@index([ar_id])
-  @@map("accounts_receivable_details")
-}
-
-model tax_calculations {
-  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  order_id       BigInt?   @db.UnsignedBigInt
-  invoice_id     String?   @db.VarChar(60)
-  tax_type       tax_type
-  tax_percentage Decimal   @db.Decimal(5, 2)
-  taxable_amount Decimal   @db.Decimal(15, 2)
-  tax_amount     Decimal   @db.Decimal(15, 2)
-  created_at     DateTime? @db.Timestamp(0)
-
-  @@index([order_id])
-  @@map("tax_calculations")
-}
-
-// ============================================
-// MODUL 5: PEMBELIAN (PROCUREMENT)
-// ============================================
-
-model suppliers {
-  id                   BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  supplier_code        String                 @unique @db.VarChar(50)
-  supplier_name        String                 @db.VarChar(200)
-  contact_person       String?                @db.VarChar(150)
-  phone                String?                @db.VarChar(20)
-  email                String?                @db.VarChar(100)
-  address              String?                @db.Text
-  city                 String?                @db.VarChar(50)
-  payment_terms        Int?                   @db.SmallInt
-  avg_delivery_days    Int?                   @db.SmallInt
-  is_active            Boolean                @default(true)
-  notes                String?                @db.Text
-  created_at           DateTime?              @db.Timestamp(0)
-  updated_at           DateTime?              @db.Timestamp(0)
-  purchase_orders      purchase_orders[]
-  ap                   accounts_payable[]
-  consignments         consignment_items[]
-  consignment_payables consignment_payables[]
-  good_receipts        good_receipts[]
-
-  @@map("suppliers")
-}
-
-model purchase_orders {
-  id                BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  supplier_id       BigInt                 @db.UnsignedBigInt
-  po_no             String                 @unique @db.VarChar(60)
-  po_date           DateTime               @db.Date
-  expected_delivery DateTime               @db.Date
-  status            po_status              @default(draft)
-  subtotal          Decimal                @db.Decimal(15, 2)
-  tax_amount        Decimal                @default(0.00) @db.Decimal(15, 2)
-  total_amount      Decimal                @db.Decimal(15, 2)
-  notes             String?                @db.Text
-  created_by        BigInt                 @db.UnsignedBigInt
-  approved_by       BigInt?                @db.UnsignedBigInt
-  approved_at       DateTime?              @db.Timestamp(0)
-  created_at        DateTime?              @db.Timestamp(0)
-  updated_at        DateTime?              @db.Timestamp(0)
-  suppliers         suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "purchase_orders_supplier_foreign")
-  po_items          purchase_order_items[]
-  good_receipts     good_receipts[]
-
-  @@index([supplier_id, status])
-  @@index([po_date])
-  @@map("purchase_orders")
-}
-
-model purchase_order_items {
-  id              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  po_id           BigInt          @db.UnsignedBigInt
-  product_id      BigInt          @db.UnsignedBigInt
-  qty_ordered     Int
-  qty_received    Int             @default(0)
-  unit_price      Decimal         @db.Decimal(15, 2)
-  line_total      Decimal         @db.Decimal(15, 2)
-  created_at      DateTime?       @db.Timestamp(0)
-  purchase_orders purchase_orders @relation(fields: [po_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "po_items_po_foreign")
-  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "po_items_product_foreign")
-
-  @@index([po_id])
-  @@index([product_id])
-  @@map("purchase_order_items")
-}
-
-model good_receipts {
-  id              BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  po_id           BigInt               @db.UnsignedBigInt
-  supplier_id     BigInt               @db.UnsignedBigInt
-  gr_no           String               @unique @db.VarChar(60)
-  gr_date         DateTime             @db.Date
-  status          gr_status            @default(received)
-  received_by     BigInt               @db.UnsignedBigInt
-  notes           String?              @db.Text
-  created_at      DateTime?            @db.Timestamp(0)
-  updated_at      DateTime?            @db.Timestamp(0)
-  purchase_orders purchase_orders      @relation(fields: [po_id], references: [id], onUpdate: NoAction, map: "good_receipts_po_foreign")
-  suppliers       suppliers            @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "good_receipts_supplier_foreign")
-  gr_items        good_receipt_items[]
-
-  @@index([po_id])
-  @@index([gr_date])
-  @@map("good_receipts")
-}
-
-model good_receipt_items {
-  id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  gr_id         BigInt        @db.UnsignedBigInt
-  product_id    BigInt        @db.UnsignedBigInt
-  qty_received  Int
-  qty_accepted  Int           @default(0)
-  qty_rejected  Int           @default(0)
-  notes         String?       @db.Text
-  created_at    DateTime?     @db.Timestamp(0)
-  good_receipts good_receipts @relation(fields: [gr_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "gr_items_gr_foreign")
-  products      products      @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "gr_items_product_foreign")
-
-  @@index([gr_id])
-  @@index([product_id])
-  @@map("good_receipt_items")
-}
-
-// ============================================
-// MODUL 6: APPROVAL WORKFLOWS & SECURITY
-// ============================================
-
-model approval_workflows {
-  id                BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  workflow_code     String               @unique @db.VarChar(50)
-  workflow_name     String               @db.VarChar(150)
-  module_type       approval_module_type
-  action_type       approval_action_type
-  requires_approval Boolean              @default(true)
-  approval_levels   Int                  @default(1)
-  is_active         Boolean              @default(true)
-  created_at        DateTime?            @db.Timestamp(0)
-  updated_at        DateTime?            @db.Timestamp(0)
-  approval_requests approval_requests[]
-
-  @@map("approval_workflows")
-}
-
-model approval_requests {
-  id                 BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
-  workflow_id        BigInt             @db.UnsignedBigInt
-  reference_type     String             @db.VarChar(100)
-  reference_id       BigInt             @db.UnsignedBigInt
-  requested_by       BigInt             @db.UnsignedBigInt
-  current_level      Int                @default(1)
-  status             approval_status    @default(pending)
-  rejection_reason   String?            @db.Text
-  created_at         DateTime?          @db.Timestamp(0)
-  updated_at         DateTime?          @db.Timestamp(0)
-  approved_at        DateTime?          @db.Timestamp(0)
-  approved_by        BigInt?            @db.UnsignedBigInt
-  approval_workflows approval_workflows @relation(fields: [workflow_id], references: [id], onUpdate: NoAction, map: "approval_requests_workflow_foreign")
-
-  @@index([reference_type, reference_id])
-  @@index([status, current_level])
-  @@map("approval_requests")
-}
-
-// ============================================
-// MODUL 7 & 8: CRM & LOYALTY PROGRAM
-// ============================================
-
-model loyalty_programs {
-  id                BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  program_code      String                @unique @db.VarChar(50)
-  program_name      String                @db.VarChar(150)
-  description       String?               @db.Text
-  points_per_rupiah Decimal               @db.Decimal(10, 6)
-  minimum_purchase  Decimal               @db.Decimal(15, 2)
-  is_active         Boolean               @default(true)
-  created_at        DateTime?             @db.Timestamp(0)
-  updated_at        DateTime?             @db.Timestamp(0)
-  memberships       loyalty_memberships[]
-  redemptions       loyalty_redemptions[]
-
-  @@map("loyalty_programs")
-}
-
-model loyalty_memberships {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  member_id        BigInt           @db.UnsignedBigInt
-  program_id       BigInt           @db.UnsignedBigInt
-  membership_level membership_level @default(bronze)
-  total_points     Decimal          @default(0.00) @db.Decimal(15, 2)
-  points_used      Decimal          @default(0.00) @db.Decimal(15, 2)
-  points_available Decimal          @default(0.00) @db.Decimal(15, 2)
-  member_since     DateTime         @db.Date
-  last_activity    DateTime?        @db.Timestamp(0)
-  created_at       DateTime?        @db.Timestamp(0)
-  updated_at       DateTime?        @db.Timestamp(0)
-  members          Member           @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "loyalty_memberships_member_foreign")
-  loyalty_programs loyalty_programs @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_memberships_program_foreign")
-
-  @@unique([member_id, program_id])
-  @@index([member_id, membership_level])
-  @@map("loyalty_memberships")
-}
-
-model loyalty_redemptions {
-  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  membership_id    BigInt           @db.UnsignedBigInt
-  program_id       BigInt           @db.UnsignedBigInt
-  order_id         BigInt?          @db.UnsignedBigInt
-  points_redeemed  Decimal          @db.Decimal(15, 2)
-  discount_amount  Decimal          @db.Decimal(15, 2)
-  redemption_date  DateTime         @db.Timestamp(0)
-  created_at       DateTime?        @db.Timestamp(0)
-  loyalty_programs loyalty_programs @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_redemptions_program_foreign")
-
-  @@index([membership_id, redemption_date])
-  @@map("loyalty_redemptions")
-}
-
-model price_tiers {
-  id           BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id   BigInt          @db.UnsignedBigInt
-  tier_name    price_tier_name
-  min_qty      Int             @default(1)
-  price        Decimal         @db.Decimal(15, 2)
-  discount_pct Decimal?        @db.Decimal(5, 2)
-  is_active    Boolean         @default(true)
-  created_at   DateTime?       @db.Timestamp(0)
-  updated_at   DateTime?       @db.Timestamp(0)
-  products     products        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "price_tiers_product_foreign")
-
-  @@unique([product_id, tier_name, min_qty])
-  @@index([product_id, tier_name])
-  @@map("price_tiers")
-}
-
-model customer_segments {
-  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  segment_code     String    @unique @db.VarChar(50)
-  segment_name     String    @db.VarChar(150)
-  description      String?   @db.Text
-  min_purchase_amt Decimal?  @db.Decimal(15, 2)
-  max_purchase_amt Decimal?  @db.Decimal(15, 2)
-  is_active        Boolean   @default(true)
-  created_at       DateTime? @db.Timestamp(0)
-  updated_at       DateTime? @db.Timestamp(0)
-
-  @@map("customer_segments")
-}
-
-// ============================================
-// MODUL 6: ANALYTICS & REPORTING
-// ============================================
-
-model sales_analytics {
-  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  date               DateTime  @db.Date
-  unit_id            BigInt    @db.UnsignedBigInt
-  total_sales        Decimal   @db.Decimal(15, 2)
-  total_transactions Int
-  avg_transaction    Decimal   @db.Decimal(15, 2)
-  cash_sales         Decimal   @db.Decimal(15, 2)
-  credit_sales       Decimal   @db.Decimal(15, 2)
-  gross_margin       Decimal   @db.Decimal(15, 2)
-  created_at         DateTime? @db.Timestamp(0)
-
-  @@unique([date, unit_id])
-  @@index([date])
-  @@map("sales_analytics")
-}
-
-model product_analytics {
-  id              BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  product_id      BigInt                  @db.UnsignedBigInt
-  period_date     DateTime                @db.Date
-  qty_sold        Int
-  revenue         Decimal                 @db.Decimal(15, 2)
-  turn_ratio      Decimal                 @db.Decimal(10, 2)
-  last_sold_date  DateTime?               @db.Date
-  days_in_stock   Int?
-  movement_status product_movement_status @default(normal)
-  created_at      DateTime?               @db.Timestamp(0)
-  products        products                @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_analytics_product_foreign")
-
-  @@unique([product_id, period_date])
-  @@index([product_id, movement_status])
-  @@map("product_analytics")
-}
-
-// ============================================
-// NEW ENUMS FOR POS MODULES
-// ============================================
 
 enum cash_register_sessions_status {
   open

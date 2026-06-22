@@ -103,6 +103,9 @@ export function MemberLoanForm({ loanProducts, memberId }: { loanProducts: any[]
                         <span className="font-semibold text-blue-900">{p.name}</span>
                         <span className="text-xs font-medium px-2 py-0.5 bg-white border rounded-full">{p.code}</span>
                       </div>
+                      {p.description && (
+                        <p className="text-xs text-indigo-700 italic font-medium">{p.description}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         Min: {formatRp(p.min_amount)} | Max: {formatRp(p.max_amount)} <br/>
                         Tenor max: {p.max_tenor} bln | Bunga: {p.interest_rate}%/bln

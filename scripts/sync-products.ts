@@ -79,7 +79,6 @@ async function main() {
           image_path: p.image_path,
           is_active: p.is_active,
           is_online: p.is_online,
-          restock_requested: p.restock_requested,
           updated_at: new Date(),
           // Ubah deleted_at menjadi null jika nilainya tahun 0 (invalid)
           deleted_at: p.deleted_at && new Date(p.deleted_at).getFullYear() > 0 ? p.deleted_at : null
@@ -100,7 +99,6 @@ async function main() {
           image_path: p.image_path,
           is_active: p.is_active,
           is_online: p.is_online,
-          restock_requested: p.restock_requested,
           created_at: p.created_at || new Date(),
           updated_at: p.updated_at || new Date(),
           deleted_at: p.deleted_at && new Date(p.deleted_at).getFullYear() > 0 ? p.deleted_at : null

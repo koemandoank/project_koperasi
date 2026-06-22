@@ -102,15 +102,22 @@ export async function getMonthlyDeductionReport(
   to?: string,
   search?: string
 ): Promise<MemberDeductionRow[]> {
-  const now = new Date()
-  const startDate = from
-    ? new Date(from)
-    : new Date(now.getFullYear(), now.getMonth(), 1)
-  const endDate = to
-    ? new Date(to)
-    : new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  // Gunakan timezone Asia/Jakarta agar filter tanggal presisi
+  const getWibDate = (dateStr?: string, endOfDay = false) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    // Set to WIB time (GMT+7)
+    if (endOfDay) {
+      date.setHours(23, 59, 59, 999);
+    } else {
+      date.setHours(0, 0, 0, 0);
+    }
+    return date;
+  };
 
-  endDate.setHours(23, 59, 59, 999)
+  const now = new Date();
+  const startDate = getWibDate(from) ?? new Date(now.getFullYear(), now.getMonth(), 1);
+  const endDate = getWibDate(to, true) ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
   try {
     const memberMap = new Map<number, MemberDeductionRow>()
