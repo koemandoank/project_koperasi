@@ -50,6 +50,12 @@ const createPrismaClient = () => {
           }
         }
       }
+    },
+    client: {
+      user: baseClient.users,
+      member: baseClient.members,
+      unit: baseClient.units,
+      auditLog: baseClient.audit_logs,
     }
   });
 };
