@@ -32,7 +32,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
     }
   }
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter((p: any) => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -40,7 +40,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
   const isMemberSelected = !!selectedMember
 
   const memberSuggestions = memberSearch.trim().length >= 2
-    ? members.filter(m =>
+    ? members.filter((m: any) =>
         m.full_name.toLowerCase().includes(memberSearch.toLowerCase()) ||
         m.nik.includes(memberSearch)
       ).slice(0, 8)
@@ -50,13 +50,13 @@ export function PosClient({ products, members, sessionActive = true }: { product
     if (product.stock <= 0) return toast.error("Stok barang habis!")
     
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const existing = prev.find((item: any) => item.id === product.id)
       if (existing) {
         if (existing.qty >= product.stock) {
           toast.error("Melebihi stok yang tersedia!")
           return prev
         }
-        return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item)
+        return prev.map((item: any) => item.id === product.id ? { ...item, qty: item.qty + 1 } : item)
       }
       
       // Determine price based on member status
@@ -74,7 +74,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
 
   const updateQty = (id: number, delta: number) => {
     setCart(prev => prev
-      .map(item => {
+      .map((item: any) => {
         if (item.id !== id) return item
         const newQty = item.qty + delta
         if (newQty > item.stock) {
@@ -83,25 +83,25 @@ export function PosClient({ products, members, sessionActive = true }: { product
         }
         return { ...item, qty: newQty }
       })
-      .filter(item => item.qty > 0)
+      .filter((item: any) => item.qty > 0)
     )
   }
 
   const removeFromCart = (id: number) => {
-    setCart(prev => prev.filter(item => item.id !== id))
+    setCart(prev => prev.filter((item: any) => item.id !== id))
   }
 
   // Recalculate cart prices if member selection changes
   useEffect(() => {
-    setCart(prev => prev.map(item => {
-      const product = products.find(p => p.id === item.id)
+    setCart(prev => prev.map((item: any) => {
+      const product = products.find((p: any) => p.id === item.id)
       if (!product) return item
       const newPrice = (isMemberSelected && product.member_price) ? product.member_price : product.price
       return { ...item, price: newPrice }
     }))
   }, [isMemberSelected, products])
 
-  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0)
+  const subtotal = cart.reduce((acc: any, item: any) => acc + (item.price * item.qty), 0)
   const discount = 0
   const grandTotal = subtotal - discount
 
@@ -109,10 +109,9 @@ export function PosClient({ products, members, sessionActive = true }: { product
     if (!sessionActive) return toast.error("Buka sesi kasir terlebih dahulu!")
     if (cart.length === 0) return toast.error("Keranjang kosong")
     if (paymentMethod === "paylater" && !isMemberSelected) {
-      return toast.error("Pembayaran Paylater wajib memilih Anggota!")
+      return toast.error("Pembayaran Bayar Tempo wajib memilih Anggota!")
     }
 
-    setCheckoutLoading(true)
     const payload = {
       cart,
       memberId: selectedMember ? selectedMember.id : null,
@@ -122,14 +121,28 @@ export function PosClient({ products, members, sessionActive = true }: { product
       grandTotal
     }
 
+    // ── Optimistic update ──────────────────────────────────────────────────────
+    // Snapshot current cart for rollback in case of failure
+    const cartSnapshot = [...cart]
+    const memberSnapshot = selectedMember
+
+    setCart([])                // Clear cart immediately (optimistic)
+    setSelectedMember(null)
+    setMemberSearch("")
+    setQrisModalOpen(false)
+    setCheckoutLoading(true)
+    // ──────────────────────────────────────────────────────────────────────────
+
     const res = await processPosCheckout(payload)
+
     if (res.success) {
       setLastOrderNo(res.orderNo || "")
-      setCart([])
-      setQrisModalOpen(false)
       setSuccessModalOpen(true)
     } else {
-      toast.error(res.error)
+      // Rollback: restore cart and member if server rejected
+      setCart(cartSnapshot)
+      setSelectedMember(memberSnapshot)
+      toast.error(res.error || "Checkout gagal. Data keranjang dikembalikan.")
     }
     setCheckoutLoading(false)
   }
@@ -138,7 +151,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
     if (!sessionActive) return toast.error("Buka sesi kasir terlebih dahulu!")
     if (cart.length === 0) return toast.error("Keranjang kosong")
     if (paymentMethod === "paylater" && !selectedMember) {
-      return toast.error("Pembayaran Paylater wajib memilih Anggota!")
+      return toast.error("Pembayaran Bayar Tempo wajib memilih Anggota!")
     }
     
     if (paymentMethod === "qris") {
@@ -167,7 +180,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
         {/* Mobile: Scrollable products, Desktop: Fixed height */}
         <div className="flex-1 overflow-auto pr-2 pb-4 lg:pb-20">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProducts.map(p => {
+            {filteredProducts.map((p: any) => {
               const isLowStock = p.stock <= p.min_stock
               const activePrice = (isMemberSelected && p.member_price) ? p.member_price : p.price
               
@@ -250,7 +263,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                 />
                 {showMemberSuggestions && memberSuggestions.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
-                    {memberSuggestions.map(m => (
+                    {memberSuggestions.map((m: any) => (
                       <button
                         key={m.id}
                         className="w-full text-left px-3 py-1.5 hover:bg-blue-50 text-xs border-b last:border-0"
@@ -274,7 +287,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                 <p className="text-xs">Keranjang kosong</p>
               </div>
             ) : (
-              cart.map(item => (
+              cart.map((item: any) => (
                 <div key={item.id} className="flex justify-between items-start gap-2 border-b pb-2 last:border-0">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-xs leading-tight">{item.name}</p>
@@ -325,7 +338,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                 onClick={() => setPaymentMethod("paylater")}
               >
                 <CreditCard className="h-3.5 w-3.5" />
-                Paylater
+                Bayar Tempo
               </Button>
               <Button
                 type="button" size="sm"
@@ -357,7 +370,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
             <ShoppingCart className="h-4 w-4" /> Keranjang
             {cart.length > 0 && (
               <span className="ml-auto font-normal text-xs opacity-80">
-                {cart.reduce((s, i) => s + i.qty, 0)} item
+                {cart.reduce((s: any, i: any) => s + i.qty, 0)} item
               </span>
             )}
           </h3>
@@ -366,7 +379,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
           {cart.length === 0 ? (
             <p className="text-center text-muted-foreground py-3 text-xs">Keranjang kosong</p>
           ) : (
-            cart.map(item => (
+            cart.map((item: any) => (
               <div key={item.id} className="flex justify-between items-center gap-2 border-b pb-1.5 last:border-0">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{item.name}</p>
@@ -391,7 +404,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
         {cart.length > 0 && (
           <div className="p-3 border-t space-y-2">
             <div className="grid grid-cols-3 gap-1.5">
-              {(["cash", "paylater", "qris"] as const).map(m => (
+              {(["cash", "paylater", "qris"] as const).map((m: any) => (
                 <button
                   key={m}
                   onClick={() => setPaymentMethod(m)}
@@ -400,7 +413,7 @@ export function PosClient({ products, members, sessionActive = true }: { product
                   {m === "cash" && <Banknote className="h-3.5 w-3.5" />}
                   {m === "paylater" && <CreditCard className="h-3.5 w-3.5" />}
                   {m === "qris" && <QrCode className="h-3.5 w-3.5" />}
-                  {m === "cash" ? "Tunai" : m === "paylater" ? "Paylater" : "QRIS"}
+                  {m === "cash" ? "Tunai" : m === "paylater" ? "Bayar Tempo" : "QRIS"}
                 </button>
               ))}
             </div>

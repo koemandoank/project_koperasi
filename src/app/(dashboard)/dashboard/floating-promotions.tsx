@@ -69,7 +69,7 @@ export function FloatingPromotions({ promotions }: { promotions: Promotion[] }) 
           className="absolute top-0 bottom-0 flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 400}px)` }}
         >
-          {promotions.map((promo) => (
+          {promotions.map((promo: any) => (
             <div 
               key={promo.id} 
               className="w-[400px] h-full flex-shrink-0 flex flex-col p-4"
@@ -91,7 +91,7 @@ export function FloatingPromotions({ promotions }: { promotions: Promotion[] }) 
         {/* Pagination Dots */}
         {promotions.length > 1 && (
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
-            {promotions.map((_, idx) => (
+            {promotions.map((_: any, idx: any) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}

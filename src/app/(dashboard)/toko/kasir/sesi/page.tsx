@@ -34,7 +34,7 @@ export default async function SesiKasirPage() {
 
   // Serialize Date fields → string untuk client component
   const history = historyResult.success
-    ? (historyResult.data ?? []).map(s => ({
+    ? (historyResult.data ?? []).map((s: any) => ({
         ...s,
         session_date: typeof s.session_date === "string"
           ? s.session_date

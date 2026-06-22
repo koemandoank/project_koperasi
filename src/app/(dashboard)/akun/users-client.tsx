@@ -9,23 +9,31 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter } from "@/components/ui/drawer";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield } from "lucide-react";
+import { Plus, Edit, Loader2, Lock, ShieldAlert, UserCheck, Shield, BookOpen, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Pagination } from "@/components/ui/pagination";
 
 export function UsersClient({
   initialUsers,
   currentRole,
+  pagination,
 }: {
   initialUsers: UserData[];
   currentRole: string;
+  pagination?: {
+    page: number;
+    pages: number;
+    total: number;
+    pageSize: number;
+    hasMore: boolean;
+  };
 }) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-  
+
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -35,6 +43,11 @@ export function UsersClient({
   });
 
   const router = useRouter();
+  const pathname = "/akun";
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`${pathname}?page=${newPage}`);
+  };
 
   useEffect(() => {
     setUsers(initialUsers);
@@ -100,6 +113,8 @@ export function UsersClient({
     admin: "Administrator",
     pengurus: "Pengurus Koperasi",
     kasir: "Kasir Toko",
+    petugas_akuntan: "Petugas Akuntan",
+    pengawas: "Pengawas Koperasi",
   };
 
   const roleColors: Record<string, string> = {
@@ -107,6 +122,8 @@ export function UsersClient({
     admin: "bg-blue-100 text-blue-700 border-blue-200",
     pengurus: "bg-emerald-100 text-emerald-700 border-emerald-200",
     kasir: "bg-amber-100 text-amber-700 border-amber-200",
+    petugas_akuntan: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    pengawas: "bg-indigo-100 text-indigo-700 border-indigo-200",
   };
 
   const roleIcons: Record<string, React.ReactNode> = {
@@ -114,6 +131,8 @@ export function UsersClient({
     admin: <Shield className="h-3.5 w-3.5" />,
     pengurus: <UserCheck className="h-3.5 w-3.5" />,
     kasir: <Lock className="h-3.5 w-3.5" />,
+    petugas_akuntan: <BookOpen className="h-3.5 w-3.5" />,
+    pengawas: <ShieldCheck className="h-3.5 w-3.5" />,
   };
 
   return (
@@ -145,7 +164,7 @@ export function UsersClient({
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((u) => {
+              users.map((u: any) => {
                 const canEdit =
                   currentRole === "superadmin" ||
                   (currentRole === "admin" && u.role !== "superadmin");
@@ -198,7 +217,7 @@ export function UsersClient({
             Tidak ada data user.
           </div>
         ) : (
-          users.map((u) => {
+          users.map((u: any) => {
             const canEdit =
               currentRole === "superadmin" ||
               (currentRole === "admin" && u.role !== "superadmin");
@@ -247,6 +266,15 @@ export function UsersClient({
         )}
       </div>
 
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          page={pagination.page}
+          pages={pagination.pages}
+          onPageChange={handlePageChange}
+        />
+      )}
+
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent showClose>
           <DrawerHeader>
@@ -277,22 +305,20 @@ export function UsersClient({
 
             <div className="space-y-1">
               <Label className="font-semibold text-sm">Role / Hak Akses</Label>
-              <Select
+              <select
                 value={form.role}
-                onValueChange={(v) => setForm({ ...form, role: v ?? "pengurus" })}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="flex w-full rounded-lg border border-input bg-white dark:bg-slate-900 px-3 py-2 text-base h-12 outline-none focus:border-ring focus:ring-3 focus:ring-ring/50 dark:text-slate-100"
               >
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Pilih Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentRole === "superadmin" && (
-                    <SelectItem value="superadmin">Super Admin</SelectItem>
-                  )}
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="pengurus">Pengurus Koperasi</SelectItem>
-                  <SelectItem value="kasir">Kasir Toko</SelectItem>
-                </SelectContent>
-              </Select>
+                {currentRole === "superadmin" && (
+                  <option value="superadmin">Super Admin</option>
+                )}
+                <option value="admin">Administrator</option>
+                <option value="pengurus">Pengurus Koperasi</option>
+                <option value="kasir">Kasir Toko</option>
+                <option value="petugas_akuntan">Petugas Akuntan</option>
+                <option value="pengawas">Pengawas Koperasi</option>
+              </select>
             </div>
 
             <div className="space-y-1">

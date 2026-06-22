@@ -172,17 +172,17 @@ export function MemberDashboard({ data }: { data: any }) {
       </div>
       
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-0 shadow-md">
+        <Card className="bg-primary text-primary-foreground border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-100">Total Simpanan</CardTitle>
+            <CardTitle className="text-sm font-medium opacity-90">Total Simpanan</CardTitle>
             <Wallet className="h-5 w-5 opacity-80" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{formatRp(simpanan?.totalBalance || 0)}</div>
+            <div className="text-xl md:text-2xl font-extrabold">{formatRp(simpanan?.totalBalance || 0)}</div>
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowLoanHistory(true)}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]" onClick={() => setShowLoanHistory(true)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Sisa Pinjaman Aktif</CardTitle>
             <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -190,29 +190,29 @@ export function MemberDashboard({ data }: { data: any }) {
           <CardContent>
             {activeLoan || totalPaylater > 0 ? (
               <>
-                <div className="text-xl md:text-2xl font-bold text-red-500">
+                <div className="text-xl md:text-2xl font-extrabold text-red-600 dark:text-red-400">
                   {formatRp((activeLoan?.outstanding || 0) + totalPaylater)}
                 </div>
                 <div className="mt-2 space-y-1">
                   {activeLoan && (
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Cicilan Pinjaman:</span>
-                      <span className="font-medium">{formatRp(activeLoan.monthly_installment)}/bln</span>
+                      <span className="font-semibold">{formatRp(activeLoan.monthly_installment)}/bln</span>
                     </div>
                   )}
                   {totalPaylater > 0 && (
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Tagihan Paylater:</span>
-                      <span className="font-medium text-amber-600">{formatRp(totalPaylater)}</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">{formatRp(totalPaylater)}</span>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-blue-600 mt-2">Klik untuk lihat riwayat</p>
+                <p className="text-xs text-primary font-semibold mt-2">Klik untuk lihat riwayat</p>
               </>
             ) : (
               <>
-                <div className="text-lg md:text-xl font-bold text-slate-400">Tidak ada tanggungan</div>
-                <p className="text-xs text-blue-600 mt-1">Klik untuk lihat histori pinjaman</p>
+                <div className="text-lg md:text-xl font-semibold text-zinc-400">Tidak ada tanggungan</div>
+                <p className="text-xs text-primary font-semibold mt-1">Klik untuk lihat histori pinjaman</p>
               </>
             )}
           </CardContent>
@@ -224,7 +224,7 @@ export function MemberDashboard({ data }: { data: any }) {
             <ShoppingBag className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-amber-600">
+            <div className="text-xl md:text-2xl font-extrabold text-zinc-800 dark:text-zinc-100">
               {formatRp(orders?.reduce((sum: number, o: any) => sum + o.grand_total, 0) || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">{orders?.length || 0} transaksi bulan ini</p>
@@ -237,7 +237,7 @@ export function MemberDashboard({ data }: { data: any }) {
             <TrendingUp className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-green-600">
+            <div className="text-xl md:text-2xl font-extrabold text-primary">
               {loyalty && loyalty.length > 0 ? loyalty[0].points_available : 0} Pts
             </div>
             {loyalty && loyalty.length > 0 && (
@@ -248,10 +248,10 @@ export function MemberDashboard({ data }: { data: any }) {
       </div>
       
       <div className="mt-4 flex flex-col gap-2 md:flex-row md:gap-4">
-        <Button onClick={handleDownloadSimpanan} variant="outline" className="h-10 px-4 py-2 w-full md:w-auto text-sm font-medium">
+        <Button onClick={handleDownloadSimpanan} variant="outline" className="h-12 px-4 py-2 w-full md:w-auto text-sm font-semibold rounded-2xl active:scale-[0.98] transition-transform">
           <Send className="mr-2 h-4 w-4" /> Download Slip Simpanan
         </Button>
-        <Button onClick={handleDownloadPinjaman} className="h-10 px-4 py-2 w-full md:w-auto text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">
+        <Button onClick={handleDownloadPinjaman} className="h-12 px-4 py-2 w-full md:w-auto text-sm font-semibold rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-transform cursor-pointer">
           <Send className="mr-2 h-4 w-4" /> Rincian Pinjaman
         </Button>
       </div>
@@ -261,11 +261,11 @@ export function MemberDashboard({ data }: { data: any }) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <h2 className="text-xl font-bold tracking-tight">Statistik Koperasi (Global)</h2>
           {data.dashboardConfig?.show_financial_stats && (
-            <div className="flex bg-white rounded-full p-1 border shadow-sm self-stretch sm:self-auto">
+            <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-full p-1 border border-zinc-200 dark:border-zinc-800 shadow-sm self-stretch sm:self-auto">
               {(data.dashboardConfig?.filters?.weekly ?? true) && (
                 <button 
                   onClick={() => setStatsPeriod('weekly')}
-                  className={`flex-1 sm:flex-none px-3 py-1 text-xs font-medium rounded-full transition-colors ${statsPeriod === 'weekly' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-full transition-colors ${statsPeriod === 'weekly' ? 'bg-primary text-primary-foreground' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                 >
                   Mingguan
                 </button>
@@ -273,7 +273,7 @@ export function MemberDashboard({ data }: { data: any }) {
               {(data.dashboardConfig?.filters?.monthly ?? true) && (
                 <button 
                   onClick={() => setStatsPeriod('monthly')}
-                  className={`flex-1 sm:flex-none px-3 py-1 text-xs font-medium rounded-full transition-colors ${statsPeriod === 'monthly' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-full transition-colors ${statsPeriod === 'monthly' ? 'bg-primary text-primary-foreground' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                 >
                   Bulanan
                 </button>
@@ -281,7 +281,7 @@ export function MemberDashboard({ data }: { data: any }) {
               {(data.dashboardConfig?.filters?.yearly ?? true) && (
                 <button 
                   onClick={() => setStatsPeriod('yearly')}
-                  className={`flex-1 sm:flex-none px-3 py-1 text-xs font-medium rounded-full transition-colors ${statsPeriod === 'yearly' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold rounded-full transition-colors ${statsPeriod === 'yearly' ? 'bg-primary text-primary-foreground' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                 >
                   Tahunan
                 </button>
@@ -293,13 +293,13 @@ export function MemberDashboard({ data }: { data: any }) {
         {data.dashboardConfig?.show_financial_stats && (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-4">
             {(data.dashboardConfig?.modules?.keuntungan ?? true) && (
-              <Card className="bg-emerald-50 border-emerald-100">
+              <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">Keuntungan (SHU)</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Keuntungan (SHU)</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-emerald-700">
+                  <div className="text-xl font-bold text-emerald-800 dark:text-emerald-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.keuntunganSHU)}
                   </div>
                 </CardContent>
@@ -307,13 +307,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
             
             {(data.dashboardConfig?.modules?.transaksi ?? true) && (
-              <Card className="bg-indigo-50 border-indigo-100">
+              <Card className="bg-zinc-500/5 border-zinc-200 dark:border-zinc-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-indigo-800">Total Transaksi</CardTitle>
-                  <Activity className="h-4 w-4 text-indigo-600" />
+                  <CardTitle className="text-sm font-medium text-zinc-650 dark:text-zinc-300">Total Transaksi</CardTitle>
+                  <Activity className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-indigo-700">
+                  <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
                     {loadingStats || !financialData ? "Memuat..." : financialData.totalTransaksi.toLocaleString('id-ID')}
                   </div>
                 </CardContent>
@@ -321,13 +321,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
             
             {(data.dashboardConfig?.modules?.pengeluaran ?? true) && (
-              <Card className="bg-rose-50 border-rose-100">
+              <Card className="bg-rose-505/5 dark:bg-rose-500/10 border-rose-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-rose-800">Pengeluaran Operasional</CardTitle>
-                  <CreditCard className="h-4 w-4 text-rose-600" />
+                  <CardTitle className="text-sm font-medium text-rose-800 dark:text-rose-300">Pengeluaran Operasional</CardTitle>
+                  <CreditCard className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-rose-700">
+                  <div className="text-xl font-bold text-rose-800 dark:text-rose-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.pengeluaranOperasional)}
                   </div>
                 </CardContent>
@@ -335,13 +335,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
             
             {(data.dashboardConfig?.modules?.saldo ?? true) && (
-              <Card className="bg-blue-50 border-blue-100">
+              <Card className="bg-zinc-500/5 border-zinc-200 dark:border-zinc-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-800">Saldo Kas Koperasi</CardTitle>
-                  <Wallet className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="text-sm font-medium text-zinc-650 dark:text-zinc-300">Saldo Kas Koperasi</CardTitle>
+                  <Wallet className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-blue-700">
+                  <div className="text-xl font-bold text-zinc-800 dark:text-zinc-100">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.saldoKas)}
                   </div>
                 </CardContent>
@@ -349,13 +349,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
 
             {(data.dashboardConfig?.modules?.keuntungan_toko ?? true) && (
-              <Card className="bg-emerald-50 border-emerald-100">
+              <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">Keuntungan Toko Koperasi</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Keuntungan Toko Koperasi</CardTitle>
+                  <ShoppingBag className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-emerald-700">
+                  <div className="text-xl font-bold text-emerald-800 dark:text-emerald-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.keuntunganToko)}
                   </div>
                 </CardContent>
@@ -363,13 +363,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
 
             {(data.dashboardConfig?.modules?.keuntungan_sp ?? true) && (
-              <Card className="bg-emerald-50 border-emerald-100">
+              <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">Laba Simpan Pinjam</CardTitle>
-                  <CreditCard className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Laba Simpan Pinjam</CardTitle>
+                  <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-emerald-700">
+                  <div className="text-xl font-bold text-emerald-800 dark:text-emerald-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.keuntunganSP)}
                   </div>
                 </CardContent>
@@ -377,13 +377,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
 
             {(data.dashboardConfig?.modules?.pengeluaran_toko ?? true) && (
-              <Card className="bg-rose-50 border-rose-100">
+              <Card className="bg-rose-550/5 dark:bg-rose-500/10 border-rose-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-rose-800">Pengeluaran Toko Koperasi</CardTitle>
-                  <Package className="h-4 w-4 text-rose-600" />
+                  <CardTitle className="text-sm font-medium text-rose-800 dark:text-rose-300">Pengeluaran Toko Koperasi</CardTitle>
+                  <Package className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-rose-700">
+                  <div className="text-xl font-bold text-rose-800 dark:text-rose-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.pengeluaranToko)}
                   </div>
                 </CardContent>
@@ -391,13 +391,13 @@ export function MemberDashboard({ data }: { data: any }) {
             )}
 
             {(data.dashboardConfig?.modules?.pengeluaran_sp ?? true) && (
-              <Card className="bg-rose-50 border-rose-100">
+              <Card className="bg-rose-550/5 dark:bg-rose-500/10 border-rose-500/20">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-rose-800">Pengeluaran Simpan Pinjam</CardTitle>
-                  <Send className="h-4 w-4 text-rose-600" />
+                  <CardTitle className="text-sm font-medium text-rose-800 dark:text-rose-300">Pengeluaran Simpan Pinjam</CardTitle>
+                  <Send className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl font-bold text-rose-700">
+                  <div className="text-xl font-bold text-rose-800 dark:text-rose-200">
                     {loadingStats || !financialData ? "Memuat..." : formatRp(financialData.pengeluaranSP)}
                   </div>
                 </CardContent>
@@ -407,40 +407,40 @@ export function MemberDashboard({ data }: { data: any }) {
         )}
 
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-slate-50">
+          <Card className="bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/60 dark:border-zinc-800/80">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Anggota Aktif</CardTitle>
-              <UserCheck className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-semibold text-zinc-550">Anggota Aktif</CardTitle>
+              <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-800">{stats?.members?.active || 0}</div>
+              <div className="text-2xl font-extrabold text-zinc-800 dark:text-zinc-100">{stats?.members?.active || 0}</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-50">
+          <Card className="bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/60 dark:border-zinc-800/80">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pensiun / Non-Aktif</CardTitle>
-              <UserMinus className="h-4 w-4 text-slate-400" />
+              <CardTitle className="text-sm font-semibold text-zinc-550">Pensiun / Non-Aktif</CardTitle>
+              <UserMinus className="h-4 w-4 text-zinc-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-800">{stats?.members?.inactive || 0}</div>
+              <div className="text-2xl font-extrabold text-zinc-800 dark:text-zinc-100">{stats?.members?.inactive || 0}</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-50">
+          <Card className="bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/60 dark:border-zinc-800/80">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mengundurkan Diri</CardTitle>
-              <UserMinus className="h-4 w-4 text-red-400" />
+              <CardTitle className="text-sm font-semibold text-zinc-550">Mengundurkan Diri</CardTitle>
+              <UserMinus className="h-4 w-4 text-red-500 dark:text-red-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-800">{stats?.members?.suspended || 0}</div>
+              <div className="text-2xl font-extrabold text-zinc-800 dark:text-zinc-100">{stats?.members?.suspended || 0}</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-50 border-slate-200">
+          <Card className="bg-zinc-100/50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-800">Total Seluruh Anggota</CardTitle>
-              <Users className="h-4 w-4 text-slate-600" />
+              <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Total Seluruh Anggota</CardTitle>
+              <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats?.members?.total || 0}</div>
+              <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50">{stats?.members?.total || 0}</div>
             </CardContent>
           </Card>
         </div>

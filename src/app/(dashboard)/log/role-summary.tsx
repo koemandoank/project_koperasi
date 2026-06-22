@@ -42,7 +42,7 @@ export function RoleSummaryPanel({ data }: { data: RoleSummaryRow[] }) {
     <div className="space-y-5">
       {/* Role Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {data.map((r) => (
+        {data.map((r: any) => (
           <div key={r.role} className={`rounded-xl border p-4 shadow-sm ${ROLE_BADGE[r.role] ?? "bg-slate-50"}`}>
             <p className="text-xs font-bold uppercase tracking-wider opacity-70">{ROLE_LABEL[r.role] ?? r.role}</p>
             <p className="text-3xl font-black mt-1">{r.total.toLocaleString("id-ID")}</p>
@@ -53,7 +53,7 @@ export function RoleSummaryPanel({ data }: { data: RoleSummaryRow[] }) {
 
       {/* Per Role Detail */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {data.map((r) => (
+        {data.map((r: any) => (
           <div key={r.role} className="rounded-xl border bg-card shadow-sm overflow-hidden">
             <div className={`px-4 py-3 border-b flex items-center justify-between ${ROLE_BADGE[r.role] ?? ""}`}>
               <span className="font-bold text-sm">{ROLE_LABEL[r.role] ?? r.role}</span>
@@ -63,7 +63,7 @@ export function RoleSummaryPanel({ data }: { data: RoleSummaryRow[] }) {
             {/* Action breakdown */}
             <div className="px-4 py-3 space-y-1.5 border-b">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Breakdown Aksi</p>
-              {Object.entries(r.byAction)
+              {(Object.entries(r.byAction) as [string, number][])
                 .sort(([, a], [, b]) => b - a)
                 .map(([action, count]) => {
                   const pct = Math.round((count / r.total) * 100)
@@ -88,7 +88,7 @@ export function RoleSummaryPanel({ data }: { data: RoleSummaryRow[] }) {
             <div className="px-4 py-3">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Top Pengguna</p>
               <div className="space-y-1">
-                {r.users.slice(0, 5).map((u, i) => (
+                {r.users.slice(0, 5).map((u: any, i: any) => (
                   <div key={u.username} className="flex items-center gap-2 text-xs">
                     <span className="w-4 text-muted-foreground text-[10px] text-right">{i + 1}.</span>
                     <span className="flex-1 font-medium truncate">{u.full_name ?? u.username}</span>
@@ -124,8 +124,8 @@ export function TimelinePanel({ data }: { data: TimelineDayRow[] }) {
     )
   }
 
-  const maxTotal = Math.max(...data.map((d) => d.total), 1)
-  const roles    = [...new Set(data.flatMap((d) => Object.keys(d.byRole)))]
+  const maxTotal = Math.max(...data.map((d: any) => d.total), 1)
+  const roles    = [...new Set(data.flatMap((d: any) => Object.keys(d.byRole)))]
 
   return (
     <div className="space-y-5">
@@ -135,7 +135,7 @@ export function TimelinePanel({ data }: { data: TimelineDayRow[] }) {
           Aktivitas Per Hari
         </p>
         <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ minHeight: 120 }}>
-          {data.map((day) => {
+          {data.map((day: any) => {
             const h = Math.max(4, Math.round((day.total / maxTotal) * 100))
             return (
               <div key={day.date} className="flex flex-col items-center gap-1 shrink-0" style={{ minWidth: 28 }}>
@@ -150,7 +150,7 @@ export function TimelinePanel({ data }: { data: TimelineDayRow[] }) {
 
       {/* Role legend */}
       <div className="flex flex-wrap gap-3">
-        {roles.map((r) => (
+        {roles.map((r: any) => (
           <div key={r} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ROLE_COLORS[r] ?? "#94a3b8" }} />
             <span className="text-xs">{ROLE_LABEL[r] ?? r}</span>
@@ -165,7 +165,7 @@ export function TimelinePanel({ data }: { data: TimelineDayRow[] }) {
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">Tanggal</th>
               <th className="text-right px-4 py-2.5 font-semibold">Total</th>
-              {roles.map((r) => (
+              {roles.map((r: any) => (
                 <th key={r} className="text-right px-3 py-2.5 font-semibold">
                   <span style={{ color: ROLE_COLORS[r] }}>{ROLE_LABEL[r] ?? r}</span>
                 </th>
@@ -174,13 +174,13 @@ export function TimelinePanel({ data }: { data: TimelineDayRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {[...data].reverse().map((day, i) => {
-              const topAction = Object.entries(day.byAction).sort(([, a], [, b]) => b - a)[0]
+            {[...data].reverse().map((day: any, i: any) => {
+              const topAction = (Object.entries(day.byAction) as [string, number][]).sort(([, a], [, b]) => b - a)[0]
               return (
                 <tr key={day.date} className={i % 2 === 0 ? "" : "bg-slate-50/50 dark:bg-slate-900/30"}>
                   <td className="px-4 py-2 font-medium">{fmtDate(day.date)}</td>
                   <td className="px-4 py-2 text-right font-bold">{day.total}</td>
-                  {roles.map((r) => (
+                  {roles.map((r: any) => (
                     <td key={r} className="px-3 py-2 text-right text-muted-foreground">
                       {day.byRole[r] ?? 0}
                     </td>

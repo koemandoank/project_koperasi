@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { prisma } from '@/lib/db/prisma'
 
@@ -53,7 +53,7 @@ export async function getStockMovements(params: {
       },
     })
 
-    return movements.map(m => ({
+    return movements.map((m: any) => ({
       id:           Number(m.id),
       created_at:   m.created_at?.toISOString() ?? new Date().toISOString(),
       product_name: m.products.name,
@@ -87,6 +87,7 @@ export interface MonitoringStockRow {
   stockAkhir: number
   stockOpname: number | null
   qtyRetur: number
+  penyesuaian: number
 }
 
 export async function getMonitoringStockReport(params: {
@@ -105,6 +106,8 @@ export async function getMonitoringStockReport(params: {
         sku: true,
         name: true,
         stock: true,
+        purchase_price: true,
+        price: true,
       },
       orderBy: { name: 'asc' },
     })
@@ -116,6 +119,58 @@ export async function getMonitoringStockReport(params: {
       },
       orderBy: { id: 'asc' },
     })
+
+    // Get all sold items in range to calculate actual revenue
+    const soldItems = await prisma.order_items.findMany({
+      where: {
+        orders: {
+          payment_status: 'paid',
+          OR: [
+            { paid_at: { gte: start, lte: end } },
+            { paid_at: null, ordered_at: { gte: start, lte: end } },
+          ],
+        },
+      },
+      select: {
+        product_id: true,
+        qty: true,
+        subtotal: true,
+        orders: {
+          select: {
+            paid_at: true,
+            ordered_at: true,
+          },
+        },
+      },
+    })
+
+    type SalesValuation = {
+      m1: number
+      m2: number
+      m3: number
+      m4: number
+      m5: number
+      totPenjualan: number
+    }
+    const salesMap = new Map<number, SalesValuation>()
+
+    for (const item of soldItems) {
+      const pid = Number(item.product_id)
+      const orderDate = (item.orders.paid_at ?? item.orders.ordered_at) as Date
+      const day = orderDate.getDate()
+      const subtotal = Number(item.subtotal ?? 0)
+
+      if (!salesMap.has(pid)) {
+        salesMap.set(pid, { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, totPenjualan: 0 })
+      }
+      const val = salesMap.get(pid)!
+      val.totPenjualan += subtotal
+      if (day <= 7)       val.m1 += subtotal
+      else if (day <= 14) val.m2 += subtotal
+      else if (day <= 21) val.m3 += subtotal
+      else if (day <= 28) val.m4 += subtotal
+      else                val.m5 += subtotal
+    }
 
     // Get all approved stock opname details in range
     const opnameDetails = await prisma.stock_opname_details.findMany({
@@ -143,7 +198,7 @@ export async function getMonitoringStockReport(params: {
 
     // Map of latest opname qty physical per product
     const opnameMap = new Map<number, number>()
-    opnameDetails.forEach(od => {
+    opnameDetails.forEach((od: any) => {
       const pid = Number(od.product_id)
       if (!opnameMap.has(pid)) {
         opnameMap.set(pid, od.qty_physical)
@@ -152,7 +207,7 @@ export async function getMonitoringStockReport(params: {
 
     // Group movements by product
     const prodMovementsMap = new Map<number, typeof movements>()
-    movements.forEach(m => {
+    movements.forEach((m: any) => {
       const pid = Number(m.product_id)
       if (!prodMovementsMap.has(pid)) {
         prodMovementsMap.set(pid, [])
@@ -160,54 +215,62 @@ export async function getMonitoringStockReport(params: {
       prodMovementsMap.get(pid)!.push(m)
     })
 
-    const reportRows: MonitoringStockRow[] = products.map(p => {
+    const reportRows: MonitoringStockRow[] = products.map((p: any) => {
       const pid = Number(p.id)
       const pMovements = prodMovementsMap.get(pid) || []
+      const purchasePrice = Number(p.purchase_price || 0)
 
       // Calculate Stock Awal:
       // If there are movements in the range, the stock_before of the first movement
       // is the stock at the start. Otherwise, it is the current stock.
-      let stockAwal = p.stock
+      let stockAwalQty = p.stock
       if (pMovements.length > 0) {
-        stockAwal = pMovements[0].stock_before
+        stockAwalQty = pMovements[0].stock_before
       }
 
       // Calculate Stock Akhir:
       // If there are movements in the range, the stock_after of the last movement
       // is the stock at the end. Otherwise, it is equal to stockAwal.
-      let stockAkhir = stockAwal
+      let stockAkhirQty = stockAwalQty
       if (pMovements.length > 0) {
-        stockAkhir = pMovements[pMovements.length - 1].stock_after
+        stockAkhirQty = pMovements[pMovements.length - 1].stock_after
       }
 
-      let pembelian = 0
-      let qtyRetur = 0
-      let m1 = 0
-      let m2 = 0
-      let m3 = 0
-      let m4 = 0
-      let m5 = 0
+      let pembelianQty = 0
+      let qtyReturQty = 0
+      let adjustmentQty = 0
 
-      pMovements.forEach(m => {
+      pMovements.forEach((m: any) => {
         const qty = m.qty
-        const date = m.created_at ? new Date(m.created_at) : new Date()
-        const day = date.getDate()
 
         if (m.type === 'in') {
-          pembelian += qty
+          pembelianQty += qty
         } else if (m.type === 'return') {
-          qtyRetur += qty
-        } else if (m.type === 'out') {
-          if (day <= 7) m1 += qty
-          else if (day <= 14) m2 += qty
-          else if (day <= 21) m3 += qty
-          else if (day <= 28) m4 += qty
-          else m5 += qty
+          qtyReturQty += qty
+        } else if (m.type === 'adjustment') {
+          adjustmentQty += qty
         }
       })
 
-      const totPenjualan = m1 + m2 + m3 + m4 + m5
-      const stockOpname = opnameMap.get(pid) ?? null
+      const stockOpnameQty = opnameMap.get(pid) ?? null
+
+      // Convert quantities to financial values
+      const stockAwal = stockAwalQty * purchasePrice
+      const pembelian = pembelianQty * purchasePrice
+      
+      // Pull actual historical sales from salesMap
+      const salesVal = salesMap.get(pid) ?? { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, totPenjualan: 0 }
+      const m1 = salesVal.m1
+      const m2 = salesVal.m2
+      const m3 = salesVal.m3
+      const m4 = salesVal.m4
+      const m5 = salesVal.m5
+      const totPenjualan = salesVal.totPenjualan
+
+      const stockAkhir = stockAkhirQty * purchasePrice
+      const stockOpname = stockOpnameQty !== null ? stockOpnameQty * purchasePrice : null
+      const qtyRetur = qtyReturQty * purchasePrice
+      const penyesuaian = adjustmentQty * purchasePrice
 
       return {
         productId: pid,
@@ -224,6 +287,7 @@ export async function getMonitoringStockReport(params: {
         stockAkhir,
         stockOpname,
         qtyRetur,
+        penyesuaian,
       }
     })
 

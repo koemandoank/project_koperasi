@@ -46,15 +46,16 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
     const file = e.target.files[0]
     const fd = new FormData()
     fd.append("file", file)
+    fd.append("folder", "koperasi/promotions")
     
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const data = await res.json()
-      if (data.success && data.path) {
-        setFormData(prev => ({ ...prev, image_url: data.path }))
+      if (data.url) {
+        setFormData(prev => ({ ...prev, image_url: data.url }))
         toast.success("Gambar berhasil diunggah")
       } else {
-        toast.error("Gagal mengunggah gambar")
+        toast.error(data.error ?? "Gagal mengunggah gambar")
       }
     } catch {
       toast.error("Terjadi kesalahan saat unggah")
@@ -81,7 +82,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
       if (editingPromotion) {
         const updated = await updatePromotion(editingPromotion.id, formData)
         if (updated) {
-          setPromotions(promotions.map(p => p.id === editingPromotion.id ? updated : p))
+          setPromotions(promotions.map((p: any) => p.id === editingPromotion.id ? updated : p))
           toast.success("Promosi berhasil diperbarui")
         }
       } else {
@@ -115,7 +116,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
     // Diganti dengan penghapusan langsung sementara atau bisa ditambahkan konfirmasi non-blocking
     const success = await deletePromotion(id)
     if (success) {
-      setPromotions(promotions.filter(p => p.id !== id))
+      setPromotions(promotions.filter((p: any) => p.id !== id))
       toast.success("Promosi berhasil dihapus")
     } else {
       toast.error("Gagal menghapus promosi")
@@ -239,7 +240,7 @@ export function PromotionsManager({ initialPromotions }: { initialPromotions: Pr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {promotions.map((promotion) => (
+              {promotions.map((promotion: any) => (
                 <TableRow key={promotion.id}>
                   <TableCell className="font-medium">{promotion.title}</TableCell>
                   <TableCell>

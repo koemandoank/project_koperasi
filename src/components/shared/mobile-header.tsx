@@ -6,19 +6,20 @@
  * A compact sticky header for mobile screens showing:
  * - Back button (when not on a root page)
  * - Page title (resolved from pathname)
- * - Notification bell + profile avatar
+ * - Notification bell (with real-time polling, sound, and shake animation) + profile avatar
  *
  * Hidden on desktop (md+).
  *
  * @param user - Session user object
- * @param notifications - Array of notification objects
+ * @param notifications - Initial array of notification objects (from server)
  */
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { ChevronLeft, Bell, User as UserIcon, CreditCard, ShoppingBag, X } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { getNotifications } from "@/lib/actions/member-portal"
 
 // ─────────────────────────────────────────────
 // Page Title Map — maps pathname prefix → display title
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils"
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard/home":          "Beranda",
-  "/dashboard":               "Dashboard",
+  "/dashboard":               "Transaksi",
   "/anggota":                 "Data Anggota",
   "/akun":                    "Data Akun",
   "/simpanan":                "Simpanan",
@@ -42,17 +43,25 @@ const PAGE_TITLES: Record<string, string> = {
   "/toko/konsinyasi":         "Konsinyasi",
   "/toko":                    "Belanja Online",
   "/pembelian":               "Pembelian / PO",
-  "/keuangan":                "Hutang & Piutang",
+  "/keuangan":                "Keuangan",
   "/laporan/harian":          "Laporan Harian",
-  "/laporan/analitik":        "Analitik & P&L",
+  "/laporan/analitik":        "Laporan Keuangan",
   "/laporan/po-konsinyasi":   "Laporan PO & Konsinyasi",
   "/laporan/stok":            "Riwayat Stok",
-  "/laporan/potongan-gaji":   "Laporan Gaji",
+  "/laporan/potongan-gaji":   "Potongan Gaji",
+  "/laporan/partisipasi-anggota": "Partisipasi Anggota RAT",
+  "/akuntansi/transaksi":     "Transaksi",
+  "/akuntansi/anggaran":      "Anggaran",
+  "/akuntansi/aset-tetap":    "Aset Tetap",
   "/akuntansi/buku-besar":    "Buku Besar",
   "/akuntansi/tutup-buku":    "Tutup Buku",
-  "/pengaturan/shu":          "Pengaturan SHU",
+  "/akuntansi/laporan-keuangan": "Laporan Keuangan RAT",
+  "/akuntansi/pembagian-shu": "Penyaluran SHU RAT",
+  "/pengaturan/shu":          "SHU & Distribusi",
   "/pengaturan/promosi":      "Promosi",
   "/pengaturan/dashboard-anggota": "Dashboard Anggota",
+  "/pengaturan/kop-surat":    "Kop & TTD Laporan",
+  "/pengaturan/cache":        "Manajemen Cache",
   "/pengaturan":              "Pengaturan",
   "/profil":                  "Profil Saya",
   "/log":                     "Log Aktivitas",
@@ -82,20 +91,92 @@ function resolveTitle(pathname: string): string {
 }
 
 // ─────────────────────────────────────────────
+// Web Audio API — efek chime double-beep premium
+// ─────────────────────────────────────────────
+function playNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContext) return
+    const ctx = new AudioContext()
+
+    const playTone = (freq: number, startTime: number, duration: number, gainVal: number) => {
+      const oscillator = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+      oscillator.connect(gainNode)
+      gainNode.connect(ctx.destination)
+      oscillator.type = "sine"
+      oscillator.frequency.setValueAtTime(freq, startTime)
+      gainNode.gain.setValueAtTime(0, startTime)
+      gainNode.gain.linearRampToValueAtTime(gainVal, startTime + 0.02)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration)
+      oscillator.start(startTime)
+      oscillator.stop(startTime + duration)
+    }
+
+    const now = ctx.currentTime
+    playTone(587.33, now, 0.35, 0.25)
+    playTone(783.99, now + 0.18, 0.45, 0.2)
+  } catch {
+    // Browser tidak support — abaikan
+  }
+}
+
+// ─────────────────────────────────────────────
+// Type
+// ─────────────────────────────────────────────
+type Notification = { type: string; message: string; count: number; href: string }
+
+// ─────────────────────────────────────────────
+// Hook: polling notifikasi setiap 15 detik
+// ─────────────────────────────────────────────
+function useNotificationPolling(initialNotifications: Notification[]) {
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
+  const [hasNew, setHasNew] = useState(false)
+  const prevCountRef = useRef(initialNotifications.reduce((s, n) => s + n.count, 0))
+
+  const poll = useCallback(async () => {
+    try {
+      const fresh = await getNotifications()
+      const freshCount = fresh.reduce((s, n) => s + n.count, 0)
+      const prevCount = prevCountRef.current
+
+      if (freshCount > prevCount) {
+        setHasNew(true)
+        playNotificationSound()
+        setTimeout(() => setHasNew(false), 1000)
+      }
+
+      prevCountRef.current = freshCount
+      setNotifications(fresh)
+    } catch {
+      // Gagal poll — biarkan data lama tetap tampil
+    }
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(poll, 15_000)
+    return () => clearInterval(interval)
+  }, [poll])
+
+  return { notifications, hasNew }
+}
+
+// ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
 
 export function MobileHeader({
   user,
-  notifications,
+  notifications: initialNotifications,
 }: {
   user: any
-  notifications: Array<{ type: string; message: string; count: number; href: string }>
+  notifications: Notification[]
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const [notifOpen, setNotifOpen] = useState(false)
 
+  const { notifications, hasNew } = useNotificationPolling(initialNotifications)
   const totalNotif = notifications.reduce((s, n) => s + n.count, 0)
   const title = resolveTitle(pathname)
   const isRoot = ROOT_PATHS.has(pathname)
@@ -136,8 +217,8 @@ export function MobileHeader({
                 <ChevronLeft className="h-6 w-6 text-slate-700 dark:text-slate-300" />
               </button>
             ) : (
-              <div className="h-8 w-8 rounded-lg overflow-hidden ml-2">
-                <img src="/icon.jpg" alt="Logo" className="h-full w-full object-cover" />
+              <div className="h-8 w-8 rounded-lg overflow-hidden ml-2 flex items-center justify-center bg-slate-50 p-0.5">
+                <img src="/koperasi.png" alt="Logo" className="h-full w-full object-contain" />
               </div>
             )}
           </div>
@@ -156,7 +237,13 @@ export function MobileHeader({
                 aria-label="Notifikasi"
                 className="flex items-center justify-center h-12 w-12 rounded-full active:bg-slate-100 dark:active:bg-slate-800 transition-colors relative"
               >
-                <Bell className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                <Bell
+                  className={cn(
+                    "h-5 w-5 transition-colors",
+                    totalNotif > 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400",
+                    hasNew ? "animate-bell-ring" : totalNotif > 0 ? "animate-bell-shake" : ""
+                  )}
+                />
                 {totalNotif > 0 && (
                   <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-red-500 border border-white dark:border-slate-950" />
                 )}

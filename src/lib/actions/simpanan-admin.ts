@@ -1,9 +1,14 @@
 "use server"
 
 import { prisma } from "@/lib/db/prisma"
+import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 export async function getAdminSimpananData() {
   try {
+     const session = await auth()
+     if (!session?.user?.id) return null
+     await checkRole(["superadmin", "admin", "pengurus", "petugas_akuntan", "pengawas"], session)
     const totalBalance = await prisma.savings.aggregate({
       _sum: { balance: true }
     })
@@ -37,7 +42,7 @@ export async function getAdminSimpananData() {
     return {
       totalBalance: Number(totalBalance._sum.balance || 0),
       activeMembers,
-      recentTransactions: recentTransactions.map(t => ({
+      recentTransactions: recentTransactions.map((t: any) => ({
         id: Number(t.id),
         member_name: t.savings?.members?.full_name || "-",
         member_code: t.savings?.members?.member_code || "-",
@@ -47,8 +52,8 @@ export async function getAdminSimpananData() {
         transaction_at: t.transaction_at.toISOString(),
         saving_type: t.savings?.saving_types?.name || "-"
       })),
-      groupedSavings: groupedSavings.map(g => ({
-        type_name: types.find(t => t.id === g.saving_type_id)?.name || "Lainnya",
+      groupedSavings: groupedSavings.map((g: any) => ({
+        type_name: types.find((t: any) => t.id === g.saving_type_id)?.name || "Lainnya",
         total: Number(g._sum.balance || 0)
       }))
     }

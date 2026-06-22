@@ -6,9 +6,17 @@ export const metadata = {
   title: "Data Akun User | Koperasi",
 };
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const session = await auth();
-  const users = await getUsers();
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || "1"));
+  const pageSize = 20;
+
+  const result = await getUsers(page, pageSize);
 
   return (
     <div className="p-6 space-y-6">
@@ -19,7 +27,11 @@ export default async function UsersPage() {
         </p>
       </div>
 
-      <UsersClient initialUsers={users} currentRole={session?.user?.role || ""} />
+      <UsersClient
+        initialUsers={result.data}
+        currentRole={session?.user?.role || ""}
+        pagination={result.pagination}
+      />
     </div>
   );
 }

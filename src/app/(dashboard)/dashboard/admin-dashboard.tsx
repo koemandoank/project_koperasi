@@ -12,10 +12,13 @@ const shuData = [
   { name: "2024", amount: 12000 },
 ]
 
-export function AdminDashboard() {
+export function AdminDashboard({ companyName = "Koperasi" }: { companyName?: string }) {
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Admin</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">{companyName}</h1>
+        <p className="text-sm text-muted-foreground font-medium">Dashboard Admin</p>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -85,7 +88,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {['Token Listrik 100k', 'Beras Premium 5kg', 'Minyak Goreng 2L', 'Paket Data Telkomsel'].map((item, i) => (
+              {['Token Listrik 100k', 'Beras Premium 5kg', 'Minyak Goreng 2L', 'Paket Data Telkomsel'].map((item: any, i: any) => (
                 <div key={item} className="flex items-center">
                   <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium leading-none">{item}</p>

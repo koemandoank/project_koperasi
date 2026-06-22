@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
 import { authConfig } from "./auth.config";
 import { z } from "zod";
+import crypto from "crypto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal helper: tulis audit log login/logout langsung via Prisma.
@@ -59,7 +60,7 @@ async function writeLoginAudit({
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 }, // absolute max 24 jam; idle 1 jam ditangani di authorized callback
   providers: [
     Credentials({
       async authorize(credentials) {
@@ -112,6 +113,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
+        // Generate new session token for single-session restriction
+        const sessionToken = crypto.randomUUID();
+        
+        // Save the new session token to DB
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            remember_token: sessionToken,
+            last_login_at: new Date()
+          }
+        });
+
         // Login berhasil — catat ke audit log
         await writeLoginAudit({
           userId:   user.id,
@@ -125,11 +138,58 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.members?.full_name || user.username,
           email: user.email,
           role: user.role,
+          sessionToken,
         }
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      if (user) {
+        const u = user as { role?: unknown; id?: unknown; sessionToken?: string };
+        if (u.role !== undefined) token.role = String(u.role);
+        if (u.id !== undefined) {
+          token.id = String(u.id);
+          token.sub = String(u.id);
+        }
+        if (u.sessionToken !== undefined) {
+          token.sessionToken = u.sessionToken;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = String(token.id);
+      } else if (session.user && token.sub) {
+        session.user.id = String(token.sub);
+      }
+      if (session.user && token.role) {
+        session.user.role = String(token.role);
+      }
+      if (session.user && token.sessionToken) {
+        session.user.sessionToken = String(token.sessionToken);
+      }
 
-  // Note: Logout tracking di NextAuth v5 tidak dapat dilakukan via callbacks.
-  // Logout audit harus ditambahkan di sisi Server Action jika dibutuhkan.
+      // Single Session Guard
+      if (session.user && session.user.id && token.sessionToken) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: BigInt(session.user.id) },
+            select: { remember_token: true }
+          });
+          
+          if (dbUser && dbUser.remember_token && dbUser.remember_token !== token.sessionToken) {
+            console.log(`[Session Guard] Session token mismatch for user ${session.user.id}. Invalidating session.`);
+            return {} as any; // Returns empty session, next-auth treats as unauthenticated
+          }
+        } catch (error) {
+          console.error("[Session Guard] Database query failed:", error);
+        }
+      }
+
+      return session;
+    }
+  }
 })

@@ -10,7 +10,7 @@ export default async function KeuanganPage() {
   ]);
 
   const serializeAP = (aps: any[]) =>
-    aps.map((ap) => ({
+    aps.map((ap: any) => ({
       id: Number(ap.id),
       invoice_no: ap.invoice_no,
       supplier_name: ap.suppliers?.supplier_name ?? "-",
@@ -23,7 +23,7 @@ export default async function KeuanganPage() {
     }));
 
   const serializeAR = (ars: any[]) =>
-    ars.map((ar) => ({
+    ars.map((ar: any) => ({
       id: Number(ar.id),
       invoice_no: ar.invoice_no,
       customer_name: ar.customer_name,
@@ -38,13 +38,13 @@ export default async function KeuanganPage() {
   const aps = apRes.success ? serializeAP(apRes.data as any[]) : [];
   const ars = arRes.success ? serializeAR(arRes.data as any[]) : [];
   const suppliers = suppliersRes.success
-    ? (suppliersRes.data as any[]).map((s) => ({ id: Number(s.id), name: s.supplier_name }))
+    ? (suppliersRes.data as any[]).map((s: any) => ({ id: Number(s.id), name: s.supplier_name }))
     : [];
 
   // Aging summary
   const today = new Date();
   const apAging = { current: 0, overdue: 0 };
-  aps.forEach((ap) => {
+  aps.forEach((ap: any) => {
     const diff = (today.getTime() - new Date(ap.due_date).getTime()) / 86400000;
     if (diff > 0) apAging.overdue += ap.amount_due;
     else apAging.current += ap.amount_due;

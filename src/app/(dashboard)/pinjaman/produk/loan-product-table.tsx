@@ -52,7 +52,7 @@ export function LoanProductTable({ products }: { products: {
                 </TableCell>
               </TableRow>
             )}
-            {products.map(p => (
+            {products.map((p: any) => (
               <TableRow key={p.id}>
                 <TableCell className="font-mono font-semibold">{p.code}</TableCell>
                 <TableCell className="font-medium">{p.name}</TableCell>
@@ -97,7 +97,7 @@ export function LoanProductTable({ products }: { products: {
             Belum ada data produk pinjaman.
           </div>
         )}
-        {products.map(p => (
+        {products.map((p: any) => (
           <div
             key={p.id}
             className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 ${

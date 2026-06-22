@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 
@@ -23,12 +24,15 @@ export async function createAccountsPayable(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create accounts payable
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
     // Calculate subtotal from items
-    const subtotal = items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0)
-    const apItems = items.map(i => ({
+    const subtotal = items.reduce((sum: any, item: any) => sum + item.qty * item.unitPrice, 0)
+    const apItems = items.map((i: any) => ({
       description: i.description,
       qty: i.qty,
       unit_price: i.unitPrice,
@@ -188,11 +192,14 @@ export async function createAccountsReceivable(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create accounts receivable
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
     // Calculate totals
-    const subtotal = items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0)
+    const subtotal = items.reduce((sum: any, item: any) => sum + item.qty * item.unitPrice, 0)
     const taxAmount = subtotal * 0.1 // 10% PPN
     const totalAmount = subtotal + taxAmount
 
@@ -212,7 +219,7 @@ export async function createAccountsReceivable(
         notes,
         ar_details: {
           createMany: {
-            data: items.map(i => ({
+            data: items.map((i: any) => ({
               description: i.description,
               qty: i.qty,
               unit_price: i.unitPrice,
@@ -358,7 +365,7 @@ export async function getAPAgingSchedule(asOfDate: Date = new Date()) {
       days_90_plus: [] as any[],
     }
 
-    aps.forEach((ap) => {
+    aps.forEach((ap: any) => {
       const daysOverdue = Math.floor(
         (asOfDate.getTime() - ap.due_date.getTime()) / (1000 * 60 * 60 * 24)
       )
@@ -399,7 +406,7 @@ export async function getARAgingSchedule(asOfDate: Date = new Date()) {
       days_90_plus: [] as any[],
     }
 
-    ars.forEach((ar) => {
+    ars.forEach((ar: any) => {
       const daysOverdue = Math.floor(
         (asOfDate.getTime() - ar.due_date.getTime()) / (1000 * 60 * 60 * 24)
       )

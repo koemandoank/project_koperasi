@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 import {
   Home, Wallet, CreditCard, ShoppingBag, User,
   Store, FileText, Settings, BarChart3, Menu,
-  LayoutDashboard, Package, Truck, BookOpen
+  Package, BookOpen
 } from "lucide-react"
 
 // ─────────────────────────────────────────────
@@ -44,16 +44,17 @@ function getTabsForRole(role: string): NavTab[] {
   switch (role) {
     case "anggota":
       return [
-        { href: "/dashboard/home",   label: "Beranda",  icon: Home },
-        { href: "/simpanan",          label: "Simpanan", icon: Wallet },
-        { href: "/pinjaman",          label: "Pinjaman", icon: CreditCard },
-        { href: "/toko",              label: "Toko",     icon: ShoppingBag },
-        { href: "/profil",            label: "Profil",   icon: User },
+        { href: "/dashboard/home",                 label: "Beranda",   icon: Home },
+        { href: "/dashboard?forceDashboard=true",  label: "Transaksi", icon: BarChart3 },
+        { href: "/simpanan",                       label: "Simpanan",  icon: Wallet },
+        { href: "/pinjaman",                       label: "Pinjaman",  icon: CreditCard },
+        { href: "/toko",                           label: "Toko",      icon: ShoppingBag },
+        { href: "/profil",                         label: "Profil",    icon: User },
       ]
 
     case "kasir":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/toko/kasir",        label: "Kasir",    icon: Store, matchPrefixes: ["/toko/kasir"] },
         { href: "/toko/pesanan",      label: "Pesanan",  icon: Package },
         { href: "/laporan/harian",    label: "Laporan",  icon: FileText },
@@ -62,7 +63,7 @@ function getTabsForRole(role: string): NavTab[] {
 
     case "admin":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/anggota",           label: "Anggota",  icon: User },
         { href: "/toko/produk",       label: "Produk",   icon: Package },
         { href: "/laporan/analitik",  label: "Laporan",  icon: BarChart3 },
@@ -72,21 +73,21 @@ function getTabsForRole(role: string): NavTab[] {
     case "pengurus":
     case "ketua":
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: LayoutDashboard },
-        { href: "/toko",              label: "Toko",     icon: Store, matchPrefixes: ["/toko", "/pembelian"] },
-        { href: "/laporan/analitik",  label: "Analitik", icon: BarChart3 },
-        { href: "/akuntansi/buku-besar", label: "Akuntansi", icon: BookOpen },
-        { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
+        { href: "/dashboard/home",       label: "Beranda",  icon: Home },
+        { href: "/anggota",              label: "Anggota",  icon: User },
+        { href: "/pinjaman/approval",    label: "Approval", icon: BookOpen, matchPrefixes: ["/pinjaman"] },
+        { href: "/laporan/analitik",     label: "Analitik", icon: BarChart3 },
+        { href: "/pengaturan",           label: "Pengaturan", icon: Settings },
       ]
 
     case "superadmin":
     default:
       return [
-        { href: "/dashboard",         label: "Beranda",  icon: Home },
+        { href: "/dashboard/home",    label: "Beranda",  icon: Home },
         { href: "/anggota",           label: "Anggota",  icon: User },
         { href: "/laporan/analitik",  label: "Laporan",  icon: BarChart3 },
         { href: "/pengaturan",        label: "Pengaturan", icon: Settings },
-        { href: "/dashboard?forceDashboard=true", label: "Menu", icon: Menu },
+        { href: "/log",               label: "Log", icon: Menu },
       ]
   }
 }
@@ -108,23 +109,24 @@ export function BottomNav({ role }: { role: string }) {
         // Only show on mobile
         "md:hidden",
         // Background & border
-        "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl",
-        "border-t border-slate-200/80 dark:border-slate-800",
+        "bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl",
+        "border-t border-zinc-200/80 dark:border-zinc-800/80",
         // Shadow
-        "shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]",
+        "shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.04)]",
         // Safe area for notch/home indicator
         "pb-[env(safe-area-inset-bottom)]",
       )}
     >
       <div className="flex items-stretch h-16">
-        {tabs.map((tab) => {
+        {tabs.map((tab: any) => {
           const Icon = tab.icon
 
           // Active detection: exact match or prefix match
+          const hrefPath = tab.href.split("?")[0]
           const isActive =
-            pathname === tab.href ||
-            (tab.matchPrefixes?.some((p) => pathname.startsWith(p))) ||
-            (tab.href !== "/dashboard" && tab.href !== "/dashboard/home" && pathname.startsWith(tab.href + "/"))
+            pathname === hrefPath ||
+            (tab.matchPrefixes?.some((p: any) => pathname.startsWith(p))) ||
+            (hrefPath !== "/dashboard" && hrefPath !== "/dashboard/home" && pathname.startsWith(hrefPath + "/"))
 
           return (
             <Link
@@ -136,7 +138,7 @@ export function BottomNav({ role }: { role: string }) {
                 // Touch target
                 "min-h-12",
                 // Active press state
-                "active:bg-slate-50 dark:active:bg-slate-900",
+                "active:bg-zinc-50 dark:active:bg-zinc-900",
                 // Transition
                 "transition-all duration-150",
               )}
@@ -146,21 +148,21 @@ export function BottomNav({ role }: { role: string }) {
                   className={cn(
                     "h-5 w-5 transition-all duration-200",
                     isActive
-                      ? "text-blue-600 dark:text-blue-400 scale-110"
-                      : "text-slate-400 dark:text-slate-500"
+                      ? "text-primary scale-110"
+                      : "text-zinc-400 dark:text-zinc-500"
                   )}
                 />
                 {/* Active indicator dot */}
                 {isActive && (
-                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
                 )}
               </div>
               <span
                 className={cn(
                   "text-xs leading-tight font-medium transition-colors duration-200",
                   isActive
-                    ? "text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "text-primary font-semibold"
+                    : "text-zinc-400 dark:text-zinc-500"
                 )}
               >
                 {tab.label}

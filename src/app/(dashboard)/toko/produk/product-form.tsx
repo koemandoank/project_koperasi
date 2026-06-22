@@ -85,6 +85,7 @@ export function ProductForm({
     setUploadingImage(true)
     const fd = new FormData()
     fd.append("file", file)
+    fd.append("folder", "koperasi/products")
     const res = await fetch("/api/upload", { method: "POST", body: fd })
     const data = await res.json()
     if (data.url) {
@@ -195,7 +196,7 @@ export function ProductForm({
                   <Select value={formData.category_id} onValueChange={v => setFormData({...formData, category_id: v})}>
                     <SelectTrigger className="h-12"><SelectValue placeholder="Kategori" /></SelectTrigger>
                     <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                      {categories.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

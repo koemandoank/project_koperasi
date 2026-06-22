@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db/prisma"
 import { Prisma } from "@prisma/client"
+import { auth } from "@/auth"
+import { checkRole } from "@/lib/auth-helpers"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -133,6 +135,9 @@ const LOG_VISIBLE_ROLES = ["superadmin", "admin", "pengurus", "kasir"] as const
 export async function getAuditLogs(
   filters: AuditLogFilters
 ): Promise<AuditLogResult> {
+  const session = await auth()
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
+
   const PAGE_SIZE = 25
   const page = Math.max(1, filters.page ?? 1)
   const skip = (page - 1) * PAGE_SIZE
@@ -188,7 +193,7 @@ export async function getAuditLogs(
     ])
 
     // Filter search (nik / nama / username) — dilakukan in-memory setelah JOIN
-    let logs = rawLogs.map((log) => ({
+    let logs = rawLogs.map((log: any) => ({
       id: Number(log.id),
       action: log.action,
       model_type: log.model_type ?? "unknown",
@@ -213,7 +218,7 @@ export async function getAuditLogs(
     if (filters.search) {
       const q = filters.search.toLowerCase()
       logs = logs.filter(
-        (l) =>
+        (l: any) =>
           l.user?.username?.toLowerCase().includes(q) ||
           l.user?.full_name?.toLowerCase().includes(q) ||
           l.user?.nik?.toLowerCase().includes(q)
@@ -232,14 +237,17 @@ export async function getAuditLogs(
  */
 export async function getAuditCategories(): Promise<string[]> {
   try {
+    const session = await auth()
+    await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
+
     const types = await prisma.auditLog.findMany({
       select: { model_type: true },
       distinct: ["model_type"],
       where: { model_type: { not: null } },
     })
     const categories = [...new Set(
-      types.map((t) => resolveCategory(t.model_type ?? ""))
-    )]
+      types.map((t: any) => resolveCategory(t.model_type ?? ""))
+    )] as string[]
     return categories
   } catch {
     return []
@@ -265,6 +273,9 @@ export async function getRoleSummary(
   from?: string,
   to?: string
 ): Promise<RoleSummaryRow[]> {
+  const session = await auth()
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
+
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)
   const endDate   = to   ? new Date(to)   : now
@@ -348,6 +359,9 @@ export async function getTimelineSummary(
   to?: string,
   role?: string
 ): Promise<TimelineDayRow[]> {
+  const session = await auth()
+  await checkRole(["superadmin", "admin", "pengurus", "kasir"], session)
+
   const now = new Date()
   const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1)
   const endDate   = to   ? new Date(to)   : now

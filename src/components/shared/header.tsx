@@ -9,8 +9,8 @@ export async function Header({
   user: any
   settings: any
 }) {
-  // Fetch real notifications server-side
-  const notifications = await getNotifications(user?.role || "anggota")
+  // Fetch real notifications server-side (role dibaca dari session di dalam action)
+  const notifications = await getNotifications()
 
   return (
     <>

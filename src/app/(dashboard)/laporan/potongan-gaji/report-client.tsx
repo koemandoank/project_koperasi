@@ -7,13 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Download, FileText, Search, Filter, ChevronDown, ChevronRight } from "lucide-react"
+import { Download, FileText, Search, Filter, ChevronDown, ChevronRight, Play, AlertTriangle, Loader2, CheckCircle } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import { generatePdfHeader, generateExcelHeader } from "@/lib/report-helpers"
+import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 import type { MemberDeductionRow } from "@/lib/actions/reports"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { processMonthlyPayrollBatch } from "@/lib/actions/payroll"
+import { toast } from "sonner"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -23,7 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   pinjaman_uang:         "Pinjaman Uang",
   pinjaman_barang:       "Pinjaman Barang",
   pinjaman_kilat:        "Pinjaman Kilat",
-  paylater:              "Pay Later",
+  paylater:              "Bayar Tempo",
   simpanan_wajib:        "Simpanan Wajib",
   simpanan_salary_cut:   "Simpanan (Salary Cut)",
 }
@@ -93,7 +96,7 @@ function DetailRow({ row }: { row: MemberDeductionRow }) {
           <TableCell colSpan={11} className="px-8 py-3">
             <div className="space-y-1">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Detail Potongan</p>
-              {row.details.map((d, i) => (
+              {row.details.map((d: any, i: any) => (
                 <div key={i} className="flex items-center justify-between gap-4 text-xs py-1 border-b last:border-0 border-slate-100">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${CATEGORY_COLORS[d.category]}`}>
@@ -124,22 +127,52 @@ export function ReportClient({
   from,
   to,
   q,
+  templateConfig,
 }: {
   data: MemberDeductionRow[]
   from: string
   to: string
   q: string
+  templateConfig?: any
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(q)
   const [dateFrom, setDateFrom] = useState(from)
   const [dateTo, setDateTo] = useState(to)
 
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false)
+  const [processing, setProcessing] = useState(false)
+
+  const handleRunBatchPayroll = async () => {
+    if (!dateFrom || !dateTo) {
+      toast.error("Silakan tentukan rentang tanggal filter periode terlebih dahulu.")
+      return
+    }
+    setProcessing(true)
+    try {
+      const res = await processMonthlyPayrollBatch({
+        from: dateFrom,
+        to: dateTo,
+      })
+      if (res.success) {
+        toast.success(`Sukses memproses potongan gaji massal! SW diproses: ${res.savingsCount} orang (${fmt(res.savingsAmount)}), Angsuran diproses: ${res.loansCount} cicilan (${fmt(res.loansAmount)}).`)
+        setBatchDialogOpen(false)
+        router.refresh()
+      } else {
+        toast.error(res.error || "Gagal memproses potongan gaji massal bulanan.")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Terjadi kesalahan sistem saat memproses.")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const periodLabel = dateFrom && dateTo ? `${dateFrom} s/d ${dateTo}` : "Semua Waktu"
 
   // ── Summary totals ────────────────────────────────────────────────────────
-  const totals = data.reduce(
-    (acc, r) => ({
+  const totals = data.reduce((acc: any, r: any) => ({
       pinjaman_uang:       acc.pinjaman_uang + r.total_pinjaman_uang,
       pinjaman_barang:     acc.pinjaman_barang + r.total_pinjaman_barang,
       pinjaman_kilat:      acc.pinjaman_kilat + r.total_pinjaman_kilat,
@@ -193,17 +226,17 @@ export function ReportClient({
       { header: "Pin. Uang", key: "c1", width: 16 },
       { header: "Pin. Barang", key: "c2", width: 16 },
       { header: "Pin. Kilat", key: "c3", width: 16 },
-      { header: "Pay Later", key: "c4", width: 16 },
+      { header: "Bayar Tempo", key: "c4", width: 16 },
       { header: "Simp. Wajib", key: "c5", width: 16 },
       { header: "Simp. S.Cut", key: "c6", width: 16 },
       { header: "Total Potongan", key: "total", width: 18 },
     ]
     ws.columns = COLS
 
-    const startRow = generateExcelHeader(ws, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, COLS.length)
+    const startRow = generateExcelHeader(ws, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, COLS.length, templateConfig)
 
     const hdrRow = ws.getRow(startRow)
-    hdrRow.values = COLS.map((c) => c.header)
+    hdrRow.values = COLS.map((c: any) => c.header)
     hdrRow.font = { bold: true, color: { argb: "FFFFFFFF" } }
     hdrRow.alignment = { horizontal: "center", vertical: "middle" }
     hdrRow.eachCell((cell) => {
@@ -213,23 +246,25 @@ export function ReportClient({
 
     const moneyFmt = '"Rp"#,##0;[Red]-"Rp"#,##0'
     let cur = startRow + 1
-    data.forEach((r, i) => {
+    data.forEach((r: any, i: any) => {
       const row = ws.getRow(cur++)
       row.values = { no: i + 1, nik: r.nik, name: r.name, dept: r.department, c1: r.total_pinjaman_uang, c2: r.total_pinjaman_barang, c3: r.total_pinjaman_kilat, c4: r.total_paylater, c5: r.total_simpanan_wajib, c6: r.total_simpanan_salary_cut, total: r.total_deduction }
-      ;["c1","c2","c3","c4","c5","c6","total"].forEach((k) => { row.getCell(k).numFmt = moneyFmt })
+      ;["c1","c2","c3","c4","c5","c6","total"].forEach((k: any) => { row.getCell(k).numFmt = moneyFmt })
       row.eachCell((cell) => { cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } } })
     })
 
     const totRow = ws.getRow(cur)
     totRow.values = { no: "", nik: "", name: "", dept: "TOTAL", c1: totals.pinjaman_uang, c2: totals.pinjaman_barang, c3: totals.pinjaman_kilat, c4: totals.paylater, c5: totals.simpanan_wajib, c6: totals.simpanan_salary_cut, total: totals.total }
     totRow.font = { bold: true }
-    ;["c1","c2","c3","c4","c5","c6","total"].forEach((k) => { totRow.getCell(k).numFmt = moneyFmt })
+    ;["c1","c2","c3","c4","c5","c6","total"].forEach((k: any) => { totRow.getCell(k).numFmt = moneyFmt })
     totRow.eachCell((cell, col) => {
       if (col >= 5) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } }
         cell.border = { top: { style: "double" }, left: { style: "thin" }, bottom: { style: "double" }, right: { style: "thin" } }
       }
     })
+
+    generateExcelFooter(ws, cur + 2, COLS.length, templateConfig)
 
     const buf = await wb.xlsx.writeBuffer()
     saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `Potongan_Gaji_${dateFrom || "all"}_${dateTo || "all"}.xlsx`)
@@ -238,9 +273,9 @@ export function ReportClient({
   // ── Export PDF ────────────────────────────────────────────────────────────
   const handleExportPDF = () => {
     const doc = new jsPDF({ orientation: "landscape" })
-    const startY = generatePdfHeader(doc, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel)
+    const startY = generatePdfHeader(doc, "LAPORAN POTONGAN GAJI KOPERASI", periodLabel, templateConfig)
 
-    const tableData = data.map((r, i) => [
+    const tableData = data.map((r: any, i: any) => [
       i + 1, r.nik, r.name, r.department,
       r.total_pinjaman_uang > 0 ? fmt(r.total_pinjaman_uang) : "-",
       r.total_pinjaman_barang > 0 ? fmt(r.total_pinjaman_barang) : "-",
@@ -259,7 +294,7 @@ export function ReportClient({
     // @ts-ignore
     autoTable(doc, {
       startY,
-      head: [["No", "NIK", "Nama", "Dept", "Pin.Uang", "Pin.Barang", "Pin.Kilat", "PayLater", "Simp.Wajib", "S.Cut", "Total"]],
+      head: [["No", "NIK", "Nama", "Dept", "Pin.Uang", "Pin.Barang", "Pin.Kilat", "Bayar Tempo", "Simp.Wajib", "S.Cut", "Total"]],
       body: tableData,
       theme: "grid",
       styles: { fontSize: 7, cellPadding: 2 },
@@ -268,6 +303,10 @@ export function ReportClient({
         if (d.row.index === tableData.length - 1 && d.section === "body") doc.setFont("helvetica", "bold")
       },
     })
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    generatePdfFooter(doc, finalY, templateConfig)
+
     doc.save(`Potongan_Gaji_${dateFrom || "all"}.pdf`)
   }
 
@@ -283,7 +322,7 @@ export function ReportClient({
           ["Pinjaman Uang",        totals.pinjaman_uang,       "bg-blue-50 border-blue-200 text-blue-700"],
           ["Pinjaman Barang",      totals.pinjaman_barang,     "bg-violet-50 border-violet-200 text-violet-700"],
           ["Pinjaman Kilat",       totals.pinjaman_kilat,      "bg-orange-50 border-orange-200 text-orange-700"],
-          ["Pay Later",            totals.paylater,            "bg-red-50 border-red-200 text-red-700"],
+          ["Bayar Tempo",            totals.paylater,            "bg-red-50 border-red-200 text-red-700"],
           ["Simpanan Wajib",       totals.simpanan_wajib,      "bg-emerald-50 border-emerald-200 text-emerald-700"],
           ["Simpanan Salary Cut",  totals.simpanan_salary_cut, "bg-teal-50 border-teal-200 text-teal-700"],
         ] as [string, number, string][]).map(([label, val, cls]) => (
@@ -334,7 +373,7 @@ export function ReportClient({
         </div>
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           <span className="text-xs text-muted-foreground flex items-center mr-2">Pilih Cepat:</span>
-          {(["hari", "minggu", "bulan"] as const).map((p) => (
+          {(["hari", "minggu", "bulan"] as const).map((p: any) => (
             <Button key={p} variant="outline" size="sm" className="h-8 text-xs capitalize" onClick={() => setPreset(p)}>
               {p === "hari" ? "Hari Ini" : p === "minggu" ? "Minggu Ini" : "Bulan Ini"}
             </Button>
@@ -346,6 +385,14 @@ export function ReportClient({
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-lg">Rincian per Anggota</h3>
         <div className="flex gap-2">
+          {totals.total > 0 && (
+            <Button
+              onClick={() => setBatchDialogOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold h-9 px-4 rounded-lg border-0 shadow-sm flex items-center gap-1.5"
+            >
+              <Play className="h-4 w-4" /> Proses Gaji Massal
+            </Button>
+          )}
           <Button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 h-9">
             <Download className="mr-2 h-4 w-4" /> Excel
           </Button>
@@ -367,7 +414,7 @@ export function ReportClient({
               <TableHead className="text-right text-xs text-blue-700">Pin. Uang</TableHead>
               <TableHead className="text-right text-xs text-violet-700">Pin. Barang</TableHead>
               <TableHead className="text-right text-xs text-orange-700">Pin. Kilat</TableHead>
-              <TableHead className="text-right text-xs text-red-700">Pay Later</TableHead>
+              <TableHead className="text-right text-xs text-red-700">Bayar Tempo</TableHead>
               <TableHead className="text-right text-xs text-emerald-700">Simp. Wajib</TableHead>
               <TableHead className="text-right text-xs text-teal-700">Simp. S.Cut</TableHead>
               <TableHead className="text-right text-xs font-bold">Total Potongan</TableHead>
@@ -382,7 +429,7 @@ export function ReportClient({
               </TableRow>
             ) : (
               <>
-                {data.map((row) => <DetailRow key={row.member_id} row={row} />)}
+                {data.map((row: any) => <DetailRow key={row.member_id} row={row} />)}
                 {/* Total Row */}
                 <TableRow className="bg-slate-100 dark:bg-slate-800 font-bold border-t-2">
                   <TableCell />
@@ -410,6 +457,93 @@ export function ReportClient({
         ))}
         <span className="text-[11px] text-muted-foreground flex items-center">← Klik baris untuk lihat detail</span>
       </div>
+
+      {/* ── Batch Payroll Dialog ───────────────────────────────────────── */}
+      <Dialog open={batchDialogOpen} onOpenChange={(open) => { if (!processing) setBatchDialogOpen(open) }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Play className="h-5 w-5 text-emerald-600 animate-pulse" />
+              Proses Potongan Gaji Massal
+            </DialogTitle>
+            <DialogDescription>
+              Mengeksekusi semua pemotongan gaji (Simpanan Wajib & Cicilan Pinjaman) secara massal untuk periode berjalan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ringkasan Potongan Periode Ini</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-slate-400">Periode</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{periodLabel}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Anggota</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{data.length} Orang</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Simpanan Wajib</p>
+                  <p className="font-bold text-emerald-600">{fmt(totals.simpanan_wajib)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Total Cicilan Pinjaman</p>
+                  <p className="font-bold text-blue-600">{fmt(totals.pinjaman_uang + totals.pinjaman_barang + totals.pinjaman_kilat)}</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-sm font-semibold text-slate-700">Total Keseluruhan</span>
+                <span className="text-base font-extrabold text-destructive">{fmt(totals.total)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800 dark:text-amber-350 leading-relaxed font-medium">
+                <strong>PENTING:</strong> Tindakan ini akan memotong gaji bulanan semua anggota terdaftar secara otomatis di sistem. Seluruh saldo tabungan anggota dan sisa pinjaman akan langsung ter-update secara instan.
+              </p>
+            </div>
+
+            {processing && (
+              <div className="flex flex-col items-center justify-center py-4 gap-2.5 bg-slate-50/50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800 rounded-xl">
+                <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+                <p className="text-xs font-semibold text-slate-500 animate-pulse">Menghubungkan ke server & memproses transaksi...</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2 gap-2 md:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-11"
+              onClick={() => setBatchDialogOpen(false)}
+              disabled={processing}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={processing}
+              className="h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold flex items-center gap-1.5 px-6 shadow-sm border-0"
+              onClick={handleRunBatchPayroll}
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Konfirmasi & Proses
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

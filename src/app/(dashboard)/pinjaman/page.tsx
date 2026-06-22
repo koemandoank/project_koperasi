@@ -1,10 +1,12 @@
 import { getMyPinjaman, getMyOrders } from "@/lib/actions/member-portal"
 import { getLoanProducts } from "@/lib/actions/loan-products"
+import { getAllLoans } from "@/lib/actions/loans"
 import { auth } from "@/auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CreditCard, ShoppingBag, Clock, CheckCircle, XCircle } from "lucide-react"
 import { MemberLoanForm } from "./member-loan-form"
+import { KelolaPinjamanClient } from "./kelola-pinjaman-client"
 import Link from "next/link"
 
 const formatRp = (v: number) =>
@@ -27,10 +29,16 @@ export default async function PinjamanPage() {
   const isAdmin = ["superadmin", "admin", "pengurus"].includes(session.user.role || "")
 
   if (isAdmin) {
+    const allLoans = await getAllLoans()
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold">Modul Pinjaman Anggota</h1>
-        <p className="text-muted-foreground mt-2">Untuk manajemen pinjaman, gunakan menu Master Pinjaman dan Approval Pinjaman di sidebar.</p>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Manajemen Pinjaman Anggota</h1>
+          <p className="text-muted-foreground mt-1">
+            Kelola saldo outstanding, tinjau jadwal angsuran, dan catat pelunasan cicilan anggota.
+          </p>
+        </div>
+        <KelolaPinjamanClient initialLoans={allLoans} />
       </div>
     )
   }
@@ -52,7 +60,7 @@ export default async function PinjamanPage() {
     )
   }
 
-  const activeLoanProducts = loanProducts.filter(p => p.is_active)
+  const activeLoanProducts = loanProducts.filter((p: { is_active: boolean | null }) => p.is_active)
 
   return (
     <div className="p-6 space-y-6">
@@ -75,7 +83,7 @@ export default async function PinjamanPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-mono font-semibold text-lg text-blue-700 dark:text-blue-400">
-                        {l.loan_applications?.loan_products?.name || "Pinjaman Uang"}
+                        {l.product?.name || l.loan_applications?.loan_products?.name || "Pinjaman"}
                       </p>
                       <p className="font-mono text-sm">{l.loan_no}</p>
                       <p className="text-sm text-muted-foreground mt-1">
@@ -112,7 +120,7 @@ export default async function PinjamanPage() {
       {/* Tagihan Paylater Berjalan */}
       {data.paylater_debts && data.paylater_debts.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-semibold text-lg">Tagihan Paylater (Toko)</h2>
+          <h2 className="font-semibold text-lg">Tagihan Bayar Tempo (Toko)</h2>
           {data.paylater_debts.map((p: any) => (
             <Card key={p.id} className="border-l-4 border-l-amber-400">
               <CardContent className="pt-4">
@@ -152,17 +160,42 @@ export default async function PinjamanPage() {
           ) : (
             <div className="space-y-2">
               {data.applications.map((a: any) => (
-                <div key={a.id} className="flex justify-between items-center p-3 rounded-lg border">
-                  <div>
-                    <p className="font-mono text-sm font-semibold">{a.application_no}</p>
-                    <p className="text-xs text-muted-foreground">{a.product_name} — {formatRp(a.amount_requested)}</p>
+                <div key={a.id} className="block rounded-lg border overflow-hidden bg-white dark:bg-slate-900">
+                  <div className="flex justify-between items-center p-3">
+                    <div>
+                      <p className="font-mono text-sm font-semibold">{a.application_no}</p>
+                      <p className="text-xs text-muted-foreground">{a.product_name} — {formatRp(a.amount_requested)}</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={STATUS_MAP[a.status]?.cls}>{STATUS_MAP[a.status]?.label}</Badge>
+                      {a.status === "approved" && a.queue_number && (
+                        <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-450 mt-1">
+                          Antrean #{a.queue_number}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('id-ID') : "-"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge className={STATUS_MAP[a.status]?.cls}>{STATUS_MAP[a.status]?.label}</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString('id-ID') : "-"}
-                    </p>
-                  </div>
+                  {/* Warning on rule violations for pending */}
+                  {a.status === "pending" && a.rule_violations && a.rule_violations.length > 0 && (
+                    <div className="px-3 pb-3 pt-1 bg-red-50/50 dark:bg-red-950/10 border-t border-red-100/50 dark:border-red-900/20">
+                      {a.rule_violations.map((violation: string, idx: number) => (
+                        <p key={idx} className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                          ⚠️ {violation}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {/* Warning/Reason for rejected applications */}
+                  {a.status === "rejected" && a.rejection_note && (
+                    <div className="px-3 pb-3 pt-1 bg-red-50/50 dark:bg-red-950/10 border-t border-red-100/50 dark:border-red-900/20 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <p className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                        ❌ {a.rejection_note}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

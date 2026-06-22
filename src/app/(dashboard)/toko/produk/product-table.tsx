@@ -10,9 +10,11 @@
  * @param units - Unit options for product form
  * @param categories - Category options for product form
  * @param canEdit - Whether to show edit/delete controls (admin/pengurus only)
+ * @param pagination - Optional pagination metadata
  */
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -20,6 +22,7 @@ import { Edit, Trash2, Search, Package } from "lucide-react"
 import { deleteProduct } from "@/lib/actions/products"
 import { toast } from "sonner"
 import { ProductForm } from "./product-form"
+import { Pagination } from "@/components/ui/pagination"
 
 const formatRupiah = (val: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
@@ -28,16 +31,29 @@ export function ProductTable({
   products,
   units,
   categories,
-  canEdit = false
+  canEdit = false,
+  pagination,
 }: {
   products: any[]
   units: any[]
   categories: any[]
   canEdit?: boolean
+  pagination?: {
+    page: number
+    pages: number
+    total: number
+    pageSize: number
+    hasMore: boolean
+  }
 }) {
   const [search, setSearch] = useState("")
+  const router = useRouter()
 
-  const filteredProducts = products.filter(p =>
+  const handlePageChange = (newPage: number) => {
+    router.push(`/toko/produk?page=${newPage}`)
+  }
+
+  const filteredProducts = products.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.category_name || "").toLowerCase().includes(search.toLowerCase())
   )
@@ -75,7 +91,7 @@ export function ProductTable({
 
       {/* ── Card Grid (2-col on mobile, 3-col on md+) ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {filteredProducts.map((p) => (
+        {filteredProducts.map((p: any) => (
           <div
             key={p.id}
             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col"
@@ -158,6 +174,15 @@ export function ProductTable({
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <Pagination
+          page={pagination.page}
+          pages={pagination.pages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }

@@ -3,6 +3,17 @@
 import { prisma } from "@/lib/db/prisma"
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Configurations
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * KONFIGURASI SAKELAR FITUR (FEATURE TOGGLE)
+ * Setel ke `true` untuk mengaktifkan kalkulasi biaya transfer (B-TRSF) dari admin_fee pinjaman baru.
+ * Setel ke `false` untuk menonaktifkan kalkulasi B-TRSF saat ini (menampilkan strip "-").
+ */
+const ENABLE_TRANSFER_FEE = false
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -12,6 +23,8 @@ export interface DeductionDetail {
   reference: string
   installment_no: string | number
   amount: number
+  /** true = angka proyeksi (belum ada transaksi riil di DB); false/undefined = data historis nyata */
+  is_projected?: boolean
 }
 
 export interface MemberDeductionRow {
@@ -20,8 +33,12 @@ export interface MemberDeductionRow {
   name: string
   department: string
   total_pinjaman_uang: number
+  total_pinjaman_uang_interest: number
+  total_pinjaman_uang_transfer: number
   total_pinjaman_barang: number
+  total_pinjaman_barang_interest: number
   total_pinjaman_kilat: number
+  total_pinjaman_kilat_interest: number
   total_paylater: number
   total_simpanan_wajib: number
   total_simpanan_salary_cut: number
@@ -34,19 +51,41 @@ export interface MemberDeductionRow {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Klasifikasi produk pinjaman berdasarkan nama/kode produk.
- * Kategori: uang | barang | kilat (default ke uang jika tidak dikenali)
+ * Mengklasifikasikan kategori produk pinjaman berdasarkan kode master produk pinjaman.
+ * 
+ * Aturan Bisnis Pemetaan:
+ * - LP-002 -> Pinjaman Uang (pinjaman_uang)
+ * - LP-003 -> Pinjaman Kilat (pinjaman_kilat)
+ * - LP-001 -> Pinjaman Barang (pinjaman_barang)
+ * 
+ * @param {string} productName - Nama produk pinjaman untuk pencocokan fallback.
+ * @param {string} productCode - Kode produk pinjaman unik dari master data.
+ * @returns {DeductionDetail["category"]} Kategori klasifikasi pemotongan gaji anggota.
  */
 function classifyLoanProduct(productName: string, productCode: string): DeductionDetail["category"] {
-  const name = productName.toLowerCase()
-  const code = productCode.toLowerCase()
+  const code = productCode.trim().toUpperCase()
+  const name = productName.trim().toLowerCase()
 
-  if (name.includes("kilat") || code.includes("kilat") || code.startsWith("pkl")) {
+  // 1. Prioritas Utama: Pencocokan Exact-Match berdasarkan Kode Master Produk Pinjaman
+  if (code === "LP-002") {
+    return "pinjaman_uang"
+  }
+  if (code === "LP-003") {
     return "pinjaman_kilat"
   }
-  if (name.includes("barang") || code.includes("barang") || code.startsWith("pbrg")) {
+  if (code === "LP-001") {
     return "pinjaman_barang"
   }
+
+  // 2. Fallback Cadangan: Portabilitas Data Masa Lalu atau Kustom
+  if (name.includes("kilat") || code.includes("KILAT") || code.startsWith("PKL")) {
+    return "pinjaman_kilat"
+  }
+  if (name.includes("barang") || code.includes("BARANG") || code.startsWith("PBRG")) {
+    return "pinjaman_barang"
+  }
+
+  // Standar bawaan ke pinjaman uang jika tidak ada kecocokan
   return "pinjaman_uang"
 }
 
@@ -67,8 +106,12 @@ function ensureMember(
       name: fullName,
       department: unitName,
       total_pinjaman_uang: 0,
+      total_pinjaman_uang_interest: 0,
+      total_pinjaman_uang_transfer: 0,
       total_pinjaman_barang: 0,
+      total_pinjaman_barang_interest: 0,
       total_pinjaman_kilat: 0,
+      total_pinjaman_kilat_interest: 0,
       total_paylater: 0,
       total_simpanan_wajib: 0,
       total_simpanan_salary_cut: 0,
@@ -89,7 +132,7 @@ function ensureMember(
  *  1. Cicilan Pinjaman Uang (salary_cut)
  *  2. Cicilan Pinjaman Barang (salary_cut)
  *  3. Cicilan Pinjaman Kilat (salary_cut)
- *  4. Pay Later (toko, belum lunas)
+ *  4. Bayar Tempo (toko, belum lunas)
  *  5. Simpanan Wajib (monthly_amount dari saving_types.is_mandatory)
  *  6. Simpanan Sukarela Salary Cut (saving_transactions.type = salary_cut)
  *
@@ -125,9 +168,17 @@ export async function getMonthlyDeductionReport(
     // ── 1–3. CICILAN PINJAMAN (salary_cut) ────────────────────────────────────
     const loanSchedules = await prisma.loan_schedules.findMany({
       where: {
-        due_date: { gte: startDate, lte: endDate },
-        status: { in: ["pending", "partial", "overdue"] },
         loans: { repayment_method: "salary_cut" },
+        OR: [
+          {
+            due_date: { gte: startDate, lte: endDate },
+            status: { in: ["pending", "partial", "overdue"] },
+          },
+          {
+            paid_at: { gte: startDate, lte: endDate },
+            status: "paid",
+          }
+        ]
       },
       include: {
         loans: {
@@ -149,10 +200,12 @@ export async function getMonthlyDeductionReport(
       const product = loan.loan_applications?.loan_products
 
       const memberId = Number(loan.member_id)
-      const amountDue =
-        Number(schedule.total_due) -
-        Number(schedule.principal_paid) -
-        Number(schedule.interest_paid)
+      
+      const isPaid = schedule.status === "paid"
+      
+      const amountDue = isPaid
+        ? (Number(schedule.principal_paid) + Number(schedule.interest_paid))
+        : (Number(schedule.total_due) - Number(schedule.principal_paid) - Number(schedule.interest_paid))
 
       if (amountDue <= 0) continue
 
@@ -175,22 +228,76 @@ export async function getMonthlyDeductionReport(
         pinjaman_kilat: "Pinjaman Kilat",
       }
 
+      // Calculate principal and interest due remaining
+      const interestDueRemaining = isPaid
+        ? Number(schedule.interest_paid)
+        : Math.min(amountDue, Math.max(0, Number(schedule.interest_due) - Number(schedule.interest_paid)))
+      const principalDueRemaining = Math.max(0, amountDue - interestDueRemaining)
+
       row.details.push({
         category,
-        label: `${categoryLabels[category]} — Angsuran ke-${schedule.installment_no}`,
+        label: `${categoryLabels[category]} — Angsuran ke-${schedule.installment_no}${isPaid ? ' (Lunas)' : ''}`,
         reference: loan.loan_no,
         installment_no: schedule.installment_no,
         amount: amountDue,
       })
 
-      if (category === "pinjaman_uang") row.total_pinjaman_uang += amountDue
-      else if (category === "pinjaman_barang") row.total_pinjaman_barang += amountDue
-      else if (category === "pinjaman_kilat") row.total_pinjaman_kilat += amountDue
+      if (category === "pinjaman_uang") {
+        row.total_pinjaman_uang += principalDueRemaining
+        row.total_pinjaman_uang_interest += interestDueRemaining
+      } else if (category === "pinjaman_barang") {
+        row.total_pinjaman_barang += principalDueRemaining
+        row.total_pinjaman_barang_interest += interestDueRemaining
+      } else if (category === "pinjaman_kilat") {
+        row.total_pinjaman_kilat += principalDueRemaining
+        row.total_pinjaman_kilat_interest += interestDueRemaining
+      }
 
       row.total_deduction += amountDue
     }
 
-    // ── 4. PAY LATER ──────────────────────────────────────────────────────────
+    // ── 3.5. BIAYA TRANSFER PINJAMAN (admin_fee dari pinjaman baru di periode ini) ──
+    if (ENABLE_TRANSFER_FEE) {
+      const disbursedLoans = await prisma.loans.findMany({
+        where: {
+          disbursed_at: { gte: startDate, lte: endDate },
+          repayment_method: "salary_cut",
+          status: { in: ["active", "paid_off"] },
+        },
+        include: {
+          members: { include: { units: true } },
+        },
+      })
+
+      for (const loan of disbursedLoans) {
+        const adminFee = Number(loan.admin_fee)
+        if (adminFee <= 0) continue
+
+        const memberId = Number(loan.member_id)
+        const member = loan.members
+        
+        const row = ensureMember(
+          memberMap,
+          memberId,
+          member.nik,
+          member.full_name,
+          member.units?.name ?? "-"
+        )
+
+        row.total_pinjaman_uang_transfer += adminFee
+        row.total_deduction += adminFee
+
+        row.details.push({
+          category: "pinjaman_uang",
+          label: `Biaya Transfer Pinjaman — ${loan.loan_no}`,
+          reference: loan.loan_no,
+          installment_no: "TRF",
+          amount: adminFee,
+        })
+      }
+    }
+
+    // ── 4. BAYAR TEMPO ──────────────────────────────────────────────────────────
     const payLaterOrders = await prisma.orders.findMany({
       where: {
         payment_method: "paylater",
@@ -218,7 +325,7 @@ export async function getMonthlyDeductionReport(
 
       row.details.push({
         category: "paylater",
-        label: "Pay Later Toko",
+        label: "Bayar Tempo Toko",
         reference: order.order_no,
         installment_no: "-",
         amount,
@@ -266,6 +373,15 @@ export async function getMonthlyDeductionReport(
     }
 
     for (const saving of mandatorySavings) {
+      // Abaikan akun sistem yang bukan anggota koperasi asli
+      const isSystemAccount =
+        saving.members.nik.startsWith("ADM") ||
+        saving.members.nik.startsWith("SAD") ||
+        saving.members.nik.startsWith("KAS") ||
+        saving.members.nik.startsWith("PEN") ||
+        saving.members.nik.startsWith("KET")
+      if (isSystemAccount) continue
+
       const typeCode = saving.saving_types.code
       const joinDate = saving.members.join_date
       const monthlyAmount = Number(saving.saving_types.monthly_amount)
@@ -297,9 +413,9 @@ export async function getMonthlyDeductionReport(
       const pastActualAmount = swTransactionsMap.get(pastKey) || 0
       const pastCount = swTransactionsCountMap.get(pastKey) || 0
 
-      const projectedAmount = monthlyAmount * projectedMonths
-      const totalAmount = pastActualAmount + projectedAmount
-      const totalMonthsCount = pastCount + projectedMonths
+      const projectedAmount  = monthlyAmount * projectedMonths
+      const totalAmount       = pastActualAmount + projectedAmount
+      const totalMonthsCount  = pastCount + projectedMonths
 
       if (totalAmount <= 0) continue
 
@@ -311,16 +427,32 @@ export async function getMonthlyDeductionReport(
         saving.members.units?.name ?? "-"
       )
 
-      row.details.push({
-        category: "simpanan_wajib",
-        label: `Simpanan Wajib — ${saving.saving_types.name} (${totalMonthsCount} bln)`,
-        reference: saving.saving_types.code,
-        installment_no: "-",
-        amount: totalAmount,
-      })
+      // Baris historis (data riil dari DB)
+      if (pastActualAmount > 0) {
+        row.details.push({
+          category: "simpanan_wajib",
+          label: `Simpanan Wajib — ${saving.saving_types.name} (${pastCount} bln realisasi)`,
+          reference: saving.saving_types.code,
+          installment_no: "-",
+          amount: pastActualAmount,
+          is_projected: false,
+        })
+      }
+
+      // Baris proyeksi (bulan berjalan belum ada transaksi riil)
+      if (projectedAmount > 0) {
+        row.details.push({
+          category: "simpanan_wajib",
+          label: `Simpanan Wajib — ${saving.saving_types.name} (${projectedMonths} bln proyeksi)`,
+          reference: saving.saving_types.code,
+          installment_no: "-",
+          amount: projectedAmount,
+          is_projected: true,
+        })
+      }
 
       row.total_simpanan_wajib += totalAmount
-      row.total_deduction += totalAmount
+      row.total_deduction      += totalAmount
     }
 
     // ── 6. SIMPANAN SUKARELA SALARY CUT (opsi tambahan) ──────────────────────
@@ -372,7 +504,7 @@ export async function getMonthlyDeductionReport(
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(
-        (m) =>
+        (m: any) =>
           m.name.toLowerCase().includes(q) ||
           m.nik.toLowerCase().includes(q)
       )

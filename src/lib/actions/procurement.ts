@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db/prisma'
 import { auth } from '@/auth'
+import { checkRole } from '@/lib/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/actions/log-audit'
 
@@ -22,6 +23,9 @@ export async function createSupplier(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create suppliers
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -97,17 +101,20 @@ export async function createPurchaseOrder(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create purchase orders
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
     const supplierIdBigInt = BigInt(supplierId)
-    const itemsBigInt = items.map(item => ({
+    const itemsBigInt = items.map((item: any) => ({
       ...item,
       productId: BigInt(item.productId)
     }))
 
     const poNo = `PO-${Date.now()}`
-    const subtotal = items.reduce((sum, item) => sum + item.qtyOrdered * item.unitPrice, 0)
+    const subtotal = items.reduce((sum: any, item: any) => sum + item.qtyOrdered * item.unitPrice, 0)
     const taxAmount = subtotal * 0.1 // 10% PPN
     const totalAmount = subtotal + taxAmount
 
@@ -125,7 +132,7 @@ export async function createPurchaseOrder(
         created_by: BigInt(session.user.id),
         po_items: {
           createMany: {
-            data: itemsBigInt.map((item) => ({
+            data: itemsBigInt.map((item: any) => ({
               product_id: item.productId,
               qty_ordered: item.qtyOrdered,
               unit_price: item.unitPrice,
@@ -173,6 +180,9 @@ export async function createPurchaseOrder(
 
 export async function approvePurchaseOrder(poId: number) {
   try {
+    // SECURITY FIX: Only admin/pengurus can approve purchase orders
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -240,7 +250,7 @@ export async function getPOItemsForReceipt(poId: number) {
         id: Number(po.id),
         po_no: po.po_no,
         supplier_name: po.suppliers?.supplier_name ?? '-',
-        items: po.po_items.map(item => ({
+        items: po.po_items.map((item: any) => ({
           id:            Number(item.id),
           product_id:    Number(item.product_id),
           product_name:  item.products?.name ?? '-',
@@ -284,13 +294,13 @@ export async function receiveGoodsFromPO(
     const poIdBigInt = BigInt(poId)
     const supplierIdBigInt = BigInt(supplierId)
     const userId = BigInt(session.user.id)
-    const itemsBigInt = items.map(i => ({ ...i, productId: BigInt(i.productId) }))
+    const itemsBigInt = items.map((i: any) => ({ ...i, productId: BigInt(i.productId) }))
     const grNo   = `GR-${Date.now()}`
     const today  = new Date()
 
     // Determine GR status based on rejections
-    const hasRejections  = itemsBigInt.some(i => i.qtyRejected > 0)
-    const allRejected    = itemsBigInt.every(i => i.qtyAccepted === 0)
+    const hasRejections  = itemsBigInt.some((i: any) => i.qtyRejected > 0)
+    const allRejected    = itemsBigInt.every((i: any) => i.qtyAccepted === 0)
     const grStatus: "received" | "partially_accepted" | "rejected" =
       allRejected ? 'rejected' : hasRejections ? 'partially_accepted' : 'received'
 
@@ -300,7 +310,18 @@ export async function receiveGoodsFromPO(
       orderBy: { id: 'asc' },
     })
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
+      // 0. Pre-load semua product data sekaligus SEBELUM loop
+      //    agar tidak ada serial findUnique per-item di dalam transaksi
+      const productIds = itemsBigInt.map((i: any) => i.productId)
+      const productsBatch = await tx.products.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, stock: true },
+      })
+      const productMap = new Map<string, { id: bigint; stock: number }>(
+        productsBatch.map((p: any) => [p.id.toString(), { id: p.id, stock: Number(p.stock ?? 0) }])
+      )
+
       // 1. Create Good Receipt header
       const gr = await tx.good_receipts.create({
         data: {
@@ -313,7 +334,7 @@ export async function receiveGoodsFromPO(
           notes,
           gr_items: {
             createMany: {
-              data: itemsBigInt.map(item => ({
+              data: itemsBigInt.map((item: any) => ({
                 product_id:   item.productId,
                 qty_received: item.qtyReceived,
                 qty_accepted: item.qtyAccepted,
@@ -325,12 +346,13 @@ export async function receiveGoodsFromPO(
         },
       })
 
-      // 2. For each accepted item: update products.stock, stock_balances, stock_movements
+      // 2. Untuk setiap item yang diterima: update stok, stock_balances, stock_movements
+      // Gunakan data dari productMap (sudah di-preload) agar tidak ada findUnique berulang
       for (const item of itemsBigInt) {
+        const productData = productMap.get(item.productId.toString())
+
         if (item.qtyAccepted > 0) {
-          // Get current product stock
-          const product = await tx.products.findUnique({ where: { id: item.productId } })
-          const stockBefore = product?.stock ?? 0
+          const stockBefore = productData?.stock ?? 0
           const stockAfter  = stockBefore + item.qtyAccepted
 
           // Update products.stock
@@ -338,6 +360,8 @@ export async function receiveGoodsFromPO(
             where: { id: item.productId },
             data:  { stock: stockAfter },
           })
+          // Update local cache agar perhitungan rejected tepat
+          if (productData) productData.stock = stockAfter
 
           // Upsert stock_balances (per location)
           if (defaultLocation) {
@@ -364,7 +388,7 @@ export async function receiveGoodsFromPO(
             })
           }
 
-          // Log stock_movements for accepted qty
+          // Log stock_movements untuk qty yang diterima
           await tx.stock_movements.create({
             data: {
               product_id:   item.productId,
@@ -375,14 +399,14 @@ export async function receiveGoodsFromPO(
               reference:    grNo,
               note:         `Penerimaan barang dari PO. GR: ${grNo}`,
               created_by:   userId,
+              created_at:   today,
             },
           })
         }
 
-        // 3. Log stock_movements for rejected/return qty
+        // 3. Log stock_movements untuk barang yang ditolak/retur
         if (item.qtyRejected > 0) {
-          const product = await tx.products.findUnique({ where: { id: item.productId } })
-          const stockNow = product?.stock ?? 0
+          const stockNow = productData?.stock ?? 0
           await tx.stock_movements.create({
             data: {
               product_id:   item.productId,
@@ -393,6 +417,7 @@ export async function receiveGoodsFromPO(
               reference:    grNo,
               note:         `Retur ke supplier. Alasan: ${item.rejectReason ?? 'Barang cacat/rusak'}. GR: ${grNo}`,
               created_by:   userId,
+              created_at:   today,
             },
           })
         }
@@ -410,8 +435,8 @@ export async function receiveGoodsFromPO(
       const allPoItems = await tx.purchase_order_items.findMany({
         where: { po_id: poIdBigInt }
       })
-      const totalOrdered = allPoItems.reduce((acc, poi) => acc + poi.qty_ordered, 0)
-      const totalReceived = allPoItems.reduce((acc, poi) => acc + (poi.qty_received ?? 0), 0)
+      const totalOrdered = allPoItems.reduce((acc: any, poi: any) => acc + poi.qty_ordered, 0)
+      const totalReceived = allPoItems.reduce((acc: any, poi: any) => acc + (poi.qty_received ?? 0), 0)
 
       let poStatus: "received" | "partial_received" | "approved" = 'partial_received'
       if (totalReceived >= totalOrdered) {
@@ -432,7 +457,7 @@ export async function receiveGoodsFromPO(
       let apSubtotal = 0
       for (const item of itemsBigInt) {
         if (item.qtyAccepted > 0) {
-          const poItem = allPoItems.find(p => p.product_id === item.productId)
+          const poItem = allPoItems.find((p: any) => p.product_id === item.productId)
           if (poItem) {
             apSubtotal += item.qtyAccepted * Number(poItem.unit_price)
           }
@@ -467,6 +492,9 @@ export async function receiveGoodsFromPO(
       }
 
       return gr
+    }, {
+      timeout: 30000,  // 30 detik — cukup untuk PO dengan banyak item
+      maxWait: 10000,  // tunggu slot koneksi maksimal 10 detik
     })
 
     await logAudit({
@@ -478,8 +506,8 @@ export async function receiveGoodsFromPO(
         po_id:        poId,
         status:       grStatus,
         items_count:  items.length,
-        total_accepted: items.reduce((s, i) => s + i.qtyAccepted, 0),
-        total_rejected: items.reduce((s, i) => s + i.qtyRejected, 0),
+        total_accepted: items.reduce((s: any, i: any) => s + i.qtyAccepted, 0),
+        total_rejected: items.reduce((s: any, i: any) => s + i.qtyRejected, 0),
         notes,
       },
     })
@@ -518,7 +546,7 @@ export async function getPurchaseOrders(
     })
 
     // Serialize all Decimal / BigInt fields to plain JS types
-    const serialized = pos.map(po => ({
+    const serialized = pos.map((po: any) => ({
       id:                Number(po.id),
       supplier_id:       Number(po.supplier_id),
       po_no:             po.po_no,
@@ -539,7 +567,7 @@ export async function getPurchaseOrders(
         supplier_name: po.suppliers.supplier_name,
         supplier_code: po.suppliers.supplier_code,
       } : null,
-      po_items: po.po_items.map(item => ({
+      po_items: po.po_items.map((item: any) => ({
         id:           Number(item.id),
         product_id:   Number(item.product_id),
         qty_ordered:  item.qty_ordered,
@@ -553,7 +581,7 @@ export async function getPurchaseOrders(
           purchase_price: Number(item.products.purchase_price),
         } : null,
       })),
-      good_receipts: po.good_receipts.map(gr => ({
+      good_receipts: po.good_receipts.map((gr: any) => ({
         id:      Number(gr.id),
         gr_no:   gr.gr_no,
         gr_date: gr.gr_date instanceof Date ? gr.gr_date.toISOString().split('T')[0] : String(gr.gr_date),
@@ -588,6 +616,9 @@ export async function createGoodReceipt(
   notes?: string
 ) {
   try {
+    // SECURITY FIX: Only admin/pengurus can create good receipts
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -604,7 +635,7 @@ export async function createGoodReceipt(
         notes,
         gr_items: {
           createMany: {
-            data: items.map((item) => ({
+            data: items.map((item: any) => ({
               product_id: item.productId,
               qty_received: item.qtyReceived,
               qty_accepted: item.qtyAccepted || item.qtyReceived,
@@ -626,7 +657,7 @@ export async function createGoodReceipt(
 
     // Update stock for accepted items
     await Promise.all(
-      items.map((item) =>
+      items.map((item: any) =>
         prisma.products.update({
           where: { id: item.productId },
           data: {
@@ -663,6 +694,9 @@ export async function createGoodReceipt(
 
 export async function approveGoodReceipt(grId: bigint) {
   try {
+    // SECURITY FIX: Only admin/pengurus can approve good receipts
+    await checkRole(["admin", "pengurus", "superadmin"]);
+    
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
@@ -758,7 +792,7 @@ export async function getSupplierPerformance(
     }
 
     let totalDays = 0
-    pos.forEach((po) => {
+    pos.forEach((po: any) => {
       const grs = po.good_receipts
       if (grs.length > 0) {
         const daysToDeliver = Math.floor(

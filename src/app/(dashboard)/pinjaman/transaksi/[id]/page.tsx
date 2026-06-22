@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { getLoanTransaction } from "@/lib/actions/loans"
 
 const formatRp = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -38,10 +39,9 @@ export default function LoanTransactionPage() {
   useEffect(() => {
     const fetchLoan = async () => {
       try {
-        const response = await fetch(`/api/loan-transaction/${loanId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setLoan(data)
+        const res = await getLoanTransaction(Number(loanId))
+        if (res.success && res.data) {
+          setLoan(res.data)
         }
       } catch (error) {
         console.error("Error fetching loan:", error)

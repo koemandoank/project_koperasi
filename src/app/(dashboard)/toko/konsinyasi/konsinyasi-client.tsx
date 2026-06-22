@@ -22,12 +22,12 @@ interface Item {
   supplier_id: number;
   supplier_name: string;
   qty_received: number;
-  qty_sold: number;
-  qty_unbilled: number;
+  qty_sold: number;     // terjual di POS (real-time dari stok aktual)
+  qty_billed: number;  // sudah dibuatkan tagihan ke supplier
+  qty_unbilled: number; // terjual tapi belum ditagih
   qty_returned: number;
   qty_remaining: number;
   unit_price: number;
-  margin_pct: number;
   status: string;
   return_reason: string | null;
   return_date: string | null;
@@ -38,17 +38,18 @@ interface Payable {
   id: number;
   supplier_id: number;
   supplier_name: string;
+  product_name: string;
   period_start: string;
   period_end: string;
   total_qty_sold: number;
+  unit_price: number;
   total_revenue: number;
-  margin_amount: number;
   payable_amount: number;
   status: string;
   settlements: any[];
 }
 
-export default function KonsinyasiClient({ items, payables, suppliers, products }: { items: Item[], payables: Payable[], suppliers: any[], products: any[] }) {
+export default function KonsinyasiClient({ items, payables, suppliers, products }: { items: Item[], payables: Payable[], suppliers: any[], products: { id: number; name: string; category: string; purchase_price: number }[] }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("stok")
   
@@ -88,6 +89,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
     if (res.success) {
       toast.success("Barang konsinyasi berhasil ditambahkan")
       setIsAddOpen(false)
+      setAddForm({ product_id: "", supplier_id: "", qty: "", price: "", date: new Date().toISOString().split("T")[0] })
+      router.refresh()
     } else {
       toast.error(res.error || "Gagal menambahkan")
     }
@@ -198,7 +201,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map(item => (
+                    {items.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.received_at}</TableCell>
                         <TableCell className="font-medium">{item.product_name}</TableCell>
@@ -276,7 +279,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     Tidak ada barang konsinyasi aktif
                   </div>
                 ) : (
-                  items.map(item => (
+                  items.map((item: any) => (
                     <div
                       key={item.id}
                       className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3"
@@ -374,8 +377,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payables.map(p => {
-                      const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
+                    {payables.map((p: any) => {
+                      const totalPaid = p.settlements.reduce((sum: any, s: any) => sum + s.amount_paid, 0);
                       return (
                         <TableRow key={p.id}>
                           <TableCell>{p.period_start} s/d {p.period_end}</TableCell>
@@ -413,8 +416,8 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                     Tidak ada tagihan konsinyasi
                   </div>
                 ) : (
-                  payables.map(p => {
-                    const totalPaid = p.settlements.reduce((sum, s) => sum + s.amount_paid, 0);
+                  payables.map((p: any) => {
+                    const totalPaid = p.settlements.reduce((sum: any, s: any) => sum + s.amount_paid, 0);
                     return (
                       <div
                         key={p.id}
@@ -478,7 +481,11 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                   <SelectValue placeholder="Pilih Produk" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                  {products.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name}{p.category ? ` — ${p.category}` : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -489,7 +496,7 @@ export default function KonsinyasiClient({ items, payables, suppliers, products 
                   <SelectValue placeholder="Pilih Supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
+                  {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.supplier_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

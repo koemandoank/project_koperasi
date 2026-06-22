@@ -29,6 +29,8 @@ async function main() {
     { username: 'superadmin', email: 'superadmin@kop.id',  role: 'superadmin' },
     { username: 'kasir01',    email: 'kasir01@kop.id',     role: 'kasir' },
     { username: 'pengurus01', email: 'pengurus01@kop.id',  role: 'pengurus' },
+    { username: 'akuntan01',  email: 'akuntan01@kop.id',   role: 'petugas_akuntan' },
+    { username: 'pengawas01', email: 'pengawas01@kop.id',  role: 'pengawas' },
   ]) {
     await prisma.user.upsert({
       where: { username: u.username }, update: { password: pwd },

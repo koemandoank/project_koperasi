@@ -1,0 +1,5 @@
+﻿=======================================================================
+=== KOPERASI DIGITAL SULFINDO ÔÇö SYSTEM COMPREHENSIVE AUDIT SCAN ===
+=======================================================================
+
+--- SCAN 1: Checking for Unbalanced Journals (Debit !== Credit) ---
