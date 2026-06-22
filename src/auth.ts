@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
@@ -59,7 +58,6 @@ async function writeLoginAudit({
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 24 * 60 * 60 }, // absolute max 24 jam; idle 1 jam ditangani di authorized callback
   providers: [
     Credentials({
