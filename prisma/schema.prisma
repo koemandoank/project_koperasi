@@ -1462,6 +1462,8 @@ enum users_role {
   pengurus
   kasir
   anggota
+  petugas_akuntan
+  pengawas
 }
 
 enum approval_requests_status {
