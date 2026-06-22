@@ -332,7 +332,7 @@ export async function receiveGoodsFromPO(
           status:      grStatus,
           received_by: userId,
           notes,
-          gr_items: {
+          good_receipt_items: {
             createMany: {
               data: itemsBigInt.map((item: any) => ({
                 product_id:   item.productId,
@@ -633,7 +633,7 @@ export async function createGoodReceipt(
         status: 'received',
         received_by: BigInt(session.user.id),
         notes,
-        gr_items: {
+        good_receipt_items: {
           createMany: {
             data: items.map((item: any) => ({
               product_id: item.productId,
@@ -646,7 +646,7 @@ export async function createGoodReceipt(
         },
       },
       include: {
-        gr_items: {
+        good_receipt_items: {
           include: {
             products: true,
           },
@@ -706,7 +706,7 @@ export async function approveGoodReceipt(grId: bigint) {
         status: 'accepted',
       },
       include: {
-        gr_items: true,
+        good_receipt_items: true,
       },
     })
 
@@ -742,7 +742,7 @@ export async function getGoodReceipts(
         ...(status && { status }),
       },
       include: {
-        gr_items: {
+        good_receipt_items: {
           include: {
             products: true,
           },
