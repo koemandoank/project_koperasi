@@ -13,7 +13,7 @@ async function main() {
   console.log('Start seeding...');
 
   // 1) Unit
-  const unit = await prisma.unit.upsert({
+  const unit = await prisma.units.upsert({
     where: { code: 'U-001' },
     update: {},
     create: {
@@ -31,7 +31,7 @@ async function main() {
 
 
   // 3) Admin user (superadmin)
-  await prisma.user.upsert({
+  await prisma.users.upsert({
     where: { username: 'admin' },
     update: {
       password: hashedPassword,
@@ -49,7 +49,7 @@ async function main() {
   });
 
   // 3b) Superadmin user baru
-  await prisma.user.upsert({
+  await prisma.users.upsert({
     where: { username: 'superadmin' },
     update: {
       password: hashedPassword,
@@ -68,7 +68,7 @@ async function main() {
   });
 
   // 3c) Akuntan user
-  await prisma.user.upsert({
+  await prisma.users.upsert({
     where: { username: 'akuntan01' },
     update: {
       password: hashedPassword,
@@ -87,7 +87,7 @@ async function main() {
   });
 
   // 3d) Pengawas user
-  await prisma.user.upsert({
+  await prisma.users.upsert({
     where: { username: 'pengawas01' },
     update: {
       password: hashedPassword,
@@ -126,7 +126,7 @@ async function main() {
     const phone = `08${String(100000000 + i).padStart(10, '0')}`;
     const username = `anggota${String(idx).padStart(2, '0')}`;
 
-    const member = await prisma.member.upsert({
+    const member = await prisma.members.upsert({
       where: { member_code },
       update: {
         nik, full_name, email, phone, status: 'active', unit_id: unit.id, updated_at: now,
@@ -137,7 +137,7 @@ async function main() {
       },
     });
 
-    await prisma.user.upsert({
+    await prisma.users.upsert({
       where: { member_id: member.id },
       update: {
         username, password: hashedPassword, role: 'anggota', is_active: true, updated_at: now,
