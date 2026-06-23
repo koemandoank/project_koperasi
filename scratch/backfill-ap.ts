@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 async function main() {
   const grs = await prisma.good_receipts.findMany({
     include: {
-      gr_items: true,
+      good_receipt_items: true,
       purchase_orders: { include: { po_items: true } },
       suppliers: true
     }
@@ -19,7 +19,7 @@ async function main() {
     if (existingAp) continue
 
     let apSubtotal = 0
-    for (const item of gr.gr_items) {
+    for (const item of gr.good_receipt_items) {
       if (item.qty_accepted > 0) {
         const poItem = gr.purchase_orders?.po_items.find(p => p.product_id === item.product_id)
         if (poItem) {

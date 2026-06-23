@@ -20,8 +20,8 @@ model accounts_payable {
   amount_due               Decimal                    @db.Decimal(15, 2)
   status                   accounts_payable_status    @default(open)
   notes                    String?                    @db.Text
-  created_at               DateTime?                  @db.Timestamp(0)
-  updated_at               DateTime?                  @db.Timestamp(0)
+  created_at               DateTime?                  @db.Timestamp()
+  updated_at               DateTime?                  @db.Timestamp()
   suppliers                suppliers                  @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "accounts_payable_supplier_foreign")
   accounts_payable_details accounts_payable_details[]
 
@@ -37,7 +37,7 @@ model accounts_payable_details {
   qty              Int              @default(1)
   unit_price       Decimal          @db.Decimal(15, 2)
   line_total       Decimal          @db.Decimal(15, 2)
-  created_at       DateTime?        @db.Timestamp(0)
+  created_at       DateTime?        @db.Timestamp()
   accounts_payable accounts_payable @relation(fields: [ap_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ap_details_ap_foreign")
   products         products?        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ap_details_product_foreign")
 
@@ -60,8 +60,8 @@ model accounts_receivable {
   status                      accounts_receivable_status    @default(open)
   credit_limit                Decimal?                      @db.Decimal(15, 2)
   notes                       String?                       @db.Text
-  created_at                  DateTime?                     @db.Timestamp(0)
-  updated_at                  DateTime?                     @db.Timestamp(0)
+  created_at                  DateTime?                     @db.Timestamp()
+  updated_at                  DateTime?                     @db.Timestamp()
   members                     members?                      @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "accounts_receivable_member_foreign")
   accounts_receivable_details accounts_receivable_details[]
 
@@ -77,7 +77,7 @@ model accounts_receivable_details {
   qty                 Int                 @default(1)
   unit_price          Decimal             @db.Decimal(15, 2)
   line_total          Decimal             @db.Decimal(15, 2)
-  created_at          DateTime?           @db.Timestamp(0)
+  created_at          DateTime?           @db.Timestamp()
   accounts_receivable accounts_receivable @relation(fields: [ar_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ar_details_ar_foreign")
   products            products?           @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "ar_details_product_foreign")
 
@@ -91,8 +91,8 @@ model app_settings {
   address      String?   @db.Text
   phone        String?   @db.VarChar(50)
   logo_url     String?   @default("/koperasi.png") @db.VarChar(255)
-  created_at   DateTime? @db.Timestamp(0)
-  updated_at   DateTime? @db.Timestamp(0)
+  created_at   DateTime? @db.Timestamp()
+  updated_at   DateTime? @db.Timestamp()
   shu_config   String?   @db.Text
   loan_rules   String?   @db.Text
 }
@@ -106,9 +106,9 @@ model approval_requests {
   current_level      Int                      @default(1)
   status             approval_requests_status @default(pending)
   rejection_reason   String?                  @db.Text
-  created_at         DateTime?                @db.Timestamp(0)
-  updated_at         DateTime?                @db.Timestamp(0)
-  approved_at        DateTime?                @db.Timestamp(0)
+  created_at         DateTime?                @db.Timestamp()
+  updated_at         DateTime?                @db.Timestamp()
+  approved_at        DateTime?                @db.Timestamp()
   approved_by        BigInt?                  
   approval_workflows approval_workflows       @relation(fields: [workflow_id], references: [id], onUpdate: NoAction, map: "approval_requests_workflow_foreign")
 
@@ -126,8 +126,8 @@ model approval_workflows {
   requires_approval Boolean                        @default(true)
   approval_levels   Int                            @default(1)
   is_active         Boolean                        @default(true)
-  created_at        DateTime?                      @db.Timestamp(0)
-  updated_at        DateTime?                      @db.Timestamp(0)
+  created_at        DateTime?                      @db.Timestamp()
+  updated_at        DateTime?                      @db.Timestamp()
   approval_requests approval_requests[]
 }
 
@@ -142,7 +142,7 @@ model audit_logs {
   ip_address String?  @db.VarChar(45)
   user_agent String?  @db.VarChar(255)
   url        String?  @db.VarChar(500)
-  created_at DateTime @db.Timestamp(0)
+  created_at DateTime @db.Timestamp()
   users      users?   @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "audit_logs_user_id_foreign")
 
   @@index([created_at])
@@ -174,10 +174,10 @@ model cash_register_sessions {
   difference       Decimal?                      @db.Decimal(15, 2)
   status           cash_register_sessions_status @default(open)
   notes            String?                       @db.Text
-  opened_at        DateTime                      @db.Timestamp(0)
-  closed_at        DateTime?                     @db.Timestamp(0)
-  created_at       DateTime?                     @db.Timestamp(0)
-  updated_at       DateTime?                     @db.Timestamp(0)
+  opened_at        DateTime                      @db.Timestamp()
+  closed_at        DateTime?                     @db.Timestamp()
+  created_at       DateTime?                     @db.Timestamp()
+  updated_at       DateTime?                     @db.Timestamp()
   cash_registers   cash_registers                @relation(fields: [cash_register_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cash_register_sessions_cash_register_id_foreign")
 
   @@unique([cash_register_id, session_date])
@@ -192,8 +192,8 @@ model cash_registers {
   register_name          String                   @db.VarChar(100)
   location               String?                  @db.VarChar(100)
   is_active              Boolean                  @default(true)
-  created_at             DateTime?                @db.Timestamp(0)
-  updated_at             DateTime?                @db.Timestamp(0)
+  created_at             DateTime?                @db.Timestamp()
+  updated_at             DateTime?                @db.Timestamp()
   cash_register_sessions cash_register_sessions[]
   units                  units                    @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "cash_registers_unit_id_foreign")
 
@@ -211,8 +211,8 @@ model chart_of_accounts {
   level                   Int                              @default(1) @db.SmallInt
   is_header               Boolean                          @default(false)
   is_active               Boolean                          @default(true)
-  created_at              DateTime?                        @db.Timestamp(0)
-  updated_at              DateTime?                        @db.Timestamp(0)
+  created_at              DateTime?                        @db.Timestamp()
+  updated_at              DateTime?                        @db.Timestamp()
   chart_of_accounts       chart_of_accounts?               @relation("chart_of_accountsTochart_of_accounts", fields: [parent_id], references: [id], onUpdate: NoAction, map: "chart_of_accounts_parent_id_foreign")
   other_chart_of_accounts chart_of_accounts[]              @relation("chart_of_accountsTochart_of_accounts")
   units                   units                            @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "chart_of_accounts_unit_id_foreign")
@@ -232,8 +232,8 @@ model consignment_items {
   qty_sold             Int                      @default(0)
   qty_returned         Int                      @default(0)
   status               consignment_items_status @default(active)
-  created_at           DateTime?                @db.Timestamp(0)
-  updated_at           DateTime?                @db.Timestamp(0)
+  created_at           DateTime?                @db.Timestamp()
+  updated_at           DateTime?                @db.Timestamp()
   return_reason        String?                  @db.Text
   return_date          DateTime?                @db.Timestamp
   products             products                 @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "consignment_items_product_foreign")
@@ -253,8 +253,8 @@ model consignment_payables {
   unit_price              Decimal                     @db.Decimal(15, 2)
   total_amount            Decimal                     @db.Decimal(15, 2)
   status                  consignment_payables_status @default(pending)
-  created_at              DateTime?                   @db.Timestamp(0)
-  updated_at              DateTime?                   @db.Timestamp(0)
+  created_at              DateTime?                   @db.Timestamp()
+  updated_at              DateTime?                   @db.Timestamp()
   consignment_items       consignment_items           @relation(fields: [consignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_payables_consignment_foreign")
   suppliers               suppliers                   @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "consignment_payables_supplier_foreign")
   consignment_settlements consignment_settlements[]
@@ -272,7 +272,7 @@ model consignment_settlements {
   payment_method       consignment_settlements_payment_method
   reference_no         String?                                @db.VarChar(100)
   processed_by         BigInt                                 
-  created_at           DateTime?                              @db.Timestamp(0)
+  created_at           DateTime?                              @db.Timestamp()
   consignment_payables consignment_payables                   @relation(fields: [payable_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "consignment_settlements_payable_foreign")
   users                users                                  @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "consignment_settlements_user_foreign")
 
@@ -288,8 +288,8 @@ model customer_segments {
   min_purchase_amt Decimal?  @db.Decimal(15, 2)
   max_purchase_amt Decimal?  @db.Decimal(15, 2)
   is_active        Boolean   @default(true)
-  created_at       DateTime? @db.Timestamp(0)
-  updated_at       DateTime? @db.Timestamp(0)
+  created_at       DateTime? @db.Timestamp()
+  updated_at       DateTime? @db.Timestamp()
 }
 
 model failed_jobs {
@@ -299,7 +299,7 @@ model failed_jobs {
   queue      String   @db.Text
   payload    String   @db.Text
   exception  String   @db.Text
-  failed_at  DateTime @default(now()) @db.Timestamp(0)
+  failed_at  DateTime @default(now()) @db.Timestamp()
 }
 
 model good_receipt_items {
@@ -310,7 +310,7 @@ model good_receipt_items {
   qty_accepted  Int           @default(0)
   qty_rejected  Int           @default(0)
   notes         String?       @db.Text
-  created_at    DateTime?     @db.Timestamp(0)
+  created_at    DateTime?     @db.Timestamp()
   good_receipts good_receipts @relation(fields: [gr_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "gr_items_gr_foreign")
   products      products      @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "gr_items_product_foreign")
 
@@ -327,8 +327,8 @@ model good_receipts {
   status             good_receipts_status @default(received)
   received_by        BigInt               
   notes              String?              @db.Text
-  created_at         DateTime?            @db.Timestamp(0)
-  updated_at         DateTime?            @db.Timestamp(0)
+  created_at         DateTime?            @db.Timestamp()
+  updated_at         DateTime?            @db.Timestamp()
   good_receipt_items good_receipt_items[]
   purchase_orders    purchase_orders      @relation(fields: [po_id], references: [id], onUpdate: NoAction, map: "good_receipts_po_foreign")
   suppliers          suppliers            @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "good_receipts_supplier_foreign")
@@ -372,12 +372,12 @@ model journal_entries {
   reference             String?                @db.VarChar(100)
   source                journal_entries_source @default(manual)
   posted_by             BigInt?                
-  posted_at             DateTime?              @db.Timestamp(0)
+  posted_at             DateTime?              @db.Timestamp()
   is_posted             Boolean                @default(false)
   is_reversed           Boolean                @default(false)
   reversed_by_entry_id  BigInt?                
-  created_at            DateTime?              @db.Timestamp(0)
-  updated_at            DateTime?              @db.Timestamp(0)
+  created_at            DateTime?              @db.Timestamp()
+  updated_at            DateTime?              @db.Timestamp()
   users                 users?                 @relation(fields: [posted_by], references: [id], onUpdate: NoAction, map: "journal_entries_posted_by_foreign")
   journal_entries       journal_entries?       @relation("journal_entriesTojournal_entries", fields: [reversed_by_entry_id], references: [id], onUpdate: NoAction, map: "journal_entries_reversed_by_entry_id_foreign")
   other_journal_entries journal_entries[]      @relation("journal_entriesTojournal_entries")
@@ -397,8 +397,8 @@ model journal_lines {
   debit             Decimal           @default(0.00) @db.Decimal(15, 2)
   credit            Decimal           @default(0.00) @db.Decimal(15, 2)
   description       String?           @db.VarChar(255)
-  created_at        DateTime?         @db.Timestamp(0)
-  updated_at        DateTime?         @db.Timestamp(0)
+  created_at        DateTime?         @db.Timestamp()
+  updated_at        DateTime?         @db.Timestamp()
   chart_of_accounts chart_of_accounts @relation(fields: [account_id], references: [id], onUpdate: NoAction, map: "journal_lines_account_id_foreign")
   journal_entries   journal_entries   @relation(fields: [journal_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "journal_lines_journal_id_foreign")
 
@@ -416,16 +416,16 @@ model loan_applications {
   repayment_method                           loan_applications_repayment_method @default(cash)
   purpose                                    String                             @db.Text
   status                                     loan_applications_status           @default(draft)
-  submitted_at                               DateTime?                          @db.Timestamp(0)
+  submitted_at                               DateTime?                          @db.Timestamp()
   reviewed_by                                BigInt?                            
-  reviewed_at                                DateTime?                          @db.Timestamp(0)
+  reviewed_at                                DateTime?                          @db.Timestamp()
   approved_by                                BigInt?                            
-  approved_at                                DateTime?                          @db.Timestamp(0)
+  approved_at                                DateTime?                          @db.Timestamp()
   rejection_note                             String?                            @db.Text
   guarantor_name                             String?                            @db.VarChar(150)
   guarantor_phone                            String?                            @db.VarChar(20)
-  created_at                                 DateTime?                          @db.Timestamp(0)
-  updated_at                                 DateTime?                          @db.Timestamp(0)
+  created_at                                 DateTime?                          @db.Timestamp()
+  updated_at                                 DateTime?                          @db.Timestamp()
   users_loan_applications_approved_byTousers users?                             @relation("loan_applications_approved_byTousers", fields: [approved_by], references: [id], onUpdate: NoAction, map: "loan_applications_approved_by_foreign")
   loan_products                              loan_products                      @relation(fields: [loan_product_id], references: [id], onUpdate: NoAction, map: "loan_applications_loan_product_id_foreign")
   members                                    members                            @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "loan_applications_member_id_foreign")
@@ -450,10 +450,10 @@ model loan_payments {
   payment_method    loan_payments_payment_method
   reference         String?                      @db.VarChar(100)
   processed_by      BigInt?                      
-  paid_at           DateTime                     @db.Timestamp(0)
+  paid_at           DateTime                     @db.Timestamp()
   note              String?                      @db.Text
-  created_at        DateTime?                    @db.Timestamp(0)
-  updated_at        DateTime?                    @db.Timestamp(0)
+  created_at        DateTime?                    @db.Timestamp()
+  updated_at        DateTime?                    @db.Timestamp()
   loans             loans                        @relation(fields: [loan_id], references: [id], onUpdate: NoAction, map: "loan_payments_loan_id_foreign")
   users             users?                       @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "loan_payments_processed_by_foreign")
   loan_schedules    loan_schedules?              @relation(fields: [schedule_id], references: [id], onUpdate: NoAction, map: "loan_payments_schedule_id_foreign")
@@ -477,8 +477,8 @@ model loan_products {
   requires_guarantor Boolean                       @default(false)
   requirements       String?                       @db.Text
   is_active          Boolean                       @default(true)
-  created_at         DateTime?                     @db.Timestamp(0)
-  updated_at         DateTime?                     @db.Timestamp(0)
+  created_at         DateTime?                     @db.Timestamp()
+  updated_at         DateTime?                     @db.Timestamp()
   description        String?                       @db.Text
   loan_applications  loan_applications[]
 }
@@ -494,10 +494,10 @@ model loan_schedules {
   principal_paid Decimal               @default(0.00) @db.Decimal(15, 2)
   interest_paid  Decimal               @default(0.00) @db.Decimal(15, 2)
   penalty_paid   Decimal               @default(0.00) @db.Decimal(15, 2)
-  paid_at        DateTime?             @db.Timestamp(0)
+  paid_at        DateTime?             @db.Timestamp()
   status         loan_schedules_status @default(pending)
-  created_at     DateTime?             @db.Timestamp(0)
-  updated_at     DateTime?             @db.Timestamp(0)
+  created_at     DateTime?             @db.Timestamp()
+  updated_at     DateTime?             @db.Timestamp()
   loan_payments  loan_payments[]
   loans          loans                 @relation(fields: [loan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "loan_schedules_loan_id_foreign")
 
@@ -524,8 +524,8 @@ model loans {
   total_paid            Decimal                @default(0.00) @db.Decimal(15, 2)
   repayment_method      loans_repayment_method @default(cash)
   status                loans_status           @default(active)
-  created_at            DateTime?              @db.Timestamp(0)
-  updated_at            DateTime?              @db.Timestamp(0)
+  created_at            DateTime?              @db.Timestamp()
+  updated_at            DateTime?              @db.Timestamp()
   loan_payments         loan_payments[]
   loan_schedules        loan_schedules[]
   loan_applications     loan_applications      @relation(fields: [application_id], references: [id], onUpdate: NoAction, map: "loans_application_id_foreign")
@@ -544,9 +544,9 @@ model loyalty_memberships {
   points_used      Decimal                              @default(0.00) @db.Decimal(15, 2)
   points_available Decimal                              @default(0.00) @db.Decimal(15, 2)
   member_since     DateTime                             @db.Date
-  last_activity    DateTime?                            @db.Timestamp(0)
-  created_at       DateTime?                            @db.Timestamp(0)
-  updated_at       DateTime?                            @db.Timestamp(0)
+  last_activity    DateTime?                            @db.Timestamp()
+  created_at       DateTime?                            @db.Timestamp()
+  updated_at       DateTime?                            @db.Timestamp()
   members          members                              @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "loyalty_memberships_member_foreign")
   loyalty_programs loyalty_programs                     @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_memberships_program_foreign")
 
@@ -563,8 +563,8 @@ model loyalty_programs {
   points_per_rupiah   Decimal               @db.Decimal(10, 6)
   minimum_purchase    Decimal               @db.Decimal(15, 2)
   is_active           Boolean               @default(true)
-  created_at          DateTime?             @db.Timestamp(0)
-  updated_at          DateTime?             @db.Timestamp(0)
+  created_at          DateTime?             @db.Timestamp()
+  updated_at          DateTime?             @db.Timestamp()
   loyalty_memberships loyalty_memberships[]
   loyalty_redemptions loyalty_redemptions[]
 }
@@ -576,8 +576,8 @@ model loyalty_redemptions {
   order_id         BigInt?          
   points_redeemed  Decimal          @db.Decimal(15, 2)
   discount_amount  Decimal          @db.Decimal(15, 2)
-  redemption_date  DateTime         @db.Timestamp(0)
-  created_at       DateTime?        @db.Timestamp(0)
+  redemption_date  DateTime         @db.Timestamp()
+  created_at       DateTime?        @db.Timestamp()
   loyalty_programs loyalty_programs @relation(fields: [program_id], references: [id], onUpdate: NoAction, map: "loyalty_redemptions_program_foreign")
 
   @@index([membership_id, redemption_date])
@@ -598,9 +598,9 @@ model members {
   photo_path          String?               @db.VarChar(255)
   status              members_status        @default(active)
   unit_id             BigInt                
-  created_at          DateTime?             @db.Timestamp(0)
-  updated_at          DateTime?             @db.Timestamp(0)
-  deleted_at          DateTime?             @db.Timestamp(0)
+  created_at          DateTime?             @db.Timestamp()
+  updated_at          DateTime?             @db.Timestamp()
+  deleted_at          DateTime?             @db.Timestamp()
   accounts_receivable accounts_receivable[]
   loan_applications   loan_applications[]
   loans               loans[]
@@ -647,7 +647,7 @@ model monthly_closures {
   total_expense Decimal  @default(0.00) @db.Decimal(15, 2)
   net_income    Decimal  @default(0.00) @db.Decimal(15, 2)
   closed_by     BigInt?  
-  closed_at     DateTime @default(now()) @db.Timestamp(0)
+  closed_at     DateTime @default(now()) @db.Timestamp()
   notes         String?  @db.Text
 
   @@unique([month, year])
@@ -662,8 +662,8 @@ model order_items {
   unit_price   Decimal   @db.Decimal(15, 2)
   discount     Decimal   @default(0.00) @db.Decimal(15, 2)
   subtotal     Decimal   @db.Decimal(15, 2)
-  created_at   DateTime? @db.Timestamp(0)
-  updated_at   DateTime? @db.Timestamp(0)
+  created_at   DateTime? @db.Timestamp()
+  updated_at   DateTime? @db.Timestamp()
   orders       orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_items_order_id_foreign")
   products     products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "order_items_product_id_foreign")
 
@@ -678,9 +678,9 @@ model order_payments {
   amount         Decimal                       @db.Decimal(15, 2)
   reference_no   String?                       @db.VarChar(100)
   payment_status order_payments_payment_status @default(pending)
-  paid_at        DateTime?                     @db.Timestamp(0)
-  created_at     DateTime?                     @db.Timestamp(0)
-  updated_at     DateTime?                     @db.Timestamp(0)
+  paid_at        DateTime?                     @db.Timestamp()
+  created_at     DateTime?                     @db.Timestamp()
+  updated_at     DateTime?                     @db.Timestamp()
   orders         orders                        @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_payments_order_id_foreign")
 
   @@index([order_id])
@@ -696,10 +696,10 @@ model order_returns {
   refund_amount Decimal                     @db.Decimal(15, 2)
   refund_method order_returns_refund_method
   processed_by  BigInt?                     
-  approved_at   DateTime?                   @db.Timestamp(0)
-  completed_at  DateTime?                   @db.Timestamp(0)
-  created_at    DateTime?                   @db.Timestamp(0)
-  updated_at    DateTime?                   @db.Timestamp(0)
+  approved_at   DateTime?                   @db.Timestamp()
+  completed_at  DateTime?                   @db.Timestamp()
+  created_at    DateTime?                   @db.Timestamp()
+  updated_at    DateTime?                   @db.Timestamp()
   orders        orders                      @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_returns_order_id_foreign")
   users         users?                      @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "order_returns_processed_by_foreign")
 
@@ -723,10 +723,10 @@ model orders {
   cashier_id       BigInt?               
   note             String?               @db.Text
   delivery_address String?               @db.VarChar(255)
-  ordered_at       DateTime              @db.Timestamp(0)
-  paid_at          DateTime?             @db.Timestamp(0)
-  created_at       DateTime?             @db.Timestamp(0)
-  updated_at       DateTime?             @db.Timestamp(0)
+  ordered_at       DateTime              @db.Timestamp()
+  paid_at          DateTime?             @db.Timestamp()
+  created_at       DateTime?             @db.Timestamp()
+  updated_at       DateTime?             @db.Timestamp()
   order_items      order_items[]
   order_payments   order_payments[]
   order_returns    order_returns[]
@@ -743,7 +743,7 @@ model orders {
 model password_reset_tokens {
   email      String    @id @db.VarChar(255)
   token      String    @db.VarChar(255)
-  created_at DateTime? @db.Timestamp(0)
+  created_at DateTime? @db.Timestamp()
 }
 
 model personal_access_tokens {
@@ -753,10 +753,10 @@ model personal_access_tokens {
   name           String    @db.Text
   token          String    @unique(map: "personal_access_tokens_token_unique") @db.VarChar(64)
   abilities      String?   @db.Text
-  last_used_at   DateTime? @db.Timestamp(0)
-  expires_at     DateTime? @db.Timestamp(0)
-  created_at     DateTime? @db.Timestamp(0)
-  updated_at     DateTime? @db.Timestamp(0)
+  last_used_at   DateTime? @db.Timestamp()
+  expires_at     DateTime? @db.Timestamp()
+  created_at     DateTime? @db.Timestamp()
+  updated_at     DateTime? @db.Timestamp()
 
   @@index([expires_at])
   @@index([tokenable_type, tokenable_id])
@@ -777,11 +777,11 @@ model ppob_transactions {
   provider_ref   String?                          @db.VarChar(100)
   sn             String?                          @db.VarChar(255)
   status         ppob_transactions_status         @default(pending)
-  transacted_at  DateTime                         @db.Timestamp(0)
-  completed_at   DateTime?                        @db.Timestamp(0)
+  transacted_at  DateTime                         @db.Timestamp()
+  completed_at   DateTime?                        @db.Timestamp()
   failure_reason String?                          @db.Text
-  created_at     DateTime?                        @db.Timestamp(0)
-  updated_at     DateTime?                        @db.Timestamp(0)
+  created_at     DateTime?                        @db.Timestamp()
+  updated_at     DateTime?                        @db.Timestamp()
   members        members                          @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "ppob_transactions_member_id_foreign")
 
   @@index([member_id, transacted_at])
@@ -796,8 +796,8 @@ model price_tiers {
   price        Decimal               @db.Decimal(15, 2)
   discount_pct Decimal?              @db.Decimal(5, 2)
   is_active    Boolean               @default(true)
-  created_at   DateTime?             @db.Timestamp(0)
-  updated_at   DateTime?             @db.Timestamp(0)
+  created_at   DateTime?             @db.Timestamp()
+  updated_at   DateTime?             @db.Timestamp()
   products     products              @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "price_tiers_product_foreign")
 
   @@unique([product_id, tier_name, min_qty])
@@ -814,7 +814,7 @@ model product_analytics {
   last_sold_date  DateTime?                         @db.Date
   days_in_stock   Int?
   movement_status product_analytics_movement_status @default(normal)
-  created_at      DateTime?                         @db.Timestamp(0)
+  created_at      DateTime?                         @db.Timestamp()
   products        products                          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_analytics_product_foreign")
 
   @@unique([product_id, period_date])
@@ -829,8 +829,8 @@ model product_categories {
   icon_url                 String?              @db.VarChar(255)
   is_active                Boolean              @default(true)
   sort_order               Int                  @default(0)
-  created_at               DateTime?            @db.Timestamp(0)
-  updated_at               DateTime?            @db.Timestamp(0)
+  created_at               DateTime?            @db.Timestamp()
+  updated_at               DateTime?            @db.Timestamp()
   product_categories       product_categories?  @relation("product_categoriesToproduct_categories", fields: [parent_id], references: [id], onUpdate: NoAction, map: "product_categories_parent_id_foreign")
   other_product_categories product_categories[] @relation("product_categoriesToproduct_categories")
   products                 products[]
@@ -843,8 +843,8 @@ model product_costing {
   product_id     BigInt                         @unique 
   costing_method product_costing_costing_method @default(average_cost)
   current_cost   Decimal                        @db.Decimal(15, 2)
-  created_at     DateTime?                      @db.Timestamp(0)
-  updated_at     DateTime?                      @db.Timestamp(0)
+  created_at     DateTime?                      @db.Timestamp()
+  updated_at     DateTime?                      @db.Timestamp()
   products       products                       @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_costing_product_foreign")
 }
 
@@ -864,9 +864,9 @@ model products {
   image_path                  String?                       @db.VarChar(255)
   is_active                   Boolean                       @default(true)
   is_online                   Boolean                       @default(true)
-  created_at                  DateTime?                     @db.Timestamp(0)
-  updated_at                  DateTime?                     @db.Timestamp(0)
-  deleted_at                  DateTime?                     @db.Timestamp(0)
+  created_at                  DateTime?                     @db.Timestamp()
+  updated_at                  DateTime?                     @db.Timestamp()
+  deleted_at                  DateTime?                     @db.Timestamp()
   restock_requested           Boolean                       @default(false)
   accounts_payable_details    accounts_payable_details[]
   accounts_receivable_details accounts_receivable_details[]
@@ -897,8 +897,8 @@ model promotions {
   link_url    String?   @db.VarChar(255)
   is_active   Boolean   @default(true)
   sort_order  Int       @default(0)
-  created_at  DateTime? @db.Timestamp(0)
-  updated_at  DateTime? @db.Timestamp(0)
+  created_at  DateTime? @db.Timestamp()
+  updated_at  DateTime? @db.Timestamp()
 }
 
 model purchase_order_items {
@@ -909,7 +909,7 @@ model purchase_order_items {
   qty_received    Int             @default(0)
   unit_price      Decimal         @db.Decimal(15, 2)
   line_total      Decimal         @db.Decimal(15, 2)
-  created_at      DateTime?       @db.Timestamp(0)
+  created_at      DateTime?       @db.Timestamp()
   purchase_orders purchase_orders @relation(fields: [po_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "po_items_po_foreign")
   products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "po_items_product_foreign")
 
@@ -930,9 +930,9 @@ model purchase_orders {
   notes                String?                @db.Text
   created_by           BigInt                 
   approved_by          BigInt?                
-  approved_at          DateTime?              @db.Timestamp(0)
-  created_at           DateTime?              @db.Timestamp(0)
-  updated_at           DateTime?              @db.Timestamp(0)
+  approved_at          DateTime?              @db.Timestamp()
+  created_at           DateTime?              @db.Timestamp()
+  updated_at           DateTime?              @db.Timestamp()
   good_receipts        good_receipts[]
   po_items purchase_order_items[]
   suppliers            suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "purchase_orders_supplier_foreign")
@@ -951,7 +951,7 @@ model sales_analytics {
   cash_sales         Decimal   @db.Decimal(15, 2)
   credit_sales       Decimal   @db.Decimal(15, 2)
   gross_margin       Decimal   @db.Decimal(15, 2)
-  created_at         DateTime? @db.Timestamp(0)
+  created_at         DateTime? @db.Timestamp()
 
   @@unique([date, unit_id])
   @@index([date])
@@ -968,9 +968,9 @@ model saving_transactions {
   reference_no   String                   @unique(map: "saving_transactions_reference_no_unique") @db.VarChar(60)
   note           String?                  @db.Text
   processed_by   BigInt?                  
-  transaction_at DateTime                 @db.Timestamp(0)
-  created_at     DateTime?                @db.Timestamp(0)
-  updated_at     DateTime?                @db.Timestamp(0)
+  transaction_at DateTime                 @db.Timestamp()
+  created_at     DateTime?                @db.Timestamp()
+  updated_at     DateTime?                @db.Timestamp()
   members        members                  @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "saving_transactions_member_id_foreign")
   users          users?                   @relation(fields: [processed_by], references: [id], onUpdate: NoAction, map: "saving_transactions_processed_by_foreign")
   savings        savings                  @relation(fields: [savings_id], references: [id], onUpdate: NoAction, map: "saving_transactions_savings_id_foreign")
@@ -990,8 +990,8 @@ model saving_types {
   is_withdrawable Boolean   @default(true)
   description     String?   @db.Text
   is_active       Boolean   @default(true)
-  created_at      DateTime? @db.Timestamp(0)
-  updated_at      DateTime? @db.Timestamp(0)
+  created_at      DateTime? @db.Timestamp()
+  updated_at      DateTime? @db.Timestamp()
   savings         savings[]
 }
 
@@ -1002,8 +1002,8 @@ model savings {
   balance             Decimal               @default(0.00) @db.Decimal(15, 2)
   total_deposit       Decimal               @default(0.00) @db.Decimal(15, 2)
   total_withdraw      Decimal               @default(0.00) @db.Decimal(15, 2)
-  created_at          DateTime?             @db.Timestamp(0)
-  updated_at          DateTime?             @db.Timestamp(0)
+  created_at          DateTime?             @db.Timestamp()
+  updated_at          DateTime?             @db.Timestamp()
   saving_transactions saving_transactions[]
   members             members               @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "savings_member_id_foreign")
   saving_types        saving_types          @relation(fields: [saving_type_id], references: [id], onUpdate: NoAction, map: "savings_saving_type_id_foreign")
@@ -1034,9 +1034,9 @@ model shu_distributions {
   shu_amount          Decimal                                @db.Decimal(15, 2)
   status              shu_distributions_status               @default(pending)
   disbursement_method shu_distributions_disbursement_method?
-  disbursed_at        DateTime?                              @db.Timestamp(0)
-  created_at          DateTime?                              @db.Timestamp(0)
-  updated_at          DateTime?                              @db.Timestamp(0)
+  disbursed_at        DateTime?                              @db.Timestamp()
+  created_at          DateTime?                              @db.Timestamp()
+  updated_at          DateTime?                              @db.Timestamp()
   members             members                                @relation(fields: [member_id], references: [id], onUpdate: NoAction, map: "shu_distributions_member_id_foreign")
   shu_periods         shu_periods                            @relation(fields: [shu_period_id], references: [id], onUpdate: NoAction, map: "shu_distributions_shu_period_id_foreign")
 
@@ -1056,10 +1056,10 @@ model shu_periods {
   shu_for_pengurus  Decimal             @default(0.00) @db.Decimal(15, 2)
   shu_for_education Decimal             @default(0.00) @db.Decimal(15, 2)
   status            shu_periods_status  @default(draft)
-  calculated_at     DateTime?           @db.Timestamp(0)
-  distributed_at    DateTime?           @db.Timestamp(0)
-  created_at        DateTime?           @db.Timestamp(0)
-  updated_at        DateTime?           @db.Timestamp(0)
+  calculated_at     DateTime?           @db.Timestamp()
+  distributed_at    DateTime?           @db.Timestamp()
+  created_at        DateTime?           @db.Timestamp()
+  updated_at        DateTime?           @db.Timestamp()
   shu_distributions shu_distributions[]
   units             units               @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "shu_periods_unit_id_foreign")
 
@@ -1073,7 +1073,7 @@ model stock_balances {
   qty_on_hand         Int                 @default(0)
   qty_reserved        Int                 @default(0)
   qty_available       Int                 @default(0)
-  updated_at          DateTime?           @db.Timestamp(0)
+  updated_at          DateTime?           @db.Timestamp()
   warehouse_locations warehouse_locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_location_id_foreign")
   products            products            @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_balances_product_id_foreign")
 
@@ -1092,8 +1092,8 @@ model stock_movements {
   reference    String?              @db.VarChar(100)
   note         String?              @db.Text
   created_by   BigInt?              
-  created_at   DateTime?            @db.Timestamp(0)
-  updated_at   DateTime?            @db.Timestamp(0)
+  created_at   DateTime?            @db.Timestamp()
+  updated_at   DateTime?            @db.Timestamp()
   users        users?               @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "stock_movements_created_by_foreign")
   products     products             @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_movements_product_id_foreign")
 
@@ -1110,9 +1110,9 @@ model stock_opname {
   notes                String?                @db.Text
   conducted_by         BigInt                 
   approved_by          BigInt?                
-  approved_at          DateTime?              @db.Timestamp(0)
-  created_at           DateTime?              @db.Timestamp(0)
-  updated_at           DateTime?              @db.Timestamp(0)
+  approved_at          DateTime?              @db.Timestamp()
+  created_at           DateTime?              @db.Timestamp()
+  updated_at           DateTime?              @db.Timestamp()
   stock_opname_details stock_opname_details[]
 
   @@index([opname_date, status])
@@ -1126,7 +1126,7 @@ model stock_opname_details {
   qty_physical Int
   variance     Int
   notes        String?      @db.Text
-  created_at   DateTime?    @db.Timestamp(0)
+  created_at   DateTime?    @db.Timestamp()
   stock_opname stock_opname @relation(fields: [opname_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_opname_details_opname_foreign")
   products     products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_opname_details_product_foreign")
 
@@ -1141,8 +1141,8 @@ model stock_reorder_points {
   reorder_point  Int
   lead_time_days Int       @default(7)
   is_active      Boolean   @default(true)
-  created_at     DateTime? @db.Timestamp(0)
-  updated_at     DateTime? @db.Timestamp(0)
+  created_at     DateTime? @db.Timestamp()
+  updated_at     DateTime? @db.Timestamp()
   products       products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_reorder_points_product_id_foreign")
 }
 
@@ -1152,7 +1152,7 @@ model stock_transfer_items {
   product_id            BigInt                
   qty_requested         Int
   qty_transferred       Int                   @default(0)
-  created_at            DateTime?             @db.Timestamp(0)
+  created_at            DateTime?             @db.Timestamp()
   stock_transfer_orders stock_transfer_orders @relation(fields: [transfer_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "stock_transfer_items_order_foreign")
   products              products              @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "stock_transfer_items_product_foreign")
 
@@ -1169,11 +1169,11 @@ model stock_transfer_orders {
   requested_by                                                                    BigInt                       
   approved_by                                                                     BigInt?                      
   transferred_by                                                                  BigInt?                      
-  approved_at                                                                     DateTime?                    @db.Timestamp(0)
-  transferred_at                                                                  DateTime?                    @db.Timestamp(0)
+  approved_at                                                                     DateTime?                    @db.Timestamp()
+  transferred_at                                                                  DateTime?                    @db.Timestamp()
   notes                                                                           String?                      @db.Text
-  created_at                                                                      DateTime?                    @db.Timestamp(0)
-  updated_at                                                                      DateTime?                    @db.Timestamp(0)
+  created_at                                                                      DateTime?                    @db.Timestamp()
+  updated_at                                                                      DateTime?                    @db.Timestamp()
   stock_transfer_items                                                            stock_transfer_items[]
   warehouse_locations_stock_transfer_orders_from_location_idTowarehouse_locations warehouse_locations          @relation("stock_transfer_orders_from_location_idTowarehouse_locations", fields: [from_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_from_location_foreign")
   warehouse_locations_stock_transfer_orders_to_location_idTowarehouse_locations   warehouse_locations          @relation("stock_transfer_orders_to_location_idTowarehouse_locations", fields: [to_location_id], references: [id], onUpdate: NoAction, map: "stock_transfer_to_location_foreign")
@@ -1196,8 +1196,8 @@ model suppliers {
   avg_delivery_days    Int?                   @db.SmallInt
   is_active            Boolean                @default(true)
   notes                String?                @db.Text
-  created_at           DateTime?              @db.Timestamp(0)
-  updated_at           DateTime?              @db.Timestamp(0)
+  created_at           DateTime?              @db.Timestamp()
+  updated_at           DateTime?              @db.Timestamp()
   accounts_payable     accounts_payable[]
   consignment_items    consignment_items[]
   consignment_payables consignment_payables[]
@@ -1213,7 +1213,7 @@ model tax_calculations {
   tax_percentage Decimal                   @db.Decimal(5, 2)
   taxable_amount Decimal                   @db.Decimal(15, 2)
   tax_amount     Decimal                   @db.Decimal(15, 2)
-  created_at     DateTime?                 @db.Timestamp(0)
+  created_at     DateTime?                 @db.Timestamp()
 
   @@index([order_id])
 }
@@ -1227,8 +1227,8 @@ model units {
   address             String?               @db.VarChar(255)
   phone               String?               @db.VarChar(20)
   is_active           Boolean               @default(true)
-  created_at          DateTime?             @db.Timestamp(0)
-  updated_at          DateTime?             @db.Timestamp(0)
+  created_at          DateTime?             @db.Timestamp()
+  updated_at          DateTime?             @db.Timestamp()
   cash_registers      cash_registers[]
   chart_of_accounts   chart_of_accounts[]
   journal_entries     journal_entries[]
@@ -1253,12 +1253,12 @@ model users {
   is_active                                              Boolean                   @default(true)
   mfa_secret                                             String?                   @db.VarChar(100)
   mfa_enabled                                            Boolean                   @default(false)
-  last_login_at                                          DateTime?                 @db.Timestamp(0)
+  last_login_at                                          DateTime?                 @db.Timestamp()
   last_login_ip                                          String?                   @db.VarChar(45)
   remember_token                                         String?                   @db.VarChar(100)
-  created_at                                             DateTime?                 @db.Timestamp(0)
-  updated_at                                             DateTime?                 @db.Timestamp(0)
-  deleted_at                                             DateTime?                 @db.Timestamp(0)
+  created_at                                             DateTime?                 @db.Timestamp()
+  updated_at                                             DateTime?                 @db.Timestamp()
+  deleted_at                                             DateTime?                 @db.Timestamp()
   audit_logs                                             audit_logs[]
   consignment_settlements                                consignment_settlements[]
   journal_entries                                        journal_entries[]
@@ -1282,8 +1282,8 @@ model warehouse_locations {
   location_type                                                                     warehouse_locations_location_type @default(main)
   address                                                                           String?                           @db.Text
   is_active                                                                         Boolean                           @default(true)
-  created_at                                                                        DateTime?                         @db.Timestamp(0)
-  updated_at                                                                        DateTime?                         @db.Timestamp(0)
+  created_at                                                                        DateTime?                         @db.Timestamp()
+  updated_at                                                                        DateTime?                         @db.Timestamp()
   stock_balances                                                                    stock_balances[]
   stock_transfer_orders_stock_transfer_orders_from_location_idTowarehouse_locations stock_transfer_orders[]           @relation("stock_transfer_orders_from_location_idTowarehouse_locations")
   stock_transfer_orders_stock_transfer_orders_to_location_idTowarehouse_locations   stock_transfer_orders[]           @relation("stock_transfer_orders_to_location_idTowarehouse_locations")
@@ -1665,3 +1665,4 @@ enum loans_status {
   restructured
   written_off
 }
+
