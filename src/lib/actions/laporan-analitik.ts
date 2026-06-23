@@ -150,7 +150,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
         where: { orders: orderWhere },
         select: {
           qty: true,
-          purchase_price: true
+          products: { select: { purchase_price: true } }
         }
       })
     ])
@@ -165,13 +165,13 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
       select: {
         product_id: true,
         qty: true,
-        purchase_price: true,
+        products: { select: { purchase_price: true } },
       },
     })
     const cogsMap = new Map<number, number>()
     for (const item of topOrderItems) {
       const pid = Number(item.product_id)
-      const itemCogs = item.qty * Number(item.purchase_price)
+      const itemCogs = item.qty * Number(item.products?.purchase_price ?? 0)
       cogsMap.set(pid, (cogsMap.get(pid) ?? 0) + itemCogs)
     }
 
@@ -194,7 +194,7 @@ export async function getAnalyticsData(params: AnalyticsParams): Promise<Analyti
 
     // ── Calculate total real COGS from all sold items ─────────
     const totalRealCogs = allSoldItems.reduce((sum: any, item: any) => {
-      const price = Number(item.purchase_price ?? 0)
+      const price = Number(item.products?.purchase_price ?? 0)
       return sum + (item.qty * price)
     }, 0)
 

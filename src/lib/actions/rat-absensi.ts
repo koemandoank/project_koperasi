@@ -59,8 +59,8 @@ export async function getRatQuorumStatus(year: number): Promise<{
   error?: string
 }> {
   try {
-    const totalActive = await prisma.member.count({ where: { status: "active" } })
-    const totalPresent = await prisma.ratAttendance.count({
+    const totalActive = await prisma.members.count({ where: { status: "active" } })
+    const totalPresent = await prisma.rat_attendances.count({
       where: { year, is_present: true },
     })
 
@@ -92,7 +92,7 @@ export async function getRatQuorumStatus(year: number): Promise<{
  */
 export async function getRatMembersAttendanceList(year: number): Promise<RatMemberAttendance[]> {
   try {
-    const members = await prisma.member.findMany({
+    const members = await prisma.members.findMany({
       where: { status: "active" },
       include: {
         units: { select: { name: true } },
@@ -133,7 +133,7 @@ export async function registerRatAttendance(
   try {
     const userId = await verifyAuthorizedUser()
 
-    const member = await prisma.member.findUnique({
+    const member = await prisma.members.findUnique({
       where: { id: BigInt(memberId) },
       select: { full_name: true, member_code: true, status: true },
     })
@@ -141,7 +141,7 @@ export async function registerRatAttendance(
     if (!member) return { success: false, error: "Anggota tidak ditemukan." }
     if (member.status !== "active") return { success: false, error: "Anggota tidak berstatus aktif." }
 
-    const attendance = await prisma.ratAttendance.upsert({
+    const attendance = await prisma.rat_attendances.upsert({
       where: { member_id_year: { member_id: BigInt(memberId), year } },
       create: {
         member_id: BigInt(memberId),
@@ -191,7 +191,7 @@ export async function cancelRatAttendance(
   try {
     await verifyAuthorizedUser()
 
-    await prisma.ratAttendance.delete({
+    await prisma.rat_attendances.delete({
       where: { member_id_year: { member_id: BigInt(memberId), year } },
     })
 
@@ -219,13 +219,13 @@ export async function toggleRatVotingRight(
   try {
     await verifyAuthorizedUser()
 
-    const attendance = await prisma.ratAttendance.findUnique({
+    const attendance = await prisma.rat_attendances.findUnique({
       where: { member_id_year: { member_id: BigInt(memberId), year } },
     })
 
     if (!attendance) return { success: false, error: "Anggota belum tercatat hadir di RAT." }
 
-    await prisma.ratAttendance.update({
+    await prisma.rat_attendances.update({
       where: { id: attendance.id },
       data: { voted, updated_at: new Date() },
     })

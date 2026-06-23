@@ -344,7 +344,7 @@ export async function getConsignmentPayables(
       },
       include: {
         suppliers: true,
-        settlements: true,
+        consignment_settlements: true,
         consignment_items: {
           include: { products: true },
         },
@@ -369,7 +369,7 @@ export async function getConsignmentPayables(
       total_revenue: Number(p.total_amount),
       payable_amount: Number(p.total_amount),
       status: p.status,
-      settlements: p.settlements.map((s: any) => ({
+      settlements: (p.consignment_settlements || []).map((s: any) => ({
         id: Number(s.id),
         amount_paid: Number(s.amount_paid),
         payment_method: s.payment_method,
@@ -438,7 +438,7 @@ export async function createConsignmentSettlement(
     })
 
     if (payable) {
-      const totalPaid = payable.settlements.reduce((sum: any, s: any) => sum + Number(s.amount_paid),
+      const totalPaid = (payable.consignment_settlements || []).reduce((sum: any, s: any) => sum + Number(s.amount_paid),
         0
       )
       const newStatus =

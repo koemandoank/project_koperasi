@@ -166,7 +166,9 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
         order_items: {
           select: {
             qty: true,
-            purchase_price: true,
+            products: {
+              select: { purchase_price: true },
+            },
           },
         },
       },
@@ -174,7 +176,7 @@ export async function getPerubahanEkuitas(year: number): Promise<PerubahanEkuita
     let storeCogs = 0
     for (const order of paidOrders) {
       for (const item of order.order_items) {
-        storeCogs += item.qty * Number(item.purchase_price ?? 0)
+        storeCogs += item.qty * Number(item.products?.purchase_price ?? 0)
       }
     }
 

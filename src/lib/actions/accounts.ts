@@ -54,14 +54,14 @@ export async function createAccountsPayable(
         amount_due: totalAmount,
         status: 'open',
         notes,
-        ap_details: {
+        accounts_payable_details: {
           createMany: {
             data: apItems,
           },
         },
       },
       include: {
-        ap_details: true,
+        accounts_payable_details: true,
         suppliers: true,
       },
     })
@@ -93,7 +93,7 @@ export async function getAccountsPayable(
         ...(status && { status }),
       },
       include: {
-        ap_details: true,
+        accounts_payable_details: true,
         suppliers: true,
       },
       orderBy: { due_date: 'asc' },
@@ -143,7 +143,7 @@ export async function recordAPPayment(
         updated_at: new Date(),
       },
       include: {
-        ap_details: true,
+        accounts_payable_details: true,
       },
     })
 
@@ -217,7 +217,7 @@ export async function createAccountsReceivable(
         credit_limit: creditLimit,
         status: 'open',
         notes,
-        ar_details: {
+        accounts_receivable_details: {
           createMany: {
             data: items.map((i: any) => ({
               description: i.description,
@@ -230,7 +230,7 @@ export async function createAccountsReceivable(
         },
       },
       include: {
-        ar_details: true,
+        accounts_receivable_details: true,
         members: true,
       },
     })
@@ -262,7 +262,7 @@ export async function getAccountsReceivable(
         ...(status && { status }),
       },
       include: {
-        ar_details: true,
+        accounts_receivable_details: true,
         members: true,
       },
       orderBy: { due_date: 'asc' },
@@ -312,7 +312,7 @@ export async function recordARPayment(
         updated_at: new Date(),
       },
       include: {
-        ar_details: true,
+        accounts_receivable_details: true,
       },
     })
 
