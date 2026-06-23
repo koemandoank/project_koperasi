@@ -11,14 +11,33 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
+import type { TooltipProps } from "recharts"
+import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent"
 import {
   Landmark, Wallet, TrendingUp, CreditCard,
   AlertTriangle, Clock, Users, UserCheck, UserMinus,
-  FileText, ShieldCheck, Receipt, RefreshCw,
-  ArrowUpRight, ArrowDownRight, Activity,
+  FileText, ShieldCheck, Receipt, RefreshCw, PlusCircle,
+  ArrowUpRight, ArrowDownRight, Activity, Search, ShoppingCart,
 } from "lucide-react"
 import { getExecutiveDashboardData, type ExecutiveDashboardData } from "@/lib/actions/executive-dashboard"
 import { RestockNotificationWidget } from "@/components/shared/restock-notification-widget"
+
+// ─── Custom Recharts Tooltip ─────────────────────────────────────────────────
+
+const ChartTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 shadow-lg text-xs">
+      <p className="font-semibold text-zinc-600 dark:text-zinc-300 mb-1">{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+          <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+          {p.name}: <span className="font-bold">{fmt(Number(p.value))}</span>
+        </p>
+      ))}
+    </div>
+  )
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +104,7 @@ function KpiCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-550">
+        <div className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
           {value}
         </div>
         {sub && (
@@ -140,18 +159,20 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 max-w-screen-xl mx-auto">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{companyName}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-800 dark:text-zinc-100">{companyName}</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
             Dashboard Eksekutif · {lastUpdate ? `Diperbarui ${lastUpdate}` : "Memuat data..."}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={loadData} disabled={loading} className="self-start sm:self-auto h-11 px-4 text-sm font-semibold rounded-2xl active:scale-[0.98] transition-transform">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button size="sm" variant="outline" onClick={loadData} disabled={loading} className="h-10 px-4 text-sm font-semibold rounded-xl active:scale-[0.98] transition-transform border-zinc-200 dark:border-zinc-700">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* ── Restock Alert ────────────────────────────────────────────────────── */}
@@ -163,8 +184,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 1: RINGKASAN FINANSIAL
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
-          📊 Ringkasan Finansial (Year-to-Date)
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-primary" /></span>
+          Ringkasan Finansial <span className="text-zinc-300 dark:text-zinc-600 font-normal normal-case">(Year-to-Date)</span>
         </h2>
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <KpiCard
@@ -220,8 +242,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 2: KESEHATAN KREDIT
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
-          🏦 Kesehatan Kredit
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-primary" /></span>
+          Kesehatan Kredit
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {/* NPL */}
@@ -301,10 +324,10 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                   {exec!.loanHealth.dueSoon.map((d: any, i: any) => (
                     <div key={i} className="flex justify-between items-start text-xs border-b border-zinc-100 dark:border-zinc-800 pb-1.5 last:border-0">
                       <div>
-                        <p className="font-semibold text-zinc-800 dark:text-zinc-250 leading-tight">{d.member_name}</p>
+                        <p className="font-semibold text-zinc-800 dark:text-zinc-200 leading-tight">{d.member_name}</p>
                         <p className="text-zinc-400 dark:text-zinc-500">{d.loan_no} · {d.due_date}</p>
                       </div>
-                      <span className="font-bold text-rose-600 dark:text-rose-450 shrink-0 ml-2">{fmtShort(d.amount_due)}</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400 shrink-0 ml-2">{fmtShort(d.amount_due)}</span>
                     </div>
                   ))}
                 </div>
@@ -319,8 +342,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
       ════════════════════════════════════════════════════════════════════════ */}
       {/* ─── Statistik Keanggotaan ─── */}
       <section>
-        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
-          👥 Statistik Keanggotaan
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-primary" /></span>
+          Statistik Keanggotaan
         </h2>
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
           {/* KPI Cards */}
@@ -368,7 +392,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                      <Tooltip formatter={(v) => [`${v} anggota`, "Baru"]} />
+                      <Tooltip content={<ChartTooltip />} />
                       <Bar dataKey="new_members" name="Anggota Baru" fill="oklch(0.643 0.17 162)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -383,8 +407,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 4: VISUALISASI ARUS KAS
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
-          💸 Arus Kas (12 Bulan Terakhir)
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-primary" /></span>
+          Arus Kas <span className="text-zinc-300 dark:text-zinc-600 font-normal normal-case">(12 Bulan Terakhir)</span>
         </h2>
         <Card className="border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -420,9 +445,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis tickFormatter={(v) => `${fmtShort(v)}`} tick={{ fontSize: 10 }} />
-                    <Tooltip
-                      formatter={(v, name) => [fmt(Number(v)), name]}
-                    />
+                    <Tooltip content={<ChartTooltip />} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
                     <Area
                       type="monotone" dataKey="pemasukan" name="Pemasukan"
@@ -444,8 +467,9 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
           SEKSI 5: TINDAKAN CEPAT (QUICK ACTIONS)
       ════════════════════════════════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-widest mb-3">
-          ⚡ Tindakan Cepat
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-primary" /></span>
+          Tindakan Cepat
         </h2>
         <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {[
@@ -457,11 +481,11 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
             { href: "/akuntansi/pembagian-shu",      icon: Wallet,      label: "Pembagian SHU",        color: "from-emerald-600 to-teal-800" },
           ].map(({  href, icon: Icon, label, color  }: any) => (
             <Link key={href} href={href}>
-              <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer">
+              <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 active:scale-[0.97] transition-all cursor-pointer">
                 <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-sm`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-[11px] font-semibold text-zinc-750 dark:text-zinc-350 text-center leading-tight">
+                <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 text-center leading-tight">
                   {label}
                 </span>
               </div>
@@ -472,7 +496,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
 
       {/* Timestamp */}
       {exec && (
-        <p className="text-[10px] text-zinc-400 dark:text-zinc-650 text-center mt-2">
+        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 text-center mt-2">
           Data diambil dari database pada {new Date(exec.generatedAt).toLocaleString("id-ID")}
         </p>
       )}
