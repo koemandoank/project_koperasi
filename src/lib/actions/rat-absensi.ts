@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { logAudit } from "@/lib/actions/log-audit"
+import { ensureTables } from "@/lib/db/ensure-tables"
 
 /**
  * Interface untuk status kuorum dan rangkuman absensi RAT.
@@ -59,6 +60,7 @@ export async function getRatQuorumStatus(year: number): Promise<{
   error?: string
 }> {
   try {
+    await ensureTables()
     const totalActive = await prisma.members.count({ where: { status: "active" } })
     const totalPresent = await prisma.rat_attendances.count({
       where: { year, is_present: true },
@@ -92,6 +94,7 @@ export async function getRatQuorumStatus(year: number): Promise<{
  */
 export async function getRatMembersAttendanceList(year: number): Promise<RatMemberAttendance[]> {
   try {
+    await ensureTables()
     const members = await prisma.members.findMany({
       where: { status: "active" },
       include: {
@@ -131,6 +134,7 @@ export async function registerRatAttendance(
   year: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureTables()
     const userId = await verifyAuthorizedUser()
 
     const member = await prisma.members.findUnique({
@@ -189,6 +193,7 @@ export async function cancelRatAttendance(
   year: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureTables()
     await verifyAuthorizedUser()
 
     await prisma.rat_attendances.delete({
@@ -217,6 +222,7 @@ export async function toggleRatVotingRight(
   voted: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureTables()
     await verifyAuthorizedUser()
 
     const attendance = await prisma.rat_attendances.findUnique({
