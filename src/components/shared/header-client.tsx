@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { LogOut, User as UserIcon, Bell, Search, Menu, CreditCard, ShoppingBag, X, Sun, Moon, ChevronDown, ExternalLink, Settings, Command, LayoutDashboard, Home } from "lucide-react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { cn } from "@/lib/utils"
 
@@ -117,9 +118,7 @@ const NOTIF_BADGE_COLORS: Record<string, string> = {
 // ─── Breadcrumb ──────────────────────────────────────────────────────────────
 
 function Breadcrumb() {
-  // ⚡ dynamic require — hooks rule pgc
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const pathname = require("next/navigation").usePathname()
+  const pathname = usePathname()
   const segments = pathname.split("/").filter(Boolean)
 
   if (segments.length <= 1) return null
@@ -127,7 +126,7 @@ function Breadcrumb() {
   return (
     <nav className="hidden md:flex items-center gap-1.5 px-6 py-2 text-xs text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-900 bg-white/50 dark:bg-zinc-950/50">
       <Link href="/dashboard" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Dashboard</Link>
-      {segments.slice(1).map((seg, i) => (
+      {segments.slice(1).map((seg: string, i: number) => (
         <span key={seg} className="flex items-center gap-1.5">
           <span className="text-zinc-300 dark:text-zinc-600">/</span>
           <span className={i === segments.length - 2 ? "text-zinc-700 dark:text-zinc-200 font-medium" : "text-zinc-400 dark:text-zinc-500 capitalize"}>

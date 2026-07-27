@@ -13,12 +13,21 @@
 
 import { NextResponse } from "next/server"
 import { uploadToCloudinary } from "@/lib/cloudinary"
+import { auth } from "@/auth"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
 
 export async function POST(req: Request) {
   try {
+    // SECURITY FIX: /api/upload tidak dilindungi middleware (matcher exclude "api"),
+    // jadi setiap route API wajib verifikasi sesi sendiri. Sebelumnya endpoint ini
+    // bisa diakses tanpa login sama sekali.
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const formData = await req.formData()
     const file = formData.get("file") as File | null
     const folder = (formData.get("folder") as string | null) ?? "koperasi/uploads"

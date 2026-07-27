@@ -74,7 +74,7 @@ export const authConfig = {
         const nowSeconds = Math.floor(Date.now() / 1000);
         const idleSeconds = nowSeconds - lastActivity;
         if (idleSeconds > IDLE_TIMEOUT_SECONDS) {
-          // Sesi idle > 1 jam → paksa logout ke login page dengan info
+          // Sesi idle > 30 hari (lihat IDLE_TIMEOUT_SECONDS) → paksa logout ke login page dengan info
           console.log(`[Idle Timeout] User ${auth?.user?.id} idle ${idleSeconds}s > ${IDLE_TIMEOUT_SECONDS}s. Redirecting.`);
           return Response.redirect(new URL("/login?reason=idle", nextUrl));
         }

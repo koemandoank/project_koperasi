@@ -11,7 +11,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
-import type { TooltipProps } from "recharts"
+import type { TooltipContentProps } from "recharts"
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent"
 import {
   Landmark, Wallet, TrendingUp, CreditCard,
@@ -24,12 +24,12 @@ import { RestockNotificationWidget } from "@/components/shared/restock-notificat
 
 // ─── Custom Recharts Tooltip ─────────────────────────────────────────────────
 
-const ChartTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+const ChartTooltip = ({ active, payload, label }: TooltipContentProps<ValueType, NameType>) => {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 shadow-lg text-xs">
       <p className="font-semibold text-zinc-600 dark:text-zinc-300 mb-1">{label}</p>
-      {payload.map((p, i) => (
+      {payload.map((p, i: number) => (
         <p key={i} className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
           <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
           {p.name}: <span className="font-bold">{fmt(Number(p.value))}</span>
@@ -392,7 +392,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                      <Tooltip content={<ChartTooltip />} />
+                      <Tooltip content={ChartTooltip} />
                       <Bar dataKey="new_members" name="Anggota Baru" fill="oklch(0.643 0.17 162)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -445,7 +445,7 @@ export function PengurusDashboard({ data, suppliers, companyName = "Koperasi" }:
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis tickFormatter={(v) => `${fmtShort(v)}`} tick={{ fontSize: 10 }} />
-                    <Tooltip content={<ChartTooltip />} />
+                    <Tooltip content={ChartTooltip} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
                     <Area
                       type="monotone" dataKey="pemasukan" name="Pemasukan"
