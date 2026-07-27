@@ -201,15 +201,48 @@ Diverifikasi: `npx tsc --noEmit` sekarang **0 error** di seluruh project.
 ---
 
 ### 12. Divergensi Git Lokal vs Origin
-**Status: 🔍 PERLU DIRECONCILE SEGERA**
+**Status: 🔴 OPEN — sengaja TIDAK di-auto-merge, perlu keputusan manual**
 
 Saat audit dimulai, working tree sempat berada di tengah **interactive rebase**
 yang belum selesai (ada staged/unstaged changes, termasuk entri aneh bernama
 `koperasi-sulfindo`). Beberapa saat kemudian status berubah jadi bersih dengan
 sendirinya (kemungkinan diselesaikan dari sesi/editor lain secara bersamaan).
-Kondisi terakhir: branch `main` lokal **3 commit ahead**, origin **10 commit ahead**
-— perlu `git fetch` + review sebelum push/pull supaya tidak ada histori kerja yang
-hilang atau ketimpa.
+
+**Investigasi 27 Juli 2026** (`git fetch` + `git log origin/main..main` /
+`git log main..origin/main`):
+
+- **3 commit lokal** yang belum di-push (redesign UI desktop: font Inter,
+  collapsible sidebar, command palette, typography).
+- **10 commit di origin** yang belum ditarik ke lokal — termasuk beberapa yang
+  **kritis untuk produksi**: `fix: revert schema.prisma provider to postgresql
+  for Vercel Neon compatibility`, `fix(db): ensure rat_attendances table via raw
+  SQL`, `fix(schema): add directUrl for Neon pooled connection`, `fix(auth): remove
+  unnecessary PrismaAdapter`, dan fitur backup Google Drive.
+- **Overlap file sangat besar** antara kedua sisi — termasuk persis file yang
+  saya perbaiki hari ini (`header-client.tsx`, `pengurus-dashboard.tsx`) dan
+  `prisma/schema.prisma`.
+- Dicek isi diff `prisma/schema.prisma`: origin sudah migrasi sintaks dari
+  MySQL (`@db.Timestamp(0)`) ke PostgreSQL (`@db.Timestamp()`) di puluhan model
+  — ini perubahan arsitektur provider database, bukan hal sepele.
+
+**Kenapa tidak saya proses otomatis:** merge/rebase di sini punya risiko nyata
+merusak schema yang sudah diperbaiki di production (Neon/Postgres), dan/atau
+menimbulkan konflik di file yang barusan saya edit. Ini butuh keputusan sadar
+dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
+
+**Yang sudah dilakukan:** commit lokal `daef400` berisi semua fix hari ini
+(#7–#11) supaya tidak hilang, `git fetch` sudah dijalankan.
+
+**Rekomendasi langkah selanjutnya (manual):**
+1. Pastikan `prisma/schema.prisma` lokal memang harus provider `postgresql`
+   (cek `.env` — apakah `DATABASE_URL` sekarang mengarah ke Neon atau MySQL lokal).
+2. `git diff main origin/main -- prisma/schema.prisma` untuk review penuh sebelum
+   memutuskan.
+3. Kemungkinan besar strategi teraman: `git rebase origin/main` lalu resolve
+   konflik satu-satu (terutama di `header-client.tsx`, `pengurus-dashboard.tsx`,
+   `prisma/schema.prisma`) — **bukan** `git push --force`.
+4. Setelah rebase bersih, jalankan ulang `npx tsc --noEmit` dan `npx prisma
+   validate` sebelum push.
 
 ---
 
@@ -228,8 +261,10 @@ hilang atau ketimpa.
 | 9 | Breadcrumb `require()` dinamis | ✅ Case Closed |
 | 10 | Cache `.next` basi | ✅ Case Closed |
 | 11 | Type error tooltip recharts | ✅ Case Closed |
-| 12 | Divergensi git lokal/origin | 🔍 Perlu reconcile |
+| 12 | Divergensi git lokal/origin | 🔴 Open — perlu keputusan manual (lihat rekomendasi di atas) |
 
-**Prioritas tindak lanjut yang disarankan:** #7 (keputusan idle timeout — dampak
-keamanan langsung), lalu #3 (tambah Zod `.strict()` untuk `shu_config`), baru
-#8, #9, #11, #12.
+**Sisa pekerjaan:** hanya #12 yang masih open, dan sengaja dibiarkan open karena
+butuh keputusan manusia soal strategi provider database (MySQL vs PostgreSQL/Neon)
+sebelum rebase/merge dieksekusi. Semua temuan lain (#1–#11) sudah ✅ case closed
+per 27 Juli 2026, terverifikasi lewat `npx tsc --noEmit` (0 error) dan pengecekan
+langsung ke source code.
