@@ -1,0 +1,590 @@
+[
+  {
+    "member_code": "MBR-0023",
+    "full_name": "Candra Pratama",
+    "join_date": "2026-02-05",
+    "total_savings": 920000
+  },
+  {
+    "member_code": "MBR-0024",
+    "full_name": "Umi Pratama",
+    "join_date": "2026-04-08",
+    "total_savings": 720000
+  },
+  {
+    "member_code": "MBR-0025",
+    "full_name": "Ahmad Firmansyah",
+    "join_date": "2026-02-14",
+    "total_savings": 1020000
+  },
+  {
+    "member_code": "MBR-0026",
+    "full_name": "Bella Setiawan",
+    "join_date": "2026-04-17",
+    "total_savings": 970000
+  },
+  {
+    "member_code": "MBR-0027",
+    "full_name": "Eka Salsabila",
+    "join_date": "2026-06-10",
+    "total_savings": 600000
+  },
+  {
+    "member_code": "MBR-0028",
+    "full_name": "Zahra Anggraini",
+    "join_date": "2025-09-29",
+    "total_savings": 1240000
+  },
+  {
+    "member_code": "MBR-0029",
+    "full_name": "Nadia Kurniadi",
+    "join_date": "2025-10-20",
+    "total_savings": 1110000
+  },
+  {
+    "member_code": "MBR-0030",
+    "full_name": "Citra Gunawan",
+    "join_date": "2025-12-13",
+    "total_savings": 820000
+  },
+  {
+    "member_code": "MBR-0031",
+    "full_name": "Gilang Hidayat",
+    "join_date": "2026-03-22",
+    "total_savings": 1150000
+  },
+  {
+    "member_code": "MBR-0032",
+    "full_name": "Ahmad Saputra",
+    "join_date": "2026-04-28",
+    "total_savings": 730000
+  },
+  {
+    "member_code": "MBR-0033",
+    "full_name": "Bella Permana",
+    "join_date": "2026-02-12",
+    "total_savings": 860000
+  },
+  {
+    "member_code": "MBR-0034",
+    "full_name": "Umar Ramadhan",
+    "join_date": "2026-02-01",
+    "total_savings": 890000
+  },
+  {
+    "member_code": "MBR-0035",
+    "full_name": "Putri Handoko",
+    "join_date": "2026-03-15",
+    "total_savings": 780000
+  },
+  {
+    "member_code": "MBR-0036",
+    "full_name": "Lestari Pratama",
+    "join_date": "2026-01-07",
+    "total_savings": 790000
+  },
+  {
+    "member_code": "MBR-0037",
+    "full_name": "Hana Pratama",
+    "join_date": "2026-05-04",
+    "total_savings": 840000
+  },
+  {
+    "member_code": "MBR-0038",
+    "full_name": "Citra Wibowo",
+    "join_date": "2025-09-25",
+    "total_savings": 1340000
+  },
+  {
+    "member_code": "MBR-0039",
+    "full_name": "Zaenal Ramadhan",
+    "join_date": "2025-10-24",
+    "total_savings": 1120000
+  },
+  {
+    "member_code": "MBR-0040",
+    "full_name": "Lestari Santoso",
+    "join_date": "2026-04-28",
+    "total_savings": 750000
+  },
+  {
+    "member_code": "MBR-0041",
+    "full_name": "Made Anggraini",
+    "join_date": "2025-09-12",
+    "total_savings": 1190000
+  },
+  {
+    "member_code": "MBR-0042",
+    "full_name": "Dedi Firmansyah",
+    "join_date": "2026-04-16",
+    "total_savings": 540000
+  },
+  {
+    "member_code": "MBR-0043",
+    "full_name": "Made Susanto",
+    "join_date": "2026-01-19",
+    "total_savings": 1290000
+  },
+  {
+    "member_code": "MBR-0044",
+    "full_name": "Eko Anggraini",
+    "join_date": "2026-04-25",
+    "total_savings": 730000
+  },
+  {
+    "member_code": "MBR-0045",
+    "full_name": "Putri Nugroho",
+    "join_date": "2026-06-23",
+    "total_savings": 680000
+  },
+  {
+    "member_code": "MBR-0046",
+    "full_name": "Umi Ramadhan",
+    "join_date": "2025-12-06",
+    "total_savings": 790000
+  },
+  {
+    "member_code": "MBR-0047",
+    "full_name": "Agus Susanto",
+    "join_date": "2025-08-05",
+    "total_savings": 1300000
+  },
+  {
+    "member_code": "MBR-0048",
+    "full_name": "Irfan Setiawan",
+    "join_date": "2026-04-19",
+    "total_savings": 1000000
+  },
+  {
+    "member_code": "MBR-0049",
+    "full_name": "Oktavia Handoko",
+    "join_date": "2026-06-03",
+    "total_savings": 870000
+  },
+  {
+    "member_code": "MBR-0050",
+    "full_name": "Taufik Santoso",
+    "join_date": "2026-05-31",
+    "total_savings": 930000
+  },
+  {
+    "member_code": "MBR-0051",
+    "full_name": "Eka Ramadhan",
+    "join_date": "2025-11-15",
+    "total_savings": 1120000
+  },
+  {
+    "member_code": "MBR-0052",
+    "full_name": "Eko Salsabila",
+    "join_date": "2026-04-24",
+    "total_savings": 870000
+  },
+  {
+    "member_code": "MBR-0053",
+    "full_name": "Yuni Susanto",
+    "join_date": "2026-02-15",
+    "total_savings": 760000
+  },
+  {
+    "member_code": "MBR-0054",
+    "full_name": "Indah Salsabila",
+    "join_date": "2026-04-21",
+    "total_savings": 910000
+  },
+  {
+    "member_code": "MBR-0055",
+    "full_name": "Zahra Nugroho",
+    "join_date": "2025-12-13",
+    "total_savings": 1080000
+  },
+  {
+    "member_code": "MBR-0056",
+    "full_name": "Julia Permana",
+    "join_date": "2026-02-15",
+    "total_savings": 1140000
+  },
+  {
+    "member_code": "MBR-0057",
+    "full_name": "Wahyu Hidayat",
+    "join_date": "2026-04-22",
+    "total_savings": 970000
+  },
+  {
+    "member_code": "MBR-0058",
+    "full_name": "Yudi Salsabila",
+    "join_date": "2025-11-21",
+    "total_savings": 660000
+  },
+  {
+    "member_code": "MBR-0059",
+    "full_name": "Wulan Rahman",
+    "join_date": "2025-08-25",
+    "total_savings": 1330000
+  },
+  {
+    "member_code": "MBR-0060",
+    "full_name": "Fajar Saputra",
+    "join_date": "2025-09-08",
+    "total_savings": 1560000
+  },
+  {
+    "member_code": "MBR-0061",
+    "full_name": "Putri Anggraini",
+    "join_date": "2026-02-14",
+    "total_savings": 930000
+  },
+  {
+    "member_code": "MBR-0062",
+    "full_name": "Hana Saputra",
+    "join_date": "2025-12-27",
+    "total_savings": 960000
+  },
+  {
+    "member_code": "MBR-0063",
+    "full_name": "Anisa Permana",
+    "join_date": "2026-02-25",
+    "total_savings": 1140000
+  },
+  {
+    "member_code": "MBR-0064",
+    "full_name": "Rina Kusuma",
+    "join_date": "2026-02-14",
+    "total_savings": 750000
+  },
+  {
+    "member_code": "MBR-0065",
+    "full_name": "Putra Pratama",
+    "join_date": "2025-12-29",
+    "total_savings": 1160000
+  },
+  {
+    "member_code": "MBR-0066",
+    "full_name": "Kartika Kurniadi",
+    "join_date": "2026-03-18",
+    "total_savings": 820000
+  },
+  {
+    "member_code": "MBR-0067",
+    "full_name": "Yuni Saputra",
+    "join_date": "2026-06-14",
+    "total_savings": 630000
+  },
+  {
+    "member_code": "MBR-0068",
+    "full_name": "Putri Saputra",
+    "join_date": "2026-05-10",
+    "total_savings": 850000
+  },
+  {
+    "member_code": "MBR-0069",
+    "full_name": "Fitri Hidayat",
+    "join_date": "2026-04-07",
+    "total_savings": 830000
+  },
+  {
+    "member_code": "MBR-0070",
+    "full_name": "Lukman Setiawan",
+    "join_date": "2026-05-31",
+    "total_savings": 850000
+  },
+  {
+    "member_code": "MBR-0071",
+    "full_name": "Vina Salsabila",
+    "join_date": "2025-08-01",
+    "total_savings": 910000
+  },
+  {
+    "member_code": "MBR-0072",
+    "full_name": "Taufik Wijaya",
+    "join_date": "2025-10-26",
+    "total_savings": 1440000
+  },
+  {
+    "member_code": "MBR-0073",
+    "full_name": "Lukman Nugroho",
+    "join_date": "2026-02-11",
+    "total_savings": 820000
+  },
+  {
+    "member_code": "MBR-0074",
+    "full_name": "Umi Nugroho",
+    "join_date": "2026-01-03",
+    "total_savings": 1080000
+  },
+  {
+    "member_code": "MBR-0075",
+    "full_name": "Nadia Setiawan",
+    "join_date": "2026-06-26",
+    "total_savings": 430000
+  },
+  {
+    "member_code": "MBR-0076",
+    "full_name": "Kurniawan Kusuma",
+    "join_date": "2026-04-25",
+    "total_savings": 740000
+  },
+  {
+    "member_code": "MBR-0077",
+    "full_name": "Bambang Handoko",
+    "join_date": "2025-12-31",
+    "total_savings": 1150000
+  },
+  {
+    "member_code": "MBR-0078",
+    "full_name": "Fitri Salsabila",
+    "join_date": "2025-10-30",
+    "total_savings": 1200000
+  },
+  {
+    "member_code": "MBR-0079",
+    "full_name": "Kartika Nugroho",
+    "join_date": "2025-10-01",
+    "total_savings": 1300000
+  },
+  {
+    "member_code": "MBR-0080",
+    "full_name": "Putra Salsabila",
+    "join_date": "2026-06-28",
+    "total_savings": 910000
+  },
+  {
+    "member_code": "MBR-0081",
+    "full_name": "Eko Wibowo",
+    "join_date": "2025-08-03",
+    "total_savings": 1330000
+  },
+  {
+    "member_code": "MBR-0082",
+    "full_name": "Wahyu Pratama",
+    "join_date": "2026-03-08",
+    "total_savings": 1050000
+  },
+  {
+    "member_code": "MBR-0083",
+    "full_name": "Eka Kurniadi",
+    "join_date": "2025-11-19",
+    "total_savings": 1280000
+  },
+  {
+    "member_code": "MBR-0084",
+    "full_name": "Dewi Kusuma",
+    "join_date": "2026-05-01",
+    "total_savings": 600000
+  },
+  {
+    "member_code": "MBR-0085",
+    "full_name": "Wulan Pratama",
+    "join_date": "2025-12-27",
+    "total_savings": 1480000
+  },
+  {
+    "member_code": "MBR-0086",
+    "full_name": "Putri Pratama",
+    "join_date": "2026-06-14",
+    "total_savings": 950000
+  },
+  {
+    "member_code": "MBR-0087",
+    "full_name": "Gilang Permana",
+    "join_date": "2026-04-07",
+    "total_savings": 840000
+  },
+  {
+    "member_code": "MBR-0088",
+    "full_name": "Fitri Susanto",
+    "join_date": "2025-09-04",
+    "total_savings": 1210000
+  },
+  {
+    "member_code": "MBR-0089",
+    "full_name": "Candra Kurniadi",
+    "join_date": "2026-03-25",
+    "total_savings": 650000
+  },
+  {
+    "member_code": "MBR-0090",
+    "full_name": "Bella Hidayat",
+    "join_date": "2025-09-27",
+    "total_savings": 1050000
+  },
+  {
+    "member_code": "MBR-0091",
+    "full_name": "Irfan Syahputra",
+    "join_date": "2025-11-30",
+    "total_savings": 860000
+  },
+  {
+    "member_code": "MBR-0092",
+    "full_name": "Dewi Kurniadi",
+    "join_date": "2025-12-27",
+    "total_savings": 620000
+  },
+  {
+    "member_code": "MBR-0093",
+    "full_name": "Wulan Ramadhan",
+    "join_date": "2025-09-30",
+    "total_savings": 1180000
+  },
+  {
+    "member_code": "MBR-0094",
+    "full_name": "Gilang Rahman",
+    "join_date": "2025-11-09",
+    "total_savings": 1250000
+  },
+  {
+    "member_code": "MBR-0095",
+    "full_name": "Budi Hidayat",
+    "join_date": "2025-10-09",
+    "total_savings": 1860000
+  },
+  {
+    "member_code": "MBR-0096",
+    "full_name": "Gilang Gunawan",
+    "join_date": "2025-08-21",
+    "total_savings": 1820000
+  },
+  {
+    "member_code": "MBR-0097",
+    "full_name": "Nanda Hidayat",
+    "join_date": "2026-03-07",
+    "total_savings": 950000
+  },
+  {
+    "member_code": "MBR-0098",
+    "full_name": "Gita Santoso",
+    "join_date": "2025-10-23",
+    "total_savings": 860000
+  },
+  {
+    "member_code": "MBR-0099",
+    "full_name": "Putra Rahman",
+    "join_date": "2025-09-06",
+    "total_savings": 1620000
+  },
+  {
+    "member_code": "MBR-0100",
+    "full_name": "Lestari Santoso",
+    "join_date": "2026-04-06",
+    "total_savings": 510000
+  },
+  {
+    "member_code": "MBR-0101",
+    "full_name": "Bella Susanto",
+    "join_date": "2025-12-04",
+    "total_savings": 1200000
+  },
+  {
+    "member_code": "MBR-0102",
+    "full_name": "Fitri Anggraini",
+    "join_date": "2026-05-29",
+    "total_savings": 700000
+  },
+  {
+    "member_code": "MBR-0103",
+    "full_name": "Agus Rahman",
+    "join_date": "2025-10-12",
+    "total_savings": 1560000
+  },
+  {
+    "member_code": "MBR-0104",
+    "full_name": "Bambang Wibowo",
+    "join_date": "2025-08-26",
+    "total_savings": 890000
+  },
+  {
+    "member_code": "MBR-0105",
+    "full_name": "Putra Saputra",
+    "join_date": "2025-11-16",
+    "total_savings": 1520000
+  },
+  {
+    "member_code": "MBR-0106",
+    "full_name": "Irfan Pratama",
+    "join_date": "2026-03-04",
+    "total_savings": 880000
+  },
+  {
+    "member_code": "MBR-0107",
+    "full_name": "Rizky Setiawan",
+    "join_date": "2026-06-07",
+    "total_savings": 480000
+  },
+  {
+    "member_code": "MBR-0108",
+    "full_name": "Dewi Susanto",
+    "join_date": "2026-03-28",
+    "total_savings": 1010000
+  },
+  {
+    "member_code": "MBR-0109",
+    "full_name": "Oki Santoso",
+    "join_date": "2025-08-25",
+    "total_savings": 1130000
+  },
+  {
+    "member_code": "MBR-0110",
+    "full_name": "Indah Permana",
+    "join_date": "2026-03-10",
+    "total_savings": 890000
+  },
+  {
+    "member_code": "MBR-0111",
+    "full_name": "Zahra Santoso",
+    "join_date": "2025-12-16",
+    "total_savings": 1250000
+  },
+  {
+    "member_code": "MBR-0112",
+    "full_name": "Umi Santoso",
+    "join_date": "2026-03-10",
+    "total_savings": 960000
+  },
+  {
+    "member_code": "MBR-0113",
+    "full_name": "Rina Pratama",
+    "join_date": "2025-09-11",
+    "total_savings": 1560000
+  },
+  {
+    "member_code": "MBR-0114",
+    "full_name": "Ahmad Permana",
+    "join_date": "2025-10-04",
+    "total_savings": 1120000
+  },
+  {
+    "member_code": "MBR-0115",
+    "full_name": "Rizky Ramadhan",
+    "join_date": "2026-01-10",
+    "total_savings": 840000
+  },
+  {
+    "member_code": "MBR-0116",
+    "full_name": "Ahmad Santoso",
+    "join_date": "2025-12-25",
+    "total_savings": 740000
+  },
+  {
+    "member_code": "MBR-0117",
+    "full_name": "Fitri Pratama",
+    "join_date": "2025-10-14",
+    "total_savings": 1230000
+  },
+  {
+    "member_code": "MBR-0118",
+    "full_name": "Wulan Saputra",
+    "join_date": "2026-05-23",
+    "total_savings": 740000
+  },
+  {
+    "member_code": "MBR-0119",
+    "full_name": "Fajar Firmansyah",
+    "join_date": "2025-09-19",
+    "total_savings": 1430000
+  },
+  {
+    "member_code": "MBR-0120",
+    "full_name": "Made Wibowo",
+    "join_date": "2025-09-30",
+    "total_savings": 1470000
+  }
+]
