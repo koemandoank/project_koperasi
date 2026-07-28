@@ -261,10 +261,39 @@ dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
 | 9 | Breadcrumb `require()` dinamis | ✅ Case Closed |
 | 10 | Cache `.next` basi | ✅ Case Closed |
 | 11 | Type error tooltip recharts | ✅ Case Closed |
-| 12 | Divergensi git lokal/origin | 🔴 Open — perlu keputusan manual (lihat rekomendasi di atas) |
+| 12 | Divergensi git lokal/origin | ✅ Case Closed (rebase manual, font Poppins dipilih, push sukses) |
+| 13 | Tailwind `--font-size-*` salah namespace → build gagal | ✅ Case Closed |
 
-**Sisa pekerjaan:** hanya #12 yang masih open, dan sengaja dibiarkan open karena
-butuh keputusan manusia soal strategi provider database (MySQL vs PostgreSQL/Neon)
-sebelum rebase/merge dieksekusi. Semua temuan lain (#1–#11) sudah ✅ case closed
-per 27 Juli 2026, terverifikasi lewat `npx tsc --noEmit` (0 error) dan pengecekan
-langsung ke source code.
+**Sisa pekerjaan:** semua 13 temuan sudah ✅ case closed per 28 Juli 2026,
+terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, dan
+`npm run build` production penuh (0 error). Sudah di-push ke `origin/main`.
+
+---
+
+## Bagian C — Post-Rebase: Build Production Gagal di Vercel (28 Juli 2026)
+
+### 13. Tailwind v4 `--font-size-*` Salah Namespace → Build Gagal
+**Status: ✅ CASE CLOSED**
+
+Setelah #12 di-rebase & push, build Vercel gagal total:
+```
+Error: Cannot apply unknown utility class `text-h1`
+CssSyntaxError: tailwindcss: .../src/app/globals.css:1:1: Cannot apply unknown
+utility class `text-h1`
+```
+**Root cause:** di Tailwind CSS v4, namespace `@theme` untuk font-size adalah
+`--text-*`, BUKAN `--font-size-*`. `globals.css` mendefinisikan
+`--font-size-h1`, `--font-size-h2`, dst., sehingga Tailwind tidak mengenali
+`text-h1`/`text-h2` sebagai utility class yang valid saat dipakai di
+`.page-title { @apply text-h1 ... }` dan `.section-title { @apply text-h2 ... }`.
+Ini bug lama yang sudah ada sejak sebelum rebase (bukan hasil resolve conflict
+font Poppins/Inter kemarin) — baru ketahuan sekarang karena baru kali ini
+build production benar-benar dijalankan ulang dari awal.
+
+**Fix:** ganti semua `--font-size-h1/h2/h3/body/small/data-lg/data` menjadi
+`--text-h1/h2/h3/body/small/data-lg/data` di `src/app/globals.css`.
+
+**Diverifikasi:** `npm run build` lokal (mereplikasi proses build Vercel) sukses
+penuh, semua ~50 route ter-compile termasuk `/api/cron/backup` dan
+`/pengaturan/backup` (memang benar sudah ada lagi dari fitur backup origin,
+bukan cache basi). Sudah di-push (`ec1f246`).
