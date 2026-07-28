@@ -60,8 +60,9 @@ butuh saldo simpanan historis dulu (§3.1). Jadi fondasi dulu, baru transaksi ra
 | 1 | Backup/snapshot | ✅ Selesai | `docs/backups/snapshot-pre-seed-2026-07-28.json` — baseline: 20 members, 26 users, 60 savings, 277 saving_tx, 67 loan_apps, 47 loans, 497 orders, 25 products |
 | 1 | 3 user staf baru | ✅ Selesai | `kasir2`(id67), `pengurus2`(id68), `akuntan2`(id69) — password `Staf#2026` |
 | 1 | 100 anggota + savings | ✅ Selesai | MBR-0021 s.d. MBR-0120, join_date acak 1 Agu 2025–30 Jun 2026. Tiap anggota dapat savings SP+SW+SS. Total anggota sekarang: 120. Total user: 129. Savings: 360 baris. Saving_transactions: 1.391 baris (dari 277). Password default anggota baru: `K0pmember01` (sama seperti `createMember()`). Verifikasi: 0 pelanggaran rule, count semua tabel konsisten (lihat `scripts/check-counts.js` output). |
-| 2 | Pengadaan barang | ⬜ Belum | |
-| 2 | Accounts payable | ⬜ Belum | |
+| 2 | Pengadaan barang | ✅ Selesai | 65 PO baru (`PO-2025-001..010` + `PO-2026-001..060` — total 67 dgn 2 lama), 12 siklus bulanan Agu 2025-Jul 2026, 5 produk/supplier × 5 supplier. ⚠️ Agustus 2025 ke-generate 2x (sisa dari test run 1-bulan sebelum full run, tidak ada guard anti-duplikat) — efeknya cuma stok Agustus lebih tebal dari rencana, BUKAN pelanggaran rule/data rusak. |
+| 2 | Accounts payable | ✅ Selesai | 65 invoice baru (`INV-SUP-003..067`, 70% `paid`, sisanya `open`/`overdue` acak) + `accounts_payable_details` per item. Total: 67. |
+| 2 | Stok akhir | ✅ Selesai | Total stok naik dari 2.830 → **37.104 unit** di 25 produk (termasuk 3 produk kritis yang tadinya nyaris habis, sudah direstock besar di siklus pertama). Lebih dari cukup untuk proyeksi ~15-20rb unit terjual di Hari 3. |
 | 3 | ~7.500 order toko | ⬜ Belum | |
 | 3 | Retur barang | ⬜ Belum | |
 | 3 | Order paylater | ⬜ Belum | |
