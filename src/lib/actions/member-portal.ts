@@ -11,9 +11,23 @@ export async function getMySimpanan() {
     if (!session?.user?.id) return null
 
     // SECURITY FIX: Verify user owns this member record
+    // BUG FIX (28 Jul 2026): nested include ditambahkan — sebelumnya hanya
+    // `members: true` sehingga member.savings selalu undefined dan halaman
+    // /simpanan anggota selalu tampil kosong meski data ada di DB.
     const user = await prisma.user.findUnique({
       where: { id: BigInt(session.user.id) },
-      include: { members: true }
+      include: {
+        members: {
+          include: {
+            savings: {
+              include: {
+                saving_types: true,
+                saving_transactions: { orderBy: { transaction_at: "desc" }, take: 1 },
+              },
+            },
+          },
+        },
+      },
     })
 
     if (!user?.members) return null
