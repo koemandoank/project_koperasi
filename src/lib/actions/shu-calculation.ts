@@ -346,8 +346,14 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
     const tempMembersData = [];
     let totalSimpananSeluruh = 0, totalBungaSeluruh = 0, totalBelanjaSeluruh = 0;
 
-    for (const member of activeMembers) {
-      const p = await calculateIndividualMemberProjection(member, config, startDate, endDate);
+    // PERF FIX (28 Jul 2026): sebelumnya sequential (await di dalam for-loop) —
+    // 3 query x N anggota, satu-satu. Dengan data skala besar (120+ anggota) ini
+    // jadi sangat lambat (bisa >60s, menyebabkan build/request timeout).
+    // Promise.all menjalankan seluruh perhitungan per-anggota secara paralel.
+    const projections = await Promise.all(
+      activeMembers.map((member: any) => calculateIndividualMemberProjection(member, config, startDate, endDate))
+    );
+    for (const p of projections) {
       totalSimpananSeluruh += p.savingsBalance;
       totalBungaSeluruh += p.bungaPaid;
       totalBelanjaSeluruh += p.belanjaPaid;

@@ -2,6 +2,13 @@ import { getSHUProjection } from "@/lib/actions/shu-calculation"
 import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { PembagianShuClient } from "./pembagian-shu-client"
 
+// FIX (28 Jul 2026): halaman ini menghitung proyeksi SHU utk SEMUA anggota aktif
+// secara sequential (N+1 query per anggota). Dengan data skala besar (120+ anggota),
+// perhitungan ini melebihi 60 detik batas Next.js static generation saat build,
+// menyebabkan build Vercel gagal total. force-dynamic memindah eksekusi ke saat
+// request (serverless function, timeout jauh lebih longgar), bukan saat build.
+export const dynamic = "force-dynamic"
+
 export default async function PembagianShuPage() {
   const currentYear = new Date().getFullYear()
 
