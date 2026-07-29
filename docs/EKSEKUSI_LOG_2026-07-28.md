@@ -63,7 +63,7 @@ butuh saldo simpanan historis dulu (§3.1). Jadi fondasi dulu, baru transaksi ra
 | 2 | Pengadaan barang | ✅ Selesai | 65 PO baru (`PO-2025-001..010` + `PO-2026-001..060` — total 67 dgn 2 lama), 12 siklus bulanan Agu 2025-Jul 2026, 5 produk/supplier × 5 supplier. ⚠️ Agustus 2025 ke-generate 2x (sisa dari test run 1-bulan sebelum full run, tidak ada guard anti-duplikat) — efeknya cuma stok Agustus lebih tebal dari rencana, BUKAN pelanggaran rule/data rusak. |
 | 2 | Accounts payable | ✅ Selesai | 65 invoice baru (`INV-SUP-003..067`, 70% `paid`, sisanya `open`/`overdue` acak) + `accounts_payable_details` per item. Total: 67. |
 | 2 | Stok akhir | ✅ Selesai | Total stok naik dari 2.830 → **37.104 unit** di 25 produk (termasuk 3 produk kritis yang tadinya nyaris habis, sudah direstock besar di siklus pertama). Lebih dari cukup untuk proyeksi ~15-20rb unit terjual di Hari 3. |
-| 3 | ~7.500 order toko | ⬜ Belum | |
+| 3 | Belanja rutin toko (~7.500 order) | ✅ Selesai (dengan 3 insiden, semua diperbaiki) | Lihat catatan detail di bawah tabel |
 | 3 | Retur barang | ⬜ Belum | |
 | 3 | Order paylater | ⬜ Belum | |
 | 4 | Pengajuan pinjaman | ⬜ Belum | |
@@ -72,3 +72,50 @@ butuh saldo simpanan historis dulu (§3.1). Jadi fondasi dulu, baru transaksi ra
 | 4 | Verifikasi akhir | ⬜ Belum | |
 
 Legenda: ⬜ Belum mulai · 🔄 Sedang jalan · ✅ Selesai · ⚠️ Selesai dengan catatan
+
+## Catatan Detail Hari 3 — Belanja Rutin Toko (3 insiden, semua sudah diperbaiki)
+
+Ditulis apa adanya supaya jelas apa yang terjadi dan bagaimana diperbaiki:
+
+**Insiden 1 — Kesalahan operasional (env var tidak di-reset saat retry).**
+Rencana awal: tes 2 minggu dulu sebelum full run. Karena koneksi Neon sempat gagal
+(transient) di percobaan pertama, saya retry TANPA set ulang `SEED_WEEK_START`/
+`SEED_WEEK_COUNT` — akibatnya langsung jalan full 52 minggu tanpa lewat tes kecil.
+Hasilnya tetap valid secara data (7.438 order + 19.365 order_items berhasil
+tersimpan benar), jadi tidak di-rollback, tapi ini murni kebetulan aman, bukan
+proses yang seharusnya.
+
+**Insiden 2 — Bug enum `order_payments.payment_status`.**
+Saya pakai nilai `'completed'`, padahal enum sebenarnya `pending/authorized/
+captured/failed/refunded`. Script crash SEBELUM satu pun `order_payments` baru
+ke-insert (aman, tidak ada data korup) — tapi 7.438 order sempat tanpa payment
+record. Diperbaiki lewat script patch `03b-patch-payments-stock.js`, memakai
+`'captured'`.
+
+**Insiden 3 — Bug enum `order_payments.payment_method`.**
+Setelah fix insiden 2, ketahuan `order_payments_payment_method` (cash/debit_card/
+credit_card/qris/transfer/check/other) BEDA dari `orders_payment_method` (cash/
+saving_deduct/paylater/qris/transfer) — tidak 1:1. Order dengan `saving_deduct`
+memang tidak dibuatkan `order_payments` (konsisten dengan kode asli `pos.ts` yang
+juga tidak menangani ini secara khusus). Order `paylater` yang masih `unpaid`
+juga sengaja dilewati (itu memang artinya "belum dibayar", bukan bug). Hasil akhir
+backfill: 6.657 dari 7.935 total order punya payment record; sisanya (1.278)
+memang seharusnya tidak punya (saving_deduct + paylater belum lunas) — angkanya
+pas (7.935 - 1.278 = 6.657, terverifikasi cocok).
+
+**Insiden 4 — Kesalahan estimasi stok (root cause: salah hitung satuan).**
+Saat merencanakan Hari 2, saya keliru mengira `order_items` (baris order) sama
+dengan unit terjual. Faktanya 19.365 baris × rata-rata ~2,4 qty/baris ≈ jauh lebih
+banyak unit sebenarnya. Akibatnya **14 dari 25 produk kehabisan stok** (mentok di
+0, terpotong oleh pengaman `Math.max(0, ...)` saat decrement). Diperbaiki dengan
+restock darurat (`03c-restock-darurat.js`): PO khusus `PO-2025-XXX-DARURAT`
+tanggal 15 Sep 2025 (ditempatkan di awal simulasi, sebelum mayoritas transaksi),
+400 unit/produk untuk 13 produk yang sempat 0. Hasil akhir: **0 produk sisa stok
+0**, total stok akhir 7.120 unit.
+
+**Verifikasi akhir tahap ini (semua konsisten):**
+- Orders: 7.935 total (497 lama + 7.438 baru), semua punya `order_items` (19.365 baris).
+- Payments: 6.657/7.935 (sisanya sengaja tidak punya, sudah dijelaskan di atas).
+- `purchase_orders`/`accounts_payable`: 68/68 (termasuk 1 PO+AP darurat).
+- Stok: 0 produk minus/nol, total 7.120 unit tersisa.
+- **0 pelanggaran rule pinjaman** (tidak tersentuh tahap ini, tetap 12 loan aktif seperti sebelumnya).
