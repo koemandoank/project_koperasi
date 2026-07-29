@@ -263,10 +263,13 @@ dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
 | 11 | Type error tooltip recharts | ✅ Case Closed |
 | 12 | Divergensi git lokal/origin | ✅ Case Closed (rebase manual, font Poppins dipilih, push sukses) |
 | 13 | Tailwind `--font-size-*` salah namespace → build gagal | ✅ Case Closed |
+| 14 | Timeout SHU N+1 query → build gagal | ✅ Case Closed |
+| 15 | Model `budgets` hilang dari schema → `/akuntansi/anggaran` selalu error | ✅ Case Closed |
 
-**Sisa pekerjaan:** semua 13 temuan sudah ✅ case closed per 28 Juli 2026,
-terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, dan
-`npm run build` production penuh (0 error). Sudah di-push ke `origin/main`.
+**Sisa pekerjaan:** semua 15 temuan sudah ✅ case closed per 28 Juli 2026,
+terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, `npx
+prisma db push` (sinkron tanpa data loss), dan `npm run build` production penuh
+(0 error). Sudah di-push ke `origin/main`.
 
 ---
 
@@ -297,3 +300,56 @@ build production benar-benar dijalankan ulang dari awal.
 penuh, semua ~50 route ter-compile termasuk `/api/cron/backup` dan
 `/pengaturan/backup` (memang benar sudah ada lagi dari fitur backup origin,
 bukan cache basi). Sudah di-push (`ec1f246`).
+
+---
+
+## Bagian D — Ditemukan Saat Verifikasi Build Setelah Seeding Data (28 Juli 2026)
+
+### 14. Build Vercel Gagal — Timeout Static Generation di `/akuntansi/pembagian-shu`
+**Status: ✅ CASE CLOSED**
+
+`getSHUProjection()` menghitung proyeksi SHU untuk SEMUA anggota aktif via
+sequential loop (`for...await`) — 3 query database per anggota, satu-satu, tanpa
+paralelisasi. Dengan 20 anggota (skala lama) ini cukup cepat, tapi setelah
+seeding data (120 anggota + volume transaksi jauh lebih besar), total waktu
+lewat batas 60 detik Next.js static generation → build Vercel gagal total
+setelah 3x percobaan retry.
+
+**Fix:**
+1. `pembagian-shu/page.tsx` → tambah `export const dynamic = "force-dynamic"`
+   supaya halaman dihitung saat request (serverless function), bukan saat build.
+2. `shu-calculation.ts` → loop sequential diganti `Promise.all()` supaya semua
+   perhitungan per-anggota berjalan paralel, bukan satu-satu.
+
+Diverifikasi: `npm run build` lokal sukses penuh (`Compiled successfully`), semua
+route ter-generate tanpa error.
+
+### 15. `/akuntansi/anggaran` Selalu Error — Model `budgets` Tidak Ada di Schema
+**Status: ✅ CASE CLOSED**
+
+**Bug lama, TIDAK berkaitan dengan seeding data** — ditemukan saat investigasi
+laporan error di halaman ini. `src/lib/actions/budgets.ts` aktif memanggil
+`prisma.budgets.findMany/create/createMany`, tapi **`model budgets` sama sekali
+tidak ada di `prisma/schema.prisma`** (0 hasil pencarian "budget" di seluruh
+file). Akibatnya `prisma.budgets` selalu `undefined` di runtime →
+`TypeError: Cannot read properties of undefined` → halaman selalu gagal untuk
+siapa pun yang membukanya, sejak awal.
+
+**Fix:** tambah `model budgets` baru ke schema (id, code unique, name, allocated,
+used, color, year, created_at, updated_at — field disamakan persis dengan yang
+dipakai di `budgets.ts`), lalu `prisma db push` untuk membuat tabel di database.
+Tabel baru murni, tidak menyentuh data/tabel lain.
+
+⚠️ **Temuan sampingan saat proses fix ini** — `prisma db push` awalnya mau
+MENGHAPUS 3 kolom (`bank_name`, `bank_account`, `bank_holder`) dari tabel
+`members` yang **masih berisi data 20 anggota**, karena kolom itu ADA di
+database tapi hilang dari `schema.prisma` (schema drift lama, tidak diketahui
+sejak kapan). **TIDAK dieksekusi** (`--accept-data-loss` sengaja tidak dipakai) —
+sebagai gantinya, ketiga kolom dikembalikan ke `schema.prisma` supaya sinkron
+dengan struktur DB asli. Setelah itu `prisma db push` jalan bersih tanpa
+peringatan data loss apa pun. Data bank 20 anggota terverifikasi utuh.
+
+**Pelajaran:** kejadian ini menunjukkan `schema.prisma` sempat tidak sinkron
+dengan DB produksi untuk kolom lain juga — disarankan audit menyeluruh
+`schema.prisma` vs `information_schema.columns` di kesempatan lain untuk
+memastikan tidak ada drift tersembunyi lainnya.
