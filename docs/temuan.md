@@ -265,11 +265,12 @@ dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
 | 13 | Tailwind `--font-size-*` salah namespace → build gagal | ✅ Case Closed |
 | 14 | Timeout SHU N+1 query → build gagal | ✅ Case Closed |
 | 15 | Model `budgets` hilang dari schema → `/akuntansi/anggaran` selalu error | ✅ Case Closed |
+| 16 | Connection pool exhaustion `getSHUProjection` di halaman kedua | ✅ Case Closed |
 
-**Sisa pekerjaan:** semua 15 temuan sudah ✅ case closed per 28 Juli 2026,
+**Sisa pekerjaan:** semua 16 temuan sudah ✅ case closed per 28 Juli 2026,
 terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, `npx
 prisma db push` (sinkron tanpa data loss), dan `npm run build` production penuh
-(0 error). Sudah di-push ke `origin/main`.
+(0 error, 0 timeout). Sudah di-push ke `origin/main`.
 
 ---
 
@@ -353,3 +354,61 @@ peringatan data loss apa pun. Data bank 20 anggota terverifikasi utuh.
 dengan DB produksi untuk kolom lain juga — disarankan audit menyeluruh
 `schema.prisma` vs `information_schema.columns` di kesempatan lain untuk
 memastikan tidak ada drift tersembunyi lainnya.
+
+---
+
+## Bagian E — Build Gagal Lagi Setelah Fix #14 (28 Juli 2026)
+
+### 16. Connection Pool Exhaustion — `getSHUProjection()` Dipakai di 2 Halaman
+**Status: ✅ CASE CLOSED**
+
+Setelah fix #14 (`force-dynamic` + `Promise.all` di `pembagian-shu`), build
+Vercel gagal LAGI di halaman **berbeda**: `/laporan/partisipasi-anggota` — yang
+ternyata juga memanggil `getSHUProjection()` yang sama, tapi belum diberi
+`force-dynamic`.
+
+**Kenapa `Promise.all` dari fix #14 belum cukup:** `Promise.all` menjalankan
+SEMUA query per-anggota secara paralel/bersamaan — untuk 120 anggota × ~5 query
+= ~600 query ditembak nyaris bersamaan. Padahal connection pool Neon di
+lingkungan build cuma **3 slot** (`connection limit: 3` dari pesan error). Log
+build menunjukkan ratusan `Timed out fetching a new connection from the
+connection pool` bertumpuk dengan retry logic bawaan `src/lib/db/prisma.ts`
+(maks 2x retry per query), memperparah penumpukan sampai akhirnya gagal total
+setelah 3x percobaan Next.js.
+
+**Investigasi sampingan:** sempat curiga `prisma.member`/`prisma.unit`
+(singular, dipakai di puluhan file) adalah bug juga — ternyata **bukan bug**,
+itu alias resmi yang sengaja dibuat lewat `$extends()` di `src/lib/db/prisma.ts`
+(`client: { member: baseClient.members, unit: baseClient.units, ... }`). Baru
+ketahuan setelah dites: script mandiri pakai `new PrismaClient()` mentah
+(`prisma.member` = undefined), tapi kode aplikasi asli impor dari wrapper yang
+sudah di-extend (`prisma.member` valid). Dicatat di sini supaya tidak
+disalahpahami lagi sebagai bug di audit berikutnya.
+
+**Fix final (perbaikan menyeluruh, bukan tambal sulam lagi):**
+1. `shu-calculation.ts`: seluruh pola per-anggota (`getMemberSavingsForShu`,
+   `getMemberActivityInterestPaid`, `getMemberActivityStorePaid`,
+   `calculateIndividualMemberProjection`) diganti 3 fungsi BULK baru
+   (`getBulkMemberSavingsForShu`, `getBulkMemberInterestPaid`,
+   `getBulkMemberStorePaid`) yang masing-masing HANYA 1 query untuk SEMUA
+   anggota sekaligus (pakai `where: { member_id: { in: memberIds } }` +
+   agregasi via `Map` di memory), bukan N query per anggota. Total query
+   `getSHUProjection()` sekarang tetap **4 query** berapa pun jumlah anggotanya
+   (members + savings + loan_schedules + orders), bukan lagi `O(n)`.
+2. `partisipasi-anggota/page.tsx` juga diberi `export const dynamic =
+   "force-dynamic"` (belt-and-suspenders, sama seperti `pembagian-shu`).
+3. Dicek: cuma 2 halaman yang memanggil `getSHUProjection()`, keduanya sudah
+   `force-dynamic`.
+4. **Bonus fix**: warning `[DB] Cannot ensure rat_attendances table` di
+   `src/lib/db/ensure-tables.ts` — legacy workaround yang mencoba `CREATE TABLE`
+   + `CREATE INDEX` dalam SATU `$executeRawUnsafe()`, gagal di koneksi pooled
+   Neon (`cannot insert multiple commands into a prepared statement`).
+   Diverifikasi tabel `rat_attendances` **sudah ada resmi** lewat model Prisma
+   (dari migrasi origin, sudah berisi 20 baris data) — workaround runtime ini
+   sudah tidak diperlukan, dijadikan no-op (dipanggil di 5 tempat di
+   `rat-absensi.ts`, sebelumnya tiap panggilan buang 1 round-trip DB gagal).
+
+**Diverifikasi:** `npx tsc --noEmit` 0 error, `npm run build` production penuh
+sukses (`Compiled successfully`), kedua halaman muncul sebagai `ƒ` (dynamic)
+di route list, tidak ada lagi warning `rat_attendances` maupun error connection
+pool di log build.
