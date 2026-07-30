@@ -83,31 +83,36 @@ export async function processMonthlyPayrollBatch({
       }
     })
 
-    const membersNeedingSw: typeof activeMembers = []
-    for (const member of activeMembers) {
-      // Abaikan akun sistem yang bukan anggota koperasi asli
-      const isSystemAccount =
-        member.nik.startsWith("ADM") ||
-        member.nik.startsWith("SAD") ||
-        member.nik.startsWith("KAS") ||
-        member.nik.startsWith("PEN") ||
-        member.nik.startsWith("KET")
-      if (isSystemAccount) continue
-
-      // Periksa apakah transaksi 'salary_cut' untuk Simpanan Wajib bulan ini sudah ada
-      const existingTrx = await prisma.saving_transactions.findFirst({
-        where: {
-          member_id: member.id,
-          savings: { saving_type_id: swType.id },
-          transaction_at: { gte: startDate, lte: endDate },
-          type: "salary_cut"
-        }
+    // PERF FIX (28 Jul 2026): sebelumnya cek "sudah dipotong bulan ini?" dilakukan
+    // dengan query findFirst SATU-SATU per anggota (N query untuk N anggota).
+    // Dengan 120+ anggota aktif, ini jadi lambat & berisiko exhaust connection pool
+    // di luar transaksi. Diganti 1 query bulk untuk SEMUA anggota sekaligus.
+    const eligibleMemberIds = activeMembers
+      .filter((m: any) => {
+        const isSystemAccount =
+          m.nik.startsWith("ADM") || m.nik.startsWith("SAD") ||
+          m.nik.startsWith("KAS") || m.nik.startsWith("PEN") || m.nik.startsWith("KET")
+        return !isSystemAccount && m.savings.length > 0
       })
+      .map((m: any) => m.id)
 
-      if (!existingTrx && member.savings.length > 0) {
-        membersNeedingSw.push(member)
-      }
-    }
+    const existingTrxThisMonth = await prisma.saving_transactions.findMany({
+      where: {
+        member_id: { in: eligibleMemberIds },
+        savings: { saving_type_id: swType.id },
+        transaction_at: { gte: startDate, lte: endDate },
+        type: "salary_cut"
+      },
+      select: { member_id: true }
+    })
+    const alreadyPaidMemberIds = new Set(existingTrxThisMonth.map((t: any) => t.member_id.toString()))
+
+    const membersNeedingSw = activeMembers.filter((m: any) => {
+      const isSystemAccount =
+        m.nik.startsWith("ADM") || m.nik.startsWith("SAD") ||
+        m.nik.startsWith("KAS") || m.nik.startsWith("PEN") || m.nik.startsWith("KET")
+      return !isSystemAccount && m.savings.length > 0 && !alreadyPaidMemberIds.has(m.id.toString())
+    })
 
     // 4. Cari jadwal angsuran pinjaman (salary_cut) pending yang jatuh tempo di bulan ini
     const pendingSchedules = await prisma.loan_schedules.findMany({
@@ -148,14 +153,18 @@ export async function processMonthlyPayrollBatch({
       // A. Proses Simpanan Wajib Massal
       const payrollDate = new Date(startDate.getFullYear(), startDate.getMonth(), 25, 10, 0, 0) // Kunci ke tanggal 25 pukul 10:00 pagi
 
-      for (const member of membersNeedingSw) {
-        const savingsRecord = member.savings[0]
-        const balanceBefore = Number(savingsRecord.balance)
-        const balanceAfter = balanceBefore + swAmount
-
-        // 1) Buat record transaksi simpanan
-        await tx.saving_transactions.create({
-          data: {
+      // PERF FIX (28 Jul 2026): sebelumnya loop per-anggota dengan 2 query masing2
+      // (create + update) = 2xN query SEQUENTIAL di dalam SATU koneksi transaksi.
+      // Dengan 120+ anggota & timeout transaksi cuma 30 detik, ini berisiko timeout
+      // total (seluruh transaksi rollback). Diganti: 1x createMany utk semua baris
+      // transaksi + 1x updateMany utk semua saldo (increment sama rata, tidak perlu
+      // hitung balance_after individual utk update saldo karena pakai {increment}).
+      if (membersNeedingSw.length > 0) {
+        const swTxRows = membersNeedingSw.map((member: any) => {
+          const savingsRecord = member.savings[0]
+          const balanceBefore = Number(savingsRecord.balance)
+          const balanceAfter = balanceBefore + swAmount
+          return {
             savings_id:     savingsRecord.id,
             member_id:      member.id,
             type:           "salary_cut",
@@ -167,22 +176,24 @@ export async function processMonthlyPayrollBatch({
             processed_by:   BigInt(userId),
             transaction_at: payrollDate,
             created_at:     payrollDate,
-            updated_at:     payrollDate
+            updated_at:     payrollDate,
           }
         })
 
-        // 2) Update saldo utama simpanan
-        await tx.savings.update({
-          where: { id: savingsRecord.id },
+        await tx.saving_transactions.createMany({ data: swTxRows })
+
+        const savingsIds = membersNeedingSw.map((member: any) => member.savings[0].id)
+        await tx.savings.updateMany({
+          where: { id: { in: savingsIds } },
           data: {
-            balance:       balanceAfter,
+            balance:       { increment: swAmount },
             total_deposit: { increment: swAmount },
-            updated_at:    new Date()
-          }
+            updated_at:    new Date(),
+          },
         })
 
-        savingsCount++
-        savingsAmount += swAmount
+        savingsCount = membersNeedingSw.length
+        savingsAmount = swAmount * membersNeedingSw.length
       }
 
       // B. Proses Angsuran Pinjaman Massal
