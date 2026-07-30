@@ -123,6 +123,13 @@ export async function saveShuConfig(config: ShuConfig) {
  * @param {string[]} komponen Komponen simpanan (pokok, wajib, sukarela_berjangka)
  * @returns {Promise<number>} Total simpanan anggota
  */
+// PERF FIX (28 Jul 2026): Fungsi-fungsi per-anggota di bawah ini (getMemberSavingsForShu,
+// getMemberActivityInterestPaid, getMemberActivityStorePaid, calculateIndividualMemberProjection)
+// SUDAH TIDAK DIPAKAI LAGI oleh getSHUProjection() - diganti versi bulk (getBulkMemberSavings/
+// InterestPaid/StorePaid di bawah) yang query SEKALI untuk SEMUA anggota, bukan N+1 per anggota.
+// Root cause: dengan 120+ anggota, pola lama (bahkan setelah dibungkus Promise.all) memicu
+// puluhan-ratusan query bersamaan padahal connection pool Neon cuma 3 slot -> connection pool
+// exhaustion & build/request timeout. Fungsi lama dibiarkan (tidak dipakai) untuk referensi.
 async function getMemberSavingsForShu(memberId: bigint, komponen: string[], endDate: Date): Promise<number> {
   try {
     const savings = await prisma.savings.findMany({
@@ -219,6 +226,90 @@ async function getMemberActivityStorePaid(memberId: bigint, startDate: Date, end
     console.error(`Error in getMemberActivityStorePaid for member ${memberId}:`, error);
     throw error;
   }
+}
+
+/**
+ * BULK versi dari getMemberSavingsForShu/getMemberActivityInterestPaid/getMemberActivityStorePaid.
+ * Masing-masing HANYA melakukan 1 query untuk SEMUA anggota sekaligus (bukan per-anggota),
+ * lalu hasilnya di-agregasi di memory pakai Map<memberId, total>. Ini yang dipakai
+ * getSHUProjection() sekarang - lihat catatan PERF FIX di atas.
+ */
+async function getBulkMemberSavingsForShu(memberIds: bigint[], komponen: string[], endDate: Date): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (memberIds.length === 0) return result;
+
+  const savingsRows = await prisma.savings.findMany({
+    where: { member_id: { in: memberIds } },
+    include: {
+      saving_types: true,
+      saving_transactions: {
+        where: { transaction_at: { lte: endDate } },
+        orderBy: { id: "desc" },
+        take: 1,
+      },
+    },
+  });
+
+  for (const s of savingsRows) {
+    const code = s.saving_types.code.toLowerCase();
+    const name = s.saving_types.name.toLowerCase();
+    const isPokok = code.includes("pokok") || name.includes("pokok");
+    const isWajib = code.includes("wajib") || name.includes("wajib");
+    const isSukarela = code.includes("sukarela") || name.includes("sukarela") || code.includes("berjangka") || name.includes("berjangka");
+
+    let isIncluded = false;
+    if (isPokok && komponen.includes("pokok")) isIncluded = true;
+    else if (isWajib && komponen.includes("wajib")) isIncluded = true;
+    else if (isSukarela && komponen.includes("sukarela_berjangka")) isIncluded = true;
+
+    if (isIncluded && s.saving_transactions.length > 0) {
+      const key = s.member_id.toString();
+      const lastBalance = Number(s.saving_transactions[0].balance_after);
+      result.set(key, (result.get(key) || 0) + lastBalance);
+    }
+  }
+  return result;
+}
+
+async function getBulkMemberInterestPaid(memberIds: bigint[], startDate: Date, endDate: Date): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (memberIds.length === 0) return result;
+
+  const rows = await prisma.loan_schedules.findMany({
+    where: {
+      loans: { member_id: { in: memberIds } },
+      status: "paid",
+      paid_at: { gte: startDate, lte: endDate },
+    },
+    select: { interest_paid: true, loans: { select: { member_id: true } } },
+  });
+
+  for (const r of rows) {
+    const key = r.loans.member_id.toString();
+    result.set(key, (result.get(key) || 0) + Number(r.interest_paid ?? 0));
+  }
+  return result;
+}
+
+async function getBulkMemberStorePaid(memberIds: bigint[], startDate: Date, endDate: Date): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (memberIds.length === 0) return result;
+
+  const rows = await prisma.orders.findMany({
+    where: {
+      member_id: { in: memberIds },
+      payment_status: "paid",
+      paid_at: { gte: startDate, lte: endDate },
+    },
+    select: { member_id: true, grand_total: true },
+  });
+
+  for (const r of rows) {
+    if (r.member_id === null) continue;
+    const key = r.member_id.toString();
+    result.set(key, (result.get(key) || 0) + Number(r.grand_total ?? 0));
+  }
+  return result;
 }
 
 /**
@@ -343,21 +434,32 @@ export async function getSHUProjection(year: number): Promise<ShuProjectionRepor
       orderBy: { member_code: "asc" },
     });
 
-    const tempMembersData = [];
-    let totalSimpananSeluruh = 0, totalBungaSeluruh = 0, totalBelanjaSeluruh = 0;
+    const memberIds = activeMembers.map((m: any) => m.id);
 
-    // PERF FIX (28 Jul 2026): sebelumnya sequential (await di dalam for-loop) —
-    // 3 query x N anggota, satu-satu. Dengan data skala besar (120+ anggota) ini
-    // jadi sangat lambat (bisa >60s, menyebabkan build/request timeout).
-    // Promise.all menjalankan seluruh perhitungan per-anggota secara paralel.
-    const projections = await Promise.all(
-      activeMembers.map((member: any) => calculateIndividualMemberProjection(member, config, startDate, endDate))
-    );
-    for (const p of projections) {
+    // PERF FIX (28 Jul 2026): 3 query BULK total (bukan 3xN query per-anggota).
+    const [savingsMap, interestMap, storeMap] = await Promise.all([
+      getBulkMemberSavingsForShu(memberIds, config.formula_jasa_modal.komponen_simpanan, endDate),
+      getBulkMemberInterestPaid(memberIds, startDate, endDate),
+      getBulkMemberStorePaid(memberIds, startDate, endDate),
+    ]);
+
+    const tempMembersData = activeMembers.map((member: any) => {
+      const key = member.id.toString();
+      return {
+        memberId: key,
+        memberNo: member.member_code,
+        memberName: member.full_name,
+        savingsBalance: savingsMap.get(key) || 0,
+        bungaPaid: interestMap.get(key) || 0,
+        belanjaPaid: storeMap.get(key) || 0,
+      };
+    });
+
+    let totalSimpananSeluruh = 0, totalBungaSeluruh = 0, totalBelanjaSeluruh = 0;
+    for (const p of tempMembersData) {
       totalSimpananSeluruh += p.savingsBalance;
       totalBungaSeluruh += p.bungaPaid;
       totalBelanjaSeluruh += p.belanjaPaid;
-      tempMembersData.push(p);
     }
 
     const members = mapMembersToShuProjection(

@@ -1,27 +1,18 @@
-import { prisma } from "./prisma";
-
 let ensured = false;
 
+// FIX (28 Jul 2026): Sebelumnya fungsi ini mencoba CREATE TABLE + CREATE INDEX
+// dalam SATU $executeRawUnsafe() - gagal di koneksi pooled Neon dengan error
+// "cannot insert multiple commands into a prepared statement" (pgbouncer/pooler
+// tidak mendukung multi-statement dalam satu prepared statement). Errornya
+// di-catch & cuma warning, jadi tidak fatal - TAPI tetap membuang 1 round-trip
+// DB gagal di SETIAP pemanggilan action RAT (5 tempat di rat-absensi.ts).
+//
+// Root cause sebenarnya: tabel `rat_attendances` SEKARANG SUDAH ADA secara resmi
+// lewat model Prisma di schema.prisma (dibuat via `prisma db push`/migrasi),
+// jadi workaround runtime create-table ini sudah tidak diperlukan lagi.
+// Dijadikan no-op daripada dihapus total supaya 5 titik pemanggil di
+// rat-absensi.ts tidak perlu diubah satu-satu.
 export async function ensureTables() {
   if (ensured) return;
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS rat_attendances (
-        id          BIGSERIAL PRIMARY KEY,
-        member_id   BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-        year        INTEGER NOT NULL,
-        is_present  BOOLEAN NOT NULL DEFAULT false,
-        voted       BOOLEAN NOT NULL DEFAULT false,
-        attended_at TIMESTAMPTZ,
-        created_at  TIMESTAMPTZ DEFAULT now(),
-        updated_at  TIMESTAMPTZ DEFAULT now(),
-        UNIQUE(member_id, year)
-      );
-      CREATE INDEX IF NOT EXISTS idx_rat_attendances_year ON rat_attendances(year);
-    `);
-    ensured = true;
-    console.log("[DB] rat_attendances table ensured");
-  } catch (e: any) {
-    console.warn("[DB] Cannot ensure rat_attendances table (pooled conn?):", e?.message);
-  }
+  ensured = true;
 }

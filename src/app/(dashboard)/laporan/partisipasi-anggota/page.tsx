@@ -2,6 +2,10 @@ import { getSHUProjection } from "@/lib/actions/shu-calculation"
 import { getReportTemplateConfig } from "@/lib/actions/settings"
 import { PartisipasiClient } from "./partisipasi-client"
 
+// FIX (28 Jul 2026): sama seperti pembagian-shu, halaman ini juga panggil
+// getSHUProjection() yang berat untuk data skala besar - pindah ke request-time.
+export const dynamic = "force-dynamic"
+
 export default async function PartisipasiAnggotaPage() {
   const currentYear = new Date().getFullYear()
 
