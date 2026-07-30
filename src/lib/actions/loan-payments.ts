@@ -91,6 +91,29 @@ export async function recordLoanPayment({
     // Pastikan principalPortion tidak melebihi sisa outstanding agar tidak melanggar check constraint chk_loans_outstanding
     const safePrincipalPortion = Math.min(outstanding, Math.max(0, principalPortion))
 
+    // FIX (28 Jul 2026): payment_method "saving_deduct" sebelumnya HANYA tersimpan
+    // sebagai label teks, TIDAK benar-benar memotong saldo Simpanan Sukarela anggota
+    // (beda dengan salary_cut yang memang seharusnya tidak menyentuh saldo simpanan
+    // karena uangnya dari potongan gaji, bukan dari koperasi). Pola pemotongan saldo
+    // disamakan dengan yang sudah benar dipakai di ppob-settings.ts.
+    let savingDeductInfo: { savingsId: bigint; balanceBefore: number; balanceAfter: number } | null = null
+    if (paymentMethod === "saving_deduct") {
+      const sukarelaType = await prisma.saving_types.findFirst({
+        where: { OR: [{ code: "SUKARELA" }, { code: "SS" }, { name: { contains: "Sukarela" } }] },
+      })
+      if (!sukarelaType) {
+        return { success: false, error: "Jenis simpanan Sukarela tidak ditemukan. Silakan hubungi admin." }
+      }
+      const memberSaving = await prisma.savings.findUnique({
+        where: { member_id_saving_type_id: { member_id: loan.member_id, saving_type_id: sukarelaType.id } },
+      })
+      if (!memberSaving || Number(memberSaving.balance) < amountPaid) {
+        return { success: false, error: "Saldo Simpanan Sukarela anggota tidak mencukupi untuk membayar cicilan ini." }
+      }
+      const balanceBefore = Number(memberSaving.balance)
+      savingDeductInfo = { savingsId: memberSaving.id, balanceBefore, balanceAfter: balanceBefore - amountPaid }
+    }
+
     // Generate nomor pembayaran unik
     const count     = await prisma.loan_payments.count()
     const paymentNo = `PAY-${Date.now()}-${String(count + 1).padStart(4, "0")}`
@@ -123,6 +146,36 @@ export async function recordLoanPayment({
           total_paid:            { increment: amountPaid },
         },
       }),
+
+      // Kalau bayar pakai potong simpanan: potong saldo + catat mutasi simpanan
+      ...(savingDeductInfo
+        ? [
+            prisma.savings.update({
+              where: { id: savingDeductInfo.savingsId },
+              data: {
+                balance:        savingDeductInfo.balanceAfter,
+                total_withdraw: { increment: amountPaid },
+                updated_at:     new Date(),
+              },
+            }),
+            prisma.saving_transactions.create({
+              data: {
+                savings_id:     savingDeductInfo.savingsId,
+                member_id:      loan.member_id,
+                type:           "withdraw",
+                amount:         amountPaid,
+                balance_before: savingDeductInfo.balanceBefore,
+                balance_after:  savingDeductInfo.balanceAfter,
+                reference_no:   `LOANPAY-${paymentNo}`,
+                note:           `Potong Simpanan Sukarela untuk bayar cicilan pinjaman ${loan.loan_no}`,
+                processed_by:   BigInt(session.user.id),
+                transaction_at: new Date(),
+                created_at:     new Date(),
+                updated_at:     new Date(),
+              },
+            }),
+          ]
+        : []),
 
       // Update status jadwal jika scheduleId ada
       ...(scheduleId
