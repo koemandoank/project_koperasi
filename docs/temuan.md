@@ -266,11 +266,13 @@ dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
 | 14 | Timeout SHU N+1 query → build gagal | ✅ Case Closed |
 | 15 | Model `budgets` hilang dari schema → `/akuntansi/anggaran` selalu error | ✅ Case Closed |
 | 16 | Connection pool exhaustion `getSHUProjection` di halaman kedua | ✅ Case Closed |
+| 17 | N+1 query `processMonthlyPayrollBatch` (potongan gaji pengurus) | ✅ Case Closed |
 
-**Sisa pekerjaan:** semua 16 temuan sudah ✅ case closed per 28 Juli 2026,
+**Sisa pekerjaan:** semua 17 temuan sudah ✅ case closed per 28 Juli 2026,
 terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, `npx
 prisma db push` (sinkron tanpa data loss), dan `npm run build` production penuh
-(0 error, 0 timeout). Sudah di-push ke `origin/main`.
+(0 error, 0 timeout). Sudah di-push ke `origin/main`. Item #17 belum diuji
+end-to-end dengan eksekusi nyata (butuh session autentikasi asli).
 
 ---
 
@@ -412,3 +414,64 @@ disalahpahami lagi sebagai bug di audit berikutnya.
 sukses (`Compiled successfully`), kedua halaman muncul sebagai `ƒ` (dynamic)
 di route list, tidak ada lagi warning `rat_attendances` maupun error connection
 pool di log build.
+
+---
+
+## Bagian F — Audit Proaktif Modul Pengurus (28 Juli 2026)
+
+> Dipicu pertanyaan user: "apakah yang ditemukan & diperbaiki termasuk
+> aktivitas pengurus (potongan cicilan, tutup buku, dll)?" — jawaban jujurnya
+> saat itu BELUM, karena semua fix sebelumnya reaktif (merespons error yang
+> dilaporkan). Bagian ini hasil audit proaktif ke modul-modul pengurus.
+
+### 17. N+1 Query di `processMonthlyPayrollBatch` (Potongan Gaji Massal)
+**Status: ✅ CASE CLOSED**
+
+`src/lib/actions/payroll.ts` — fungsi yang dijalankan pengurus untuk memproses
+potongan gaji bulanan (Simpanan Wajib + angsuran pinjaman `salary_cut`) massal
+untuk SEMUA anggota aktif. Ditemukan 2 masalah skala:
+
+1. **Sebelum transaksi**: cek "sudah dipotong bulan ini?" pakai
+   `findFirst` SATU-SATU per anggota (N query untuk N anggota).
+2. **Di DALAM `prisma.$transaction()`** (timeout eksplisit 30 detik): loop
+   per-anggota dengan 2 query masing-masing (`create` transaksi +
+   `update` saldo) = 2×N query SEQUENTIAL di SATU koneksi.
+
+**Dihitung dengan data saat ini** (120 anggota aktif): estimasi query di dalam
+transaksi turun dari **250 → 12** setelah fix. Sebelum fix, 250 query
+sequential (bahkan di koneksi tunggal, bukan connection-pool issue kali ini,
+tapi murni durasi) sangat berisiko melebihi timeout 30 detik → **seluruh
+transaksi payroll bisa rollback total** kalau pengurus benar-benar
+menjalankannya dengan skala anggota sekarang.
+
+**Fix:**
+1. Cek "sudah dipotong" diganti 1 query bulk (`findMany` dengan
+   `member_id: { in: [...] }`) lalu filter di memory pakai `Set`.
+2. Loop create+update per-anggota diganti: 1× `createMany` untuk semua baris
+   `saving_transactions`, + 1× `updateMany` untuk semua saldo (pakai
+   `{ increment: swAmount }` karena jumlah potongan sama rata untuk semua
+   anggota, jadi tidak perlu hitung `balance_after` individual untuk update).
+
+**Belum diuji end-to-end dengan eksekusi nyata** (fungsi butuh session
+autentikasi asli, tidak bisa dites via script mandiri) — hanya diverifikasi
+lewat `tsc` + perhitungan skala query. Juga ditemukan: dari 12 pinjaman aktif
+saat ini, **belum ada satu pun** yang pakai `repayment_method: 'salary_cut'`,
+jadi bagian "angsuran pinjaman massal" di fungsi ini belum punya data uji nyata
+untuk periode manapun di simulasi yang sudah di-generate.
+
+### Modul Lain yang Sudah Dicek (Tidak Ada Masalah)
+- **`tutup-buku` / `performMonthlyClosing`** (`accounting.ts`): semua query
+  bersifat aggregate/count per-periode (bukan per-anggota/per-entitas), aman
+  untuk skala berapa pun. `calculateStoreCogs` sempat terlihat ada nested loop
+  tapi ternyata cuma iterasi in-memory atas hasil 1 query `findMany` dengan
+  `include` (bukan query ulang per iterasi) — aman.
+- **`recordLoanPayment`** (`loan-payments.ts`, pembayaran angsuran manual oleh
+  kasir/pengurus): beroperasi per satu `loanId`, tidak ada loop lintas-anggota,
+  aman untuk skala berapa pun secara desain.
+
+### Yang Masih Belum Dicek (di luar scope sesi ini)
+- Approval pinjaman pengurus (`/pinjaman/approval`) belum dites ulang khusus
+  setelah seeding data 120 anggota (kemungkinan aman karena sifatnya per-item,
+  bukan batch, tapi belum diverifikasi eksplisit).
+- Modul akuntansi lain (`buku-besar`, `laporan-keuangan`, `aset-tetap`) belum
+  diaudit untuk pola N+1 serupa.
