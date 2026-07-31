@@ -515,3 +515,88 @@ Pola disamakan persis dengan `ppob-settings.ts`.
 data nyata (tipe Simpanan Sukarela & saldo anggota ditemukan dengan benar),
 `npm run build` production penuh sukses. Belum diuji eksekusi nyata end-to-end
 (butuh session autentikasi asli).
+
+---
+
+## Bagian G — Fitur Baru: Cron Payroll Hibrida (28 Juli 2026)
+
+> Bukan bug fix — fitur baru atas permintaan user, menjawab pertanyaan
+> "potongan gaji otomatis tanggal 25-26 (hari kerja) atau harus manual
+> pengurus? kalau otomatis apakah melanggar UU koperasi?"
+
+**Keputusan desain:** hibrida, bukan otomatis penuh. Alasan: sistem koperasi
+ini tidak benar-benar memotong gaji sungguhan (itu kewenangan payroll
+perusahaan tempat anggota bekerja) — sistem ini cuma MENCATAT pembukuan.
+Risiko utama otomatisasi penuh bukan soal legalitas UU Perkoperasian secara
+langsung, tapi soal **akuntabilitas & kontrol internal**: kalau cron langsung
+posting "lunas" tanpa ada manusia yang tinjau, dan ternyata potongan gaji
+sungguhan di perusahaan gagal bulan itu (anggota resign, gaji kurang, dsb.),
+pembukuan koperasi akan salah catat (piutang berkurang padahal uang belum
+tentu masuk) — ini yang biasanya jadi sorotan pengawas/RAT saat audit.
+
+### Yang Dibangun
+
+1. **Model baru `payroll_batches`** (schema.prisma, `prisma db push` — tabel
+   baru murni, tidak menyentuh data lain): menyimpan draft per periode
+   (`period_code` unik "YYYY-MM"), status `draft/processed/rejected`, angka
+   preview (jumlah anggota eligible, estimasi total SW, jumlah & estimasi
+   total angsuran salary_cut), plus jejak siapa yang approve/reject dan kapan.
+
+2. **`src/lib/actions/payroll.ts`** — 4 fungsi baru:
+   - `previewPayrollBatch()` — READ-ONLY, hitung angka tanpa menulis apa pun.
+   - `generatePayrollDraft()` — dipanggil cron, bikin baris `payroll_batches`
+     status `draft` (skip kalau sudah ada draft utk periode itu).
+   - `approvePayrollBatch(batchId)` — pengurus approve → baru di sini
+     `processMonthlyPayrollBatch()` (versi asli yang sudah diperbaiki #17)
+     benar-benar dipanggil & posting nyata terjadi.
+   - `rejectPayrollBatch(batchId, reason)` — pengurus tolak (misal data
+     payroll perusahaan belum final), dicatat dengan alasan.
+
+3. **`src/app/api/cron/payroll/route.ts`** — endpoint cron, pola sama persis
+   dengan `/api/cron/backup` yang sudah ada (self-check "apakah hari ini
+   waktunya?" bukan mengandalkan scheduler presisi). Logic pilih tanggal:
+   coba tanggal 25 dulu (kalau hari kerja Senin-Jumat), kalau bukan coba
+   tanggal 26, kalau dua-duanya weekend mundur ke hari kerja berikutnya
+   (fallback, jarang kejadian). Mendukung 2 cara autentikasi: `CRON_SECRET`
+   (konvensi otomatis Vercel Cron Jobs) dan `BACKUP_CRON_SECRET` (kompatibel
+   dengan pola lama kalau dipicu scheduler eksternal).
+
+4. **`vercel.json`** (baru — project sebelumnya tidak punya sama sekali,
+   berarti `/api/cron/backup` yang sudah ada pun kemungkinan besar dipicu
+   scheduler eksternal, BUKAN Vercel Cron native): daftar 1 cron entry,
+   `/api/cron/payroll` jalan tiap hari jam 03:00 UTC (10:00 WIB), endpoint-nya
+   sendiri yang menentukan apakah hari ini benar-benar waktunya proses.
+   ⚠️ Sengaja TIDAK menambahkan entry utk `/api/cron/backup` di file ini
+   (di luar scope permintaan) — kalau backup memang belum ke-schedule di
+   mana pun, itu perlu ditindaklanjuti terpisah.
+
+5. **UI** — `payroll-draft-banner.tsx` (client component baru) tampil di
+   halaman `/laporan/potongan-gaji`: banner kuning kalau ada draft menunggu,
+   isi angka preview + tombol "Setujui & Proses" / "Tolak". Data
+   BigInt/Decimal dari Prisma di-serialize dulu ke tipe primitif di
+   `page.tsx` sebelum dikirim ke Client Component (aturan Next.js).
+
+### Verifikasi
+
+- `npx tsc --noEmit`: 0 error.
+- `npm run build` production penuh: sukses, route `/api/cron/payroll`
+  terdaftar sebagai `ƒ` (dynamic).
+- **Tes fungsional nyata** (bukan cuma baca kode): berhasil generate draft
+  asli untuk periode Oktober 2025 pakai data seed — 109 anggota eligible
+  (dari 120, sisanya sudah punya transaksi SW bulan itu), estimasi
+  Rp5.450.000, 0 jadwal angsuran salary_cut (belum ada pinjaman dgn metode
+  itu di data seed). Draft uji coba ini SUDAH DIHAPUS lagi setelah verifikasi
+  (bukan data yang sengaja dibiarkan).
+- Belum dites: pemanggilan endpoint cron yang sesungguhnya via HTTP (perlu
+  `CRON_SECRET`/`BACKUP_CRON_SECRET` di environment variables Vercel, belum
+  ada di `.env` lokal — kemungkinan besar memang sengaja cuma di-set di
+  Vercel dashboard, bukan di `.env` yang ikut repo).
+
+### Yang Perlu Dilakukan User Sebelum Fitur Ini Aktif di Production
+
+1. Set environment variable `CRON_SECRET` (atau pastikan `BACKUP_CRON_SECRET`
+   sudah ada) di Vercel project settings.
+2. Redeploy supaya `vercel.json` terbaca & cron ter-registrasi di Vercel.
+3. Opsional: cek juga apakah `/api/cron/backup` perlu ditambahkan ke
+   `vercel.json` juga (di luar scope perbaikan ini, tapi kemungkinan ada gap
+   yang sama).
