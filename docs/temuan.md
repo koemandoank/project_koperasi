@@ -267,12 +267,14 @@ dari yang paham konteks migrasi database-nya, bukan tebakan otomatis.
 | 15 | Model `budgets` hilang dari schema → `/akuntansi/anggaran` selalu error | ✅ Case Closed |
 | 16 | Connection pool exhaustion `getSHUProjection` di halaman kedua | ✅ Case Closed |
 | 17 | N+1 query `processMonthlyPayrollBatch` (potongan gaji pengurus) | ✅ Case Closed |
+| 18 | `saving_deduct` di `recordLoanPayment` tidak potong saldo | ✅ Case Closed |
 
-**Sisa pekerjaan:** semua 17 temuan sudah ✅ case closed per 28 Juli 2026,
+**Sisa pekerjaan:** semua 18 temuan sudah ✅ case closed per 28 Juli 2026,
 terverifikasi lewat `npx tsc --noEmit` (0 error), `npx prisma validate`, `npx
 prisma db push` (sinkron tanpa data loss), dan `npm run build` production penuh
-(0 error, 0 timeout). Sudah di-push ke `origin/main`. Item #17 belum diuji
-end-to-end dengan eksekusi nyata (butuh session autentikasi asli).
+(0 error, 0 timeout). Sudah di-push ke `origin/main`. Item #17 dan #18 belum
+diuji end-to-end dengan eksekusi nyata (butuh session autentikasi asli, hanya
+diverifikasi lewat kompilasi + pattern-check terhadap data nyata).
 
 ---
 
@@ -459,7 +461,7 @@ saat ini, **belum ada satu pun** yang pakai `repayment_method: 'salary_cut'`,
 jadi bagian "angsuran pinjaman massal" di fungsi ini belum punya data uji nyata
 untuk periode manapun di simulasi yang sudah di-generate.
 
-### Modul Lain yang Sudah Dicek (Tidak Ada Masalah)
+### Modul Lain yang Sudah Dicek (Tidak Ada Masalah Skala N+1)
 - **`tutup-buku` / `performMonthlyClosing`** (`accounting.ts`): semua query
   bersifat aggregate/count per-periode (bukan per-anggota/per-entitas), aman
   untuk skala berapa pun. `calculateStoreCogs` sempat terlihat ada nested loop
@@ -467,7 +469,10 @@ untuk periode manapun di simulasi yang sudah di-generate.
   `include` (bukan query ulang per iterasi) — aman.
 - **`recordLoanPayment`** (`loan-payments.ts`, pembayaran angsuran manual oleh
   kasir/pengurus): beroperasi per satu `loanId`, tidak ada loop lintas-anggota,
-  aman untuk skala berapa pun secara desain.
+  aman untuk skala berapa pun secara desain N+1.
+  > ⚠️ Update: fungsi ini TERNYATA punya bug fungsional terpisah (bukan soal
+  > skala) — lihat temuan #18 di bawah, ditemukan saat verifikasi lanjutan
+  > terpicu pertanyaan user soal alur potongan pinjaman.
 
 ### Yang Masih Belum Dicek (di luar scope sesi ini)
 - Approval pinjaman pengurus (`/pinjaman/approval`) belum dites ulang khusus
@@ -475,3 +480,38 @@ untuk periode manapun di simulasi yang sudah di-generate.
   bukan batch, tapi belum diverifikasi eksplisit).
 - Modul akuntansi lain (`buku-besar`, `laporan-keuangan`, `aset-tetap`) belum
   diaudit untuk pola N+1 serupa.
+
+### 18. `payment_method: "saving_deduct"` di `recordLoanPayment` Tidak Benar-Benar Memotong Saldo
+**Status: ✅ CASE CLOSED**
+
+Dipicu pertanyaan user: "pastikan potongan pinjaman dibayar dari potongan
+gaji, tapi transferan dari payroll BUKAN potong dari saldo anggota di
+koperasi." Saat verifikasi ini, dikonfirmasi:
+
+- ✅ **`salary_cut`** (yang ditanyakan user): SUDAH BENAR di kedua fungsi
+  (`processMonthlyPayrollBatch` dan `recordLoanPayment`) — pembayaran cicilan
+  via potongan gaji TIDAK PERNAH menyentuh tabel `savings` sama sekali. Uangnya
+  dianggap datang dari luar (potongan gaji di perusahaan), bukan dari saldo
+  simpanan anggota di koperasi. Tidak perlu perbaikan.
+- 🔴 **Tapi ditemukan bug terpisah**: opsi `payment_method: "saving_deduct"`
+  yang JUGA tersedia di form pembayaran cicilan (`kelola-pinjaman-client.tsx`)
+  ternyata cuma tersimpan sebagai label teks — TIDAK benar-benar memotong
+  saldo Simpanan Sukarela anggota. Akibatnya: cicilan tercatat lunas (piutang
+  berkurang) tapi tidak ada offsetting pengurangan aset simpanan di mana pun —
+  "uang menguap" secara pembukuan.
+- Dikonfirmasi ini genuinely bug (bukan desain sengaja) karena fitur PPOB
+  (`ppob-settings.ts`) di aplikasi yang sama sudah punya pola yang BENAR untuk
+  kasus serupa: cek saldo cukup → potong `savings.balance` → catat
+  `saving_transactions`. Pola itu hilang khusus di `recordLoanPayment`.
+
+**Fix** (`src/lib/actions/loan-payments.ts`): sebelum transaksi dibuat, kalau
+`paymentMethod === "saving_deduct"` — cari tipe Simpanan Sukarela, cek saldo
+anggota cukup (tolak dengan pesan error jelas kalau kurang), lalu tambahkan 2
+operasi ke `$transaction` array yang sudah ada: `savings.update` (potong
+saldo) + `saving_transactions.create` (catat mutasi `type: "withdraw"`).
+Pola disamakan persis dengan `ppob-settings.ts`.
+
+**Diverifikasi:** `npx tsc --noEmit` 0 error, query pattern dites terhadap
+data nyata (tipe Simpanan Sukarela & saldo anggota ditemukan dengan benar),
+`npm run build` production penuh sukses. Belum diuji eksekusi nyata end-to-end
+(butuh session autentikasi asli).
