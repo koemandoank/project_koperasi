@@ -15,6 +15,164 @@ interface PayrollBatchResult {
   error?: string
 }
 
+const SYSTEM_NIK_PREFIXES = ["ADM", "SAD", "KAS", "PEN", "KET"]
+function isSystemAccount(nik: string) {
+  return SYSTEM_NIK_PREFIXES.some((p) => nik.startsWith(p))
+}
+
+/**
+ * FITUR: Cron Payroll Hibrida (28 Jul 2026)
+ *
+ * Cron (`/api/cron/payroll`) TIDAK langsung mengeksekusi potongan gaji.
+ * Cron hanya memanggil fungsi ini untuk menghitung PREVIEW (read-only, tidak
+ * menulis apa pun ke savings/loan_schedules/journal) lalu menyimpannya sebagai
+ * baris `payroll_batches` berstatus "draft". Pengurus HARUS approve manual
+ * lewat UI (`approvePayrollBatch`) sebelum benar-benar diproses/diposting.
+ * Ini supaya ada jejak akuntabilitas pengurus (tidak murni auto-posting tanpa
+ * tinjauan manusia), sekaligus tetap dapat kenyamanan waktu otomatis.
+ */
+export async function previewPayrollBatch(periodStart: Date, periodEnd: Date) {
+  const swType = await prisma.saving_types.findFirst({ where: { code: "SW" } })
+  if (!swType) throw new Error("Tipe Simpanan Wajib (SW) tidak ditemukan di database.")
+  const swAmount = Number(swType.monthly_amount)
+
+  const activeMembers = await prisma.member.findMany({
+    where: { status: "active" },
+    include: { savings: { where: { saving_type_id: swType.id } } },
+  })
+  const eligibleMemberIds = activeMembers
+    .filter((m: any) => !isSystemAccount(m.nik) && m.savings.length > 0)
+    .map((m: any) => m.id)
+
+  const existingTrxThisMonth = await prisma.saving_transactions.findMany({
+    where: {
+      member_id: { in: eligibleMemberIds },
+      savings: { saving_type_id: swType.id },
+      transaction_at: { gte: periodStart, lte: periodEnd },
+      type: "salary_cut",
+    },
+    select: { member_id: true },
+  })
+  const alreadyPaidMemberIds = new Set(existingTrxThisMonth.map((t: any) => t.member_id.toString()))
+  const eligibleCount = eligibleMemberIds.filter((id: bigint) => !alreadyPaidMemberIds.has(id.toString())).length
+
+  const pendingSchedules = await prisma.loan_schedules.findMany({
+    where: {
+      due_date: { gte: periodStart, lte: periodEnd },
+      status: { in: ["pending", "partial", "overdue"] },
+      loans: { repayment_method: "salary_cut", status: "active" },
+    },
+    select: { total_due: true, principal_paid: true, interest_paid: true },
+  })
+  const loanTotalEstimate = pendingSchedules.reduce((sum: number, s: any) => {
+    const remaining = Number(s.total_due) - Number(s.principal_paid) - Number(s.interest_paid)
+    return sum + Math.max(0, remaining)
+  }, 0)
+
+  return {
+    eligibleMembers: eligibleCount,
+    swTotalEstimate: swAmount * eligibleCount,
+    loanScheduleCount: pendingSchedules.length,
+    loanTotalEstimate,
+  }
+}
+
+/**
+ * Dipanggil endpoint cron. Membuat draft `payroll_batches` untuk periode
+ * tertentu kalau belum ada. TIDAK menyentuh savings/loan_schedules/journal.
+ */
+export async function generatePayrollDraft(periodStart: Date, periodEnd: Date) {
+  const periodCode = `${periodStart.getFullYear()}-${String(periodStart.getMonth() + 1).padStart(2, "0")}`
+
+  const existing = await prisma.payroll_batches.findUnique({ where: { period_code: periodCode } })
+  if (existing) {
+    return { created: false, reason: "Draft/batch untuk periode ini sudah ada.", batch: existing }
+  }
+
+  const preview = await previewPayrollBatch(periodStart, periodEnd)
+
+  if (preview.eligibleMembers === 0 && preview.loanScheduleCount === 0) {
+    return { created: false, reason: "Tidak ada anggota/pinjaman yang perlu dipotong periode ini." }
+  }
+
+  const batch = await prisma.payroll_batches.create({
+    data: {
+      period_code: periodCode,
+      period_start: periodStart,
+      period_end: periodEnd,
+      status: "draft",
+      eligible_members: preview.eligibleMembers,
+      sw_total_estimate: preview.swTotalEstimate,
+      loan_schedule_count: preview.loanScheduleCount,
+      loan_total_estimate: preview.loanTotalEstimate,
+      generated_by: "cron",
+    },
+  })
+
+  revalidatePath("/laporan/potongan-gaji")
+  return { created: true, batch }
+}
+
+/** Draft yang menunggu persetujuan pengurus, untuk ditampilkan di UI. */
+export async function getPendingPayrollBatches() {
+  return prisma.payroll_batches.findMany({
+    where: { status: "draft" },
+    orderBy: { period_code: "desc" },
+  })
+}
+
+/** Pengurus approve draft -> baru benar-benar dieksekusi (posting nyata). */
+export async function approvePayrollBatch(batchId: number) {
+  const session = await checkRole(["superadmin", "ketua", "pengurus", "admin"])
+
+  const batch = await prisma.payroll_batches.findUnique({ where: { id: BigInt(batchId) } })
+  if (!batch) return { success: false, error: "Draft tidak ditemukan." }
+  if (batch.status !== "draft") return { success: false, error: "Draft ini sudah diproses/ditolak sebelumnya." }
+
+  const from = batch.period_start.toISOString().slice(0, 10)
+  const to = batch.period_end.toISOString().slice(0, 10)
+
+  const result = await processMonthlyPayrollBatch({ from, to })
+
+  await prisma.payroll_batches.update({
+    where: { id: batch.id },
+    data: {
+      status: result.success ? "processed" : "draft", // tetap draft kalau gagal, biar bisa dicoba lagi
+      reviewed_by: BigInt(session.user.id),
+      reviewed_at: new Date(),
+      savings_count: result.savingsCount,
+      savings_amount: result.savingsAmount,
+      loans_count: result.loansCount,
+      loans_amount: result.loansAmount,
+    },
+  })
+
+  revalidatePath("/laporan/potongan-gaji")
+  return result
+}
+
+/** Pengurus menolak draft (misal: data payroll perusahaan belum final bulan ini). */
+export async function rejectPayrollBatch(batchId: number, reason: string) {
+  const session = await checkRole(["superadmin", "ketua", "pengurus", "admin"])
+
+  const batch = await prisma.payroll_batches.findUnique({ where: { id: BigInt(batchId) } })
+  if (!batch) return { success: false, error: "Draft tidak ditemukan." }
+  if (batch.status !== "draft") return { success: false, error: "Draft ini sudah diproses/ditolak sebelumnya." }
+
+  await prisma.payroll_batches.update({
+    where: { id: batch.id },
+    data: {
+      status: "rejected",
+      reviewed_by: BigInt(session.user.id),
+      reviewed_at: new Date(),
+      reject_reason: reason,
+    },
+  })
+
+  revalidatePath("/laporan/potongan-gaji")
+  return { success: true }
+}
+
 /**
  * Memproses pemotongan gaji (salary_cut) massal bulanan untuk:
  *  1. Simpanan Wajib anggota aktif (Rp 300.000).

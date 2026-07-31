@@ -24,6 +24,31 @@ model budgets {
   updated_at DateTime? @updatedAt @db.Timestamp()
 }
 
+// FIX/FEATURE (28 Jul 2026): cron payroll hibrida - cron cuma bikin DRAFT
+// (preview angka), pengurus wajib approve sebelum benar-benar diproses/diposting.
+// Lihat src/app/api/cron/payroll/route.ts dan src/lib/actions/payroll.ts.
+model payroll_batches {
+  id                  BigInt    @id @default(autoincrement())
+  period_code         String    @unique @db.VarChar(7) // "2025-10"
+  period_start        DateTime  @db.Date
+  period_end          DateTime  @db.Date
+  status              String    @default("draft") @db.VarChar(20) // draft | processed | rejected
+  eligible_members    Int       @default(0)
+  sw_total_estimate   Decimal   @default(0.00) @db.Decimal(15, 2)
+  loan_schedule_count Int       @default(0)
+  loan_total_estimate Decimal   @default(0.00) @db.Decimal(15, 2)
+  generated_by        String    @default("cron") @db.VarChar(20) // cron | manual
+  reviewed_by         BigInt?
+  reviewed_at         DateTime? @db.Timestamp()
+  reject_reason       String?
+  savings_count       Int?
+  savings_amount      Decimal?  @db.Decimal(15, 2)
+  loans_count         Int?
+  loans_amount        Decimal?  @db.Decimal(15, 2)
+  created_at          DateTime? @default(now()) @db.Timestamp()
+  updated_at          DateTime? @updatedAt @db.Timestamp()
+}
+
 model accounts_payable {
   id                       BigInt                     @id @default(autoincrement()) 
   supplier_id              BigInt                     
