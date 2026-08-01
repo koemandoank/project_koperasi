@@ -15,7 +15,7 @@ import { saveAs } from "file-saver"
 import { generatePdfHeader, generatePdfFooter, generateExcelHeader, generateExcelFooter } from "@/lib/report-helpers"
 import type { MemberDeductionRow } from "@/lib/actions/reports"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { processMonthlyPayrollBatch } from "@/lib/actions/payroll"
+import { processMonthlyPayrollBatch, previewPayrollBatch } from "@/lib/actions/payroll"
 import { toast } from "sonner"
 
 // ─────────────────────────────────────────────
@@ -142,6 +142,44 @@ export function ReportClient({
 
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [processing, setProcessing] = useState(false)
+
+  // FIX (28 Jul 2026): sebelumnya dialog konfirmasi pakai `totals.*` dari data
+  // laporan (proyeksi/tampilan), yang TIDAK SAMA dengan angka yang benar-benar
+  // akan diproses oleh processMonthlyPayrollBatch (mis. "Simpanan Wajib" di
+  // laporan = proyeksi kewajiban bulanan, padahal yang diproses cuma anggota
+  // yang BELUM punya transaksi bulan ini). Sekarang dialog ambil angka
+  // langsung dari previewPayrollBatch() - fungsi YANG SAMA yang dipanggil
+  // cron draft - supaya angka yang ditampilkan selalu 100% sinkron dgn yang
+  // akan benar-benar terjadi.
+  const [batchPreview, setBatchPreview] = useState<{
+    eligibleMembers: number
+    swTotalEstimate: number
+    loanScheduleCount: number
+    loanTotalEstimate: number
+  } | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
+  const handleOpenBatchDialog = async () => {
+    if (!dateFrom || !dateTo) {
+      toast.error("Silakan tentukan rentang tanggal filter periode terlebih dahulu.")
+      return
+    }
+    setBatchDialogOpen(true)
+    setLoadingPreview(true)
+    setBatchPreview(null)
+    try {
+      const preview = await previewPayrollBatch(
+        new Date(`${dateFrom}T00:00:00+07:00`),
+        new Date(`${dateTo}T23:59:59+07:00`)
+      )
+      setBatchPreview(preview)
+    } catch (e) {
+      toast.error("Gagal memuat perkiraan potongan gaji.")
+      setBatchDialogOpen(false)
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
 
   const handleRunBatchPayroll = async () => {
     if (!dateFrom || !dateTo) {
@@ -387,7 +425,7 @@ export function ReportClient({
         <div className="flex gap-2">
           {totals.total > 0 && (
             <Button
-              onClick={() => setBatchDialogOpen(true)}
+              onClick={handleOpenBatchDialog}
               className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold h-9 px-4 rounded-lg border-0 shadow-sm flex items-center gap-1.5"
             >
               <Play className="h-4 w-4" /> Proses Gaji Massal
@@ -472,31 +510,43 @@ export function ReportClient({
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ringkasan Potongan Periode Ini</p>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <p className="text-slate-400">Periode</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{periodLabel}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">Total Anggota</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{data.length} Orang</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">Total Simpanan Wajib</p>
-                  <p className="font-bold text-emerald-600">{fmt(totals.simpanan_wajib)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">Total Cicilan Pinjaman</p>
-                  <p className="font-bold text-blue-600">{fmt(totals.pinjaman_uang + totals.pinjaman_barang + totals.pinjaman_kilat)}</p>
-                </div>
+            {loadingPreview ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-2.5">
+                <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+                <p className="text-xs font-semibold text-slate-500">Menghitung perkiraan potongan...</p>
               </div>
-              <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 dark:border-slate-800">
-                <span className="text-sm font-semibold text-slate-700">Total Keseluruhan</span>
-                <span className="text-base font-extrabold text-destructive">{fmt(totals.total)}</span>
+            ) : batchPreview ? (
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ringkasan Potongan Periode Ini</p>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <p className="text-slate-400">Periode</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{periodLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Anggota Belum Dipotong SW</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{batchPreview.eligibleMembers} Orang</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Total Simpanan Wajib</p>
+                    <p className="font-bold text-emerald-600">{fmt(batchPreview.swTotalEstimate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Cicilan Pinjaman (Salary Cut)</p>
+                    <p className="font-bold text-blue-600">{batchPreview.loanScheduleCount} cicilan — {fmt(batchPreview.loanTotalEstimate)}</p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-sm font-semibold text-slate-700">Total Keseluruhan (yang akan diproses)</span>
+                  <span className="text-base font-extrabold text-destructive">{fmt(batchPreview.swTotalEstimate + batchPreview.loanTotalEstimate)}</span>
+                </div>
+                {batchPreview.eligibleMembers === 0 && batchPreview.loanScheduleCount === 0 && (
+                  <p className="text-xs text-amber-600 font-medium pt-1">
+                    ⚠️ Tidak ada yang perlu diproses — kemungkinan sudah diproses sebelumnya untuk periode ini.
+                  </p>
+                )}
               </div>
-            </div>
+            ) : null}
 
             <div className="flex items-start gap-2.5 p-3.5 bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
