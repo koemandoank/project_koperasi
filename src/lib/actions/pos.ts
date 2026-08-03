@@ -26,6 +26,18 @@ export async function processPosCheckout(data: any) {
     const unit = await prisma.unit.findFirst();
     const unitId = unit ? unit.id : 1;
 
+    // FIX #19 (28 Jul 2026): stock_balances (stok per lokasi gudang) sebelumnya
+    // TIDAK PERNAH di-update saat checkout POS - cuma products.stock (global) &
+    // stock_movements (log) yang ter-update. Akibatnya stock_balances makin lama
+    // makin ngaco dibanding stok global (ditemukan lewat audit dashboard pengawas
+    // Check #6: 25/25 produk mismatch, data lama sudah disinkronkan lewat
+    // scripts/fix-19-sync-stock-balances.js). procurement.ts (barang MASUK) sudah
+    // benar update stock_balances - checkout (barang KELUAR) sekarang disamakan.
+    const defaultLocation = await prisma.warehouse_locations.findFirst({
+      where: { is_active: true },
+      orderBy: { id: "asc" },
+    });
+
     // Fetch user for cashier
     let cashierId = null;
     if (userId) {
@@ -122,6 +134,31 @@ export async function processPosCheckout(data: any) {
             created_at:   new Date(),
           }
         });
+
+        // FIX #19: selaraskan stock_balances per lokasi (lihat catatan di atas)
+        if (defaultLocation) {
+          await tx.stock_balances.upsert({
+            where: {
+              product_id_location_id: {
+                product_id:  BigInt(item.id),
+                location_id: defaultLocation.id,
+              },
+            },
+            update: {
+              qty_on_hand:   { decrement: item.qty },
+              qty_available: { decrement: item.qty },
+              updated_at:    new Date(),
+            },
+            create: {
+              product_id:    BigInt(item.id),
+              location_id:   defaultLocation.id,
+              qty_on_hand:   Math.max(0, stockAfter),
+              qty_reserved:  0,
+              qty_available: Math.max(0, stockAfter),
+              updated_at:    new Date(),
+            },
+          });
+        }
       }
 
       // Create Order
@@ -192,4 +229,3 @@ export async function processPosCheckout(data: any) {
     return { success: false, error: error.message || "Transaksi gagal diproses. Pastikan stok mencukupi." };
   }
 }
-
