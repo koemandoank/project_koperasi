@@ -600,3 +600,148 @@ tentu masuk) — ini yang biasanya jadi sorotan pengawas/RAT saat audit.
 3. Opsional: cek juga apakah `/api/cron/backup` perlu ditambahkan ke
    `vercel.json` juga (di luar scope perbaikan ini, tapi kemungkinan ada gap
    yang sama).
+
+
+---
+
+## Bagian H — Backlog PR: Temuan Audit Dashboard Pengawas (28 Juli 2026)
+
+> **PENTING: Bagian ini BUKAN "Case Closed" — murni catatan backlog untuk
+> dikerjakan lain waktu.** Dipicu laporan user: dialog konfirmasi potongan
+> gaji nampilkan "Total Keseluruhan" yang salah (sudah diperbaiki terpisah,
+> lihat commit `2827e0f` — dialog sekarang pakai `previewPayrollBatch()`
+> yang sama dengan cron, dijamin sinkron). Di tengah investigasi itu, user
+> minta juga cek anomali di `/pengawas` (`runCooperativeAudit()`, 8 check).
+> Sempat mulai implementasi 2 fix tapi **DIBATALKAN/DI-REVERT** (`git
+> checkout --`) atas instruksi user "catat saja supaya jadi PR ke depan" —
+> jadi tidak ada perubahan kode dari bagian ini yang ter-commit.
+
+### Hasil Lengkap 8 Check `runCooperativeAudit()` (dijalankan manual thd DB asli)
+
+| # | Check | Hasil | Status |
+|---|---|---|---|
+| 1 | Jurnal tidak seimbang (debit ≠ kredit) | 0 dari 7 `journal_entries` | ✅ Aman |
+| 2 | Baris jurnal ke akun pendapatan sementara `40104` (referensi insiden lama "PAYROLL-MEI-2026") | 0 baris | ✅ Aman |
+| 3 | Pinjaman `outstanding_principal` negatif | 0 | ✅ Aman |
+| 4 | Saldo `savings.balance` negatif | 0 | ✅ Aman |
+| 5 | `journal_entries.is_posted = false` (belum posting) | 0 | ✅ Aman |
+| 6 | Stok global (`products.stock`) vs jumlah lokasi (`stock_balances`) | **25 dari 25 produk (100%) mismatch** | 🔴 **Perlu PR** — lihat #19 |
+| 7 | Anomali konsinyasi | Cuma 1 baris `consignment_items`, tidak signifikan | ✅ Aman (data terlalu sedikit utk bermakna) |
+| 8 | Order `payment_status=paid` tanpa `order_payments` yang jumlahnya cocok | **1.107 dari 7.764 order paid**, semua `payment_method=saving_deduct` | 🔴 **Perlu PR** — lihat #20 |
+
+### 19. [BACKLOG] `stock_balances` Tidak Pernah Disinkron Saat Penjualan POS
+**Status: 🔴 OPEN — didokumentasikan, belum diimplementasikan**
+
+**Root cause terkonfirmasi (bukan cuma dugaan):**
+- `stock_balances` (stok per lokasi gudang) cuma py 1 baris/produk, SEMUA
+  bertanggal `2026-06-22` (tanggal setup awal database, jauh sebelum sesi
+  kerja manapun di percakapan ini) — sejak itu tidak pernah ter-update.
+- `src/lib/actions/procurement.ts` (barang MASUK): **sudah benar**, pakai
+  `tx.stock_balances.upsert({...})` tiap kali good receipt diproses (baris
+  ~368).
+- `src/lib/actions/pos.ts` (barang KELUAR/terjual): **TIDAK PERNAH**
+  menyentuh `stock_balances` — cuma update `products.stock` (global) dan
+  `stock_movements` (log histori). Dikonfirmasi lewat pembacaan kode
+  langsung, BUKAN cuma dari efek seeding — ini gap asimetris di aplikasi
+  ASLI, seeding cuma mengekspos gap yang sudah ada (karena seeding pun cuma
+  update `products.stock` langsung, meniru pola pos.ts yang sama).
+
+**Rencana PR (sudah dirancang, siap diimplementasi ulang):**
+1. **Fix data existing** (one-time sync script): update `stock_balances.qty_on_hand`
+   tiap produk supaya sama dengan `products.stock` saat ini (karena cuma ada
+   1 lokasi/produk di data sekarang, sinkronisasinya sesederhana `qty_on_hand
+   = products.stock`, bukan perlu alokasi proporsional multi-lokasi).
+2. **Fix kode ke depan** (`pos.ts`, di dalam loop item checkout, setelah
+   `stock_movements.create`): tambah
+   ```ts
+   const defaultLocation = await prisma.warehouse_locations.findFirst({ where: { is_active: true }, orderBy: { id: "asc" } });
+   // ...di dalam transaksi, per item:
+   if (defaultLocation) {
+     await tx.stock_balances.upsert({
+       where: { product_id_location_id: { product_id: BigInt(item.id), location_id: defaultLocation.id } },
+       update: { qty_on_hand: { decrement: item.qty }, qty_available: { decrement: item.qty }, updated_at: new Date() },
+       create: { product_id: BigInt(item.id), location_id: defaultLocation.id, qty_on_hand: Math.max(0, stockAfter), qty_reserved: 0, qty_available: Math.max(0, stockAfter), updated_at: new Date() },
+     });
+   }
+   ```
+   Pola ini SUDAH ditulis & diverifikasi kompilasi (`tsc` lolos untuk bagian
+   ini) sebelum di-revert — tinggal ditulis ulang.
+3. Setelah fix, jalankan ulang audit check #6 untuk verifikasi 0 mismatch.
+4. **Perlu keputusan produk dulu**: apakah sistem ini memang cuma 1 lokasi
+   gudang (`warehouse_locations` cuma 1 baris aktif)? Kalau ke depan mau
+   multi-lokasi sungguhan, perlu desain lebih lanjut soal item dari lokasi
+   mana yang dikurangi saat checkout (FIFO? pilih manual per transaksi?).
+
+### 20. [BACKLOG] `payment_method: "saving_deduct"` di POS — Status Membingungkan
+**Status: 🔴 OPEN — butuh KEPUTUSAN PRODUK dulu, bukan cuma keputusan teknis**
+
+**Temuan kunci yang mengubah arah investigasi:** `posCheckoutSchema` (Zod,
+`src/lib/validations/index.ts` baris 131) mendefinisikan:
+```ts
+paymentMethod: z.enum(["cash", "paylater", "qris"]),
+```
+**`"saving_deduct"` TIDAK ADA di enum ini sama sekali.** Artinya:
+- 1.107 order dengan `payment_method=saving_deduct` di database **TIDAK
+  MUNGKIN** berasal dari checkout form asli (Zod akan menolak duluan sebelum
+  sampai ke server action) — itu murni hasil script seeding sesi-sesi
+  sebelumnya yang insert langsung via Prisma, bypass validasi Zod sepenuhnya.
+- Verifikasi tambahan: dicek 497 order ORIGINAL (sebelum seeding dimulai),
+  **0 (nol)** yang punya `payment_method=saving_deduct` — jadi tidak ada
+  bukti historis fitur ini pernah benar-benar dipakai lewat form asli.
+
+**Implikasi:** sempat mulai menulis fix di `pos.ts` untuk benar-benar memotong
+saldo Simpanan Sukarela saat `saving_deduct` dipilih (pola sama seperti fix
+#18 di `recordLoanPayment` & yang sudah benar di `ppob-settings.ts`) — TAPI
+ini jadi tidak relevan karena opsi itu tidak pernah bisa dipilih user lewat
+form yang tervalidasi. Fix itu **di-revert** (`git checkout --`) karena:
+1. `tsc` gagal (2 error: mismatch type enum, `cashierId` bisa null tidak
+   dihandle) — belum selesai ditulis dengan benar.
+2. Lebih penting: **belum ada keputusan produk** apakah fitur ini memang mau
+   diaktifkan secara resmi atau tidak.
+
+**Dua opsi jalan ke depan (perlu dipilih user sebelum PR ditulis):**
+
+**Opsi A — Aktifkan resmi sebagai fitur:**
+1. Tambah `"saving_deduct"` ke `posCheckoutSchema` enum di
+   `src/lib/validations/index.ts`.
+2. Tambah opsi "Potong Simpanan" di UI dropdown metode bayar kasir (perlu
+   dicek komponen POS client-nya, belum diidentifikasi filenya).
+3. Tambah logic potong saldo di `pos.ts` (draft kode sudah pernah ditulis,
+   perlu ditulis ulang + fix 2 error tsc + tes end-to-end).
+4. Perbaiki `runCooperativeAudit()` check #8: exclude `payment_method:
+   "saving_deduct"` dari pengecekan (karena bukti pembayarannya lewat
+   `saving_transactions`, bukan `order_payments` — pola sudah dirancang,
+   tinggal ditulis ulang, cuma 1 baris `where` clause).
+5. **Bereskan 1.107 order seed yang sudah kadung ada**: karena order ini
+   dibuat via seeding (bypass validasi & bypass potong saldo), saldo
+   simpanan 15-20 anggota terkait (dari rencana awal §3.3 "pengajuan
+   pembelian toko") TIDAK PERNAH benar-benar terpotong meski order
+   tercatat lunas — perlu diputuskan apakah mau dibiarkan (anggap "hutang
+   masa lalu yang dianggap lunas" — tidak akurat tapi tidak berbahaya untuk
+   data uji coba) atau dikoreksi retroaktif (potong saldo mereka sekarang
+   juga, rumit karena histori transaksi sudah lewat).
+
+**Opsi B — Anggap bukan fitur resmi, bersihkan data seed yang salah:**
+1. Ubah 1.107 order tsb ke `payment_method` yang valid (mis. `cash`) supaya
+   konsisten dengan apa yang benar-benar bisa terjadi via form asli — TAPI
+   ini juga tidak 100% akurat (order itu jadi terlihat seolah dibayar cash
+   padahal sebenarnya representasi "beli pakai simpanan" dari rencana
+   seeding awal).
+2. Atau: hapus & re-generate ulang bagian "pengajuan pembelian toko" dari
+   rencana seeding (`docs/RENCANA_SEED_DATA_2026-07-28.md` §3.3) pakai
+   `payment_method` yang benar-benar valid (`paylater`, yang MEMANG sudah
+   didukung form asli dan sudah benar logic-nya).
+3. Tidak perlu ubah `pos.ts`/Zod schema/UI sama sekali — status quo aplikasi
+   dipertahankan.
+
+**Rekomendasi (bukan keputusan final, cuma pertimbangan):** Opsi B lebih
+cepat & rendah risiko kalau tujuannya cuma "data uji coba yang konsisten".
+Opsi A lebih tepat kalau "Potong Simpanan" di kasir memang fitur yang
+sungguh-sungguh diinginkan untuk dipakai nanti di production.
+
+### Ringkasan Bagian H
+
+| # | Temuan | Status | Butuh Keputusan? |
+|---|---|---|---|
+| 19 | `stock_balances` tidak sinkron sejak 22 Jun 2026, `pos.ts` tidak update saat jual | 🔴 Open | Tidak — bisa langsung dikerjakan (jelas ini bug, fix jelas) |
+| 20 | `saving_deduct` di POS: fitur setengah jadi, tidak pernah bisa dipilih lewat form asli | 🔴 Open | **Ya — pilih Opsi A atau B dulu** |
