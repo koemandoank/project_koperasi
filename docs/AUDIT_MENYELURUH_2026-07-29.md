@@ -237,3 +237,164 @@ Demi kejujuran metodologi — area berikut BELUM diverifikasi mendalam dalam aud
 ---
 
 *Laporan ini murni hasil analisis. Sesuai instruksi, tidak ada perubahan kode dilakukan. Menunggu arahan untuk mulai implementasi perbaikan sesuai prioritas di atas.*
+
+
+---
+
+## ADDENDUM — Audit Lanjutan (29 Juli 2026, sesi ke-2)
+
+> Melanjutkan area yang ditandai "belum diperiksa mendalam" di Bagian 5.
+> Tetap tanpa perubahan kode, murni analisis.
+
+### ACC-05 — Laporan Arus Kas Punya Root Cause yang Sama dengan Neraca (ACC-01)
+**Modul:** Laporan / Akuntansi
+**File:** `src/lib/actions/laporan-arus-kas.ts`
+**Function:** `getKasAwal` (baris 367-392) vs `getOperasional` (baris 401-434)
+
+**Penyebab:** Pola identik dengan ACC-01. `getKasAwal` (saldo kas awal periode)
+murni dari `journal_lines` (jurnal). `getOperasional` (arus kas berjalan)
+pakai `calculatePenjualan` yang menghitung langsung dari tabel `orders`
+mentah (bukan jurnal). **Dalam satu laporan yang sama**, komponen "Kas Awal"
+dan "Kas Bersih Operasional" berasal dari dua sumber data yang tidak
+sinkron — sama seperti Neraca.
+
+**Dampak:** `kasAkhir = kasAwal + kenaikanKasBersih` yang ditampilkan ke
+pengguna tidak merepresentasikan saldo kas riil, untuk alasan yang sama
+seperti #21. Ini BUKAN bug baru yang independen — ini konfirmasi bahwa
+dampak ACC-01 lebih luas dari sekadar Neraca, mencakup juga Laporan Arus
+Kas.
+
+**Solusi:** Sama dengan ACC-01 — begitu jurnal otomatis POS/pinjaman
+dibangun, laporan ini otomatis ikut benar (tidak perlu perbaikan terpisah
+di file ini, cukup pastikan sumber datanya konsisten).
+
+**Prioritas:** P1 (bagian dari ACC-01, bukan item terpisah).
+
+---
+
+### ACC-06 — `products.purchase_price` Statis, Bukan FIFO/Average Cost/Last Cost
+**Modul:** Pembelian Barang / POS / Laporan
+**File:** `src/lib/actions/procurement.ts` (tidak pernah menulis field ini),
+seluruh file yang membaca `purchase_price` (HPP/margin/laba: `accounting.ts`,
+`executive-dashboard.ts`, `global-financial-stats.ts`, `laporan-analitik.ts`,
+`laporan-keuangan.ts`, `laporan-mingguan.ts`, `laporan-perubahan-ekuitas.ts`,
+`laporan-po-konsinyasi.ts`, `laporan-stok.ts`, `laporan-transaksi-kasir.ts`)
+
+**Penyebab:** `products.purchase_price` adalah **satu field tunggal per
+produk**. Ditelusuri ke seluruh `procurement.ts` (proses penerimaan barang
+dari supplier via Good Receipt) — **tidak ada satu baris kode pun** yang
+meng-update `products.purchase_price` setelah barang diterima, walau harga
+beli di PO berbeda dari harga sebelumnya (field `purchase_order_items.unit_price`
+per PO dicatat benar, tapi tidak pernah "mengalir balik" ke `products.purchase_price`).
+Satu-satunya penulisan field ini ditemukan di `consignment.ts` (khusus item
+konsinyasi, bukan pembelian reguler).
+
+**Dampak:** Semua laporan yang menghitung **HPP, margin, laba kotor, dan
+nilai persediaan** (daftar file di atas — hampir seluruh sistem pelaporan
+keuangan toko) memakai angka harga pokok yang **beku sejak produk pertama
+kali dibuat**, tidak peduli berapa kali & berapa harga produk itu direstock
+setelahnya. Ini bukan FIFO (tidak melacak biaya per batch), bukan Average
+Cost (tidak menghitung rata-rata tertimbang), bahkan bukan "Last Cost"
+sederhana (tidak update ke harga PO terakhir). Kalau harga beli dari
+supplier naik/turun antar periode (sangat umum di praktik nyata), **laba
+kotor & nilai persediaan yang dilaporkan akan salah secara sistematis**,
+dan makin lama makin melenceng dari kondisi riil.
+
+**Cara Reproduksi:**
+1. Cek `products.purchase_price` produk apa pun sekarang.
+2. Buat PO baru dengan `unit_price` berbeda utk produk yang sama, proses
+   Good Receipt sampai selesai.
+3. Cek lagi `products.purchase_price` — **tidak berubah**, tetap nilai lama.
+
+**Risiko:** Tinggi untuk akurasi laporan keuangan jangka panjang — ini jenis
+temuan yang PASTI akan dipertanyakan auditor eksternal koperasi ("metode
+penilaian persediaan apa yang dipakai, dan apakah konsisten diterapkan?").
+
+**Solusi (arah, butuh keputusan bisnis metode penilaian persediaan dulu):**
+- **Opsi termudah (Last Cost):** update `products.purchase_price` = harga
+  unit PO terbaru, setiap kali Good Receipt selesai diproses. Perubahan
+  kecil, cepat, tapi masih menyederhanakan (tidak akurat kalau stok lama &
+  baru bercampur).
+- **Opsi lebih akurat (Weighted Average Cost):** `purchase_price_baru =
+  ((stock_lama x harga_lama) + (qty_masuk x harga_beli_baru)) / (stock_lama + qty_masuk)`,
+  dihitung ulang tiap Good Receipt. Ini metode yang paling umum dipakai
+  sistem retail/koperasi kecil-menengah (lebih praktis dari FIFO penuh yang
+  butuh tracking per-batch).
+- **FIFO penuh** butuh tabel baru untuk lacak biaya per batch pembelian —
+  perubahan struktur data paling besar, biasanya tidak diperlukan kecuali
+  koperasi punya kebutuhan spesifik (mis. barang mudah rusak/kedaluwarsa).
+
+**Prioritas:** **P2 - High** (berdampak ke akurasi laporan keuangan toko
+secara sistematis, tapi tidak menyebabkan sistem crash/kehilangan data
+seperti bug P1).
+
+---
+
+### ACC-07 — Tidak Ada PPN pada Penjualan (Hanya Ada di Pembelian) — Perlu Klarifikasi
+**Modul:** POS / Penjualan
+**File:** `src/lib/actions/pos.ts`, model `orders` (`prisma/schema.prisma`)
+
+**Penyebab:** `procurement.ts` menghitung & menyimpan `tax_amount` (PPN)
+untuk transaksi PEMBELIAN dari supplier. Model `orders` (penjualan ke
+anggota/pelanggan) **tidak punya kolom pajak sama sekali** — `pos.ts` tidak
+menghitung/mencatat PPN apa pun saat checkout.
+
+**Dampak:** Tidak bisa dipastikan ini bug atau memang desain yang benar
+tanpa konteks bisnis — koperasi (terutama penjualan ke anggota sendiri)
+bisa jadi memang dikecualikan PPN sesuai ketentuan perpajakan koperasi di
+Indonesia, ATAU ini murni belum diimplementasikan. **Perlu klarifikasi
+status PKP (Pengusaha Kena Pajak) koperasi ini** sebelum diputuskan perlu
+diperbaiki atau tidak.
+
+**Risiko:** Sedang - kalau ternyata koperasi ini wajib PPN dan omzetnya
+sudah di atas ambang batas PKP, ini jadi temuan kepatuhan pajak yang
+signifikan, bukan cuma bug teknis.
+
+**Solusi:** Konsultasi ke bagian keuangan/pajak koperasi dulu untuk
+pastikan status PKP, baru diputuskan apakah perlu ditambahkan.
+
+**Prioritas:** P3 - Medium (butuh klarifikasi bisnis sebelum jadi actionable).
+
+---
+
+### SEC-01 — CSRF & Session: Tidak Ditemukan Kelemahan Signifikan (Verifikasi Positif)
+**Modul:** Keamanan
+**File:** `src/auth.config.ts`
+
+Next.js Server Actions (yang dipakai luas di seluruh aplikasi ini) punya
+proteksi CSRF bawaan dari framework (validasi Origin/Host header otomatis
+untuk POST ke Server Actions) - tidak ditemukan indikasi proteksi ini
+dinonaktifkan. Konfigurasi session (`auth.config.ts`) sudah punya mekanisme
+deteksi sesi basi (`sessionToken` + `lastActivity`) yang sudah diverifikasi
+benar di audit sebelumnya (temuan #7, closed). **Tidak ada temuan baru di
+area ini** - dicatat sebagai bagian dari cakupan audit yang sudah diperiksa
+(bukan celah terbuka).
+
+**Prioritas:** - (tidak ada tindakan diperlukan)
+
+---
+
+## UPDATE RINGKASAN (Kumulatif Sesi 1 + Addendum)
+
+| Kategori | Sesi 1 | Addendum | Total |
+|---|---|---|---|
+| Bug Kritis | 3 | 0 | 3 |
+| Bug Sedang | 6 | 0 | 6 |
+| Bug Ringan | 4 | 0 | 4 |
+| Kesalahan Akuntansi | 4 | 3 (ACC-05, 06, 07) | 7 |
+| Kesalahan Database | 2 | 0 | 2 |
+| Perlu Klarifikasi Bisnis (bukan bug pasti) | 0 | 1 (ACC-07/PPN) | 1 |
+
+## UPDATE ROADMAP
+
+**Priority 1 (Critical)** - tidak berubah, ACC-05 digabung ke ACC-01 (root
+cause sama, solusi sama, tidak perlu item roadmap terpisah).
+
+**Priority 2 (High)** - tambah:
+7. **ACC-06** - Perbaiki mekanisme `products.purchase_price` (rekomendasi:
+   Weighted Average Cost, dihitung ulang tiap Good Receipt) - berdampak ke
+   akurasi HPP/margin/laba di hampir seluruh laporan keuangan toko.
+
+**Priority 3 (Medium)** - tambah:
+8. **ACC-07** - Klarifikasi status PPN penjualan dengan bagian
+   keuangan/pajak koperasi sebelum diputuskan perlu implementasi atau tidak.
