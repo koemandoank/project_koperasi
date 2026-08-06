@@ -745,3 +745,110 @@ sungguh-sungguh diinginkan untuk dipakai nanti di production.
 |---|---|---|---|
 | 19 | `stock_balances` tidak sinkron sejak 22 Jun 2026, `pos.ts` tidak update saat jual | 🔴 Open | Tidak — bisa langsung dikerjakan (jelas ini bug, fix jelas) |
 | 20 | `saving_deduct` di POS: fitur setengah jadi, tidak pernah bisa dipilih lewat form asli | 🔴 Open | **Ya — pilih Opsi A atau B dulu** |
+
+
+---
+
+## Bagian I — Backlog PR: Neraca "Imbalanced" (29 Juli 2026)
+
+> **BUKAN "Case Closed" — murni catatan backlog untuk dikerjakan lain waktu.**
+> Dipicu laporan user: halaman `/akuntansi/laporan-keuangan` menampilkan
+> badge "Imbalanced" dengan deviasi **-Rp 111.718.100**. Sudah diinvestigasi
+> sampai akar masalah, TAPI belum diimplementasikan fix-nya (scope terlalu
+> besar utk dikerjakan tergesa-gesa, butuh keputusan arah dulu).
+
+### 21. [BACKLOG] Neraca Imbalanced — Laba-Rugi Dihitung dari Tabel Mentah, Neraca dari Jurnal
+**Status: 🔴 OPEN — root cause terkonfirmasi, fix belum dikerjakan, perlu keputusan arah**
+
+**Root cause (terverifikasi dari kode, `src/lib/actions/laporan-keuangan.ts`):**
+
+Neraca (`getNeraca`) dan Laba-Rugi (`getLabaRugi`) memakai **sumber data yang
+berbeda** untuk hal yang seharusnya konsisten:
+
+- **Neraca** (Aset/Liabilitas/Ekuitas): 100% dihitung dari
+  `getBalancesByType()` → murni jurnal akuntansi (`chart_of_accounts` +
+  `journal_lines`). Saat ini database cuma punya **7 baris `journal_entries`
+  total**.
+- **Laba-Rugi** (`getLabaRugi`, baris 250-280): `netShu` yang lalu dipakai
+  sebagai komponen Ekuitas di Neraca (`extractEquity(..., labaRugi.netShu)`)
+  dihitung dari:
+  ```ts
+  storeRevenue = calculateStoreRevenueForPeriod(...)     // SUM(orders.grand_total) langsung, BUKAN jurnal
+  loanInterestRevenue = calculateLoanInterestForPeriod(...) // dari loan_payments/loan_schedules langsung, BUKAN jurnal
+  loanPenaltyRevenue = calculateLoanPenaltyForPeriod(...)   // idem
+  otherRevenue = calculateJournalRevenueForPeriod(...)      // ini SATU-SATUNYA yang dari jurnal
+  ```
+
+**Akibatnya:** 7.764 order lunas + puluhan pembayaran cicilan tercatat
+lengkap & benar di tabel transaksi masing-masing (operasional OK), tapi
+hampir tidak ada yang punya jurnal pendamping. Laba-Rugi menghitung untung
+besar dari situ → masuk ke Ekuitas Neraca → Ekuitas jadi besar sementara Aset
+(murni dari 7 jurnal yang ada) nyaris kosong → variance besar.
+
+**Ini BUKAN murni akibat seeding** — gap ini sudah ada di arsitektur
+aplikasi ASLI (modul POS/`pos.ts` dan pembayaran cicilan/`loan-payments.ts`
+memang tidak pernah membuat jurnal otomatis saat transaksi terjadi; hanya
+modul procurement & payroll — yang disentuh selama sesi kerja ini — yang
+membuat jurnal). Seeding data setahun cuma membesarkan volume transaksi
+tak-terjurnal ini sampai selisihnya jadi sangat kentara (~Rp111 juta),
+persis seperti pola temuan #19 (stock_balances) — mengekspos gap lama, bukan
+menyebabkan bug baru.
+
+**Kenapa belum langsung dikerjakan:** beda kelas dengan #19/#20 (yang murni
+"bersihkan data salah", rendah risiko, jelas caranya). Ini butuh **jurnal
+otomatis di setiap transaksi POS & pembayaran cicilan** — perubahan
+arsitektur akuntansi yang nyata, bukan tambal-sulam, dan berisiko kalau
+dikerjakan tergesa-gesa (salah pasang akun COA/salah arah debit-kredit bisa
+bikin laporan keuangan malah tambah kacau).
+
+**3 opsi jalan ke depan (perlu dipilih user sebelum PR ditulis):**
+
+**Opsi A — Jurnal otomatis penuh (benar secara akuntansi, scope besar):**
+1. `pos.ts`: tiap order `payment_status=paid` → jurnal otomatis
+   (Debit Bank/Kas atau Piutang kalau paylater, Kredit Pendapatan Penjualan
+   + Kredit/Debit COGS & persediaan).
+2. `loan-payments.ts` (`recordLoanPayment`) & payroll batch (`payroll.ts`,
+   bagian angsuran salary_cut — cek dulu apakah ini SUDAH bikin jurnal, ada
+   indikasi sebagian sudah lewat kerja sesi ini): Debit Bank/Kas, Kredit
+   Piutang Pinjaman Anggota (pokok) + Kredit Pendapatan Bunga (bunga).
+3. Perlu pemetaan kode akun COA yang tepat per jenis transaksi (referensi:
+   kode `10102` bank, `40101` pendapatan sudah dipakai di `payroll.ts`).
+4. Setelah semua modul konsisten, jurnal historis yang sudah ada perlu
+   dibiarkan (tidak diulang) — perlu guard "sudah pernah dijurnal?" per
+   transaksi (mis. field `journal_entry_id` di `orders`/`loan_payments`,
+   atau cek `reference_no` unik).
+5. Testing menyeluruh sebelum ini dipercaya utk laporan resmi ke RAT.
+
+**Opsi B — Jurnal penyesuaian sekali (catch-up entry, cepat tapi sementara):**
+1. Buat satu `journal_entries` + `journal_lines` senilai selisih saat ini
+   (~Rp111.718.100) untuk menutup gap SEKARANG saja (Debit akun aset yang
+   representatif — mis. "Bank" atau akun sementara "Piutang belum terjurnal"
+   — Kredit Ekuitas/Laba Ditahan).
+2. **Kelemahan jelas**: tidak menyelesaikan akar masalah — begitu ada
+   transaksi POS/cicilan baru, gap akan muncul lagi & terus membesar. Perlu
+   diulang manual tiap periode sampai Opsi A dikerjakan.
+3. Cocok cuma sebagai solusi sementara/darurat kalau laporan keuangan resmi
+   harus segera "balance" tanpa waktu utk Opsi A penuh.
+
+**Opsi C — Biarkan dulu, transparansi ke pengguna:**
+1. Tidak ubah kode/data sama sekali.
+2. Tambah catatan/disclaimer di UI laporan keuangan: "Neraca belum
+   mencerminkan pendapatan operasional penuh — jurnal otomatis untuk
+   transaksi POS & cicilan pinjaman belum diimplementasikan. Angka Laba-Rugi
+   dari tabel transaksi sudah akurat; Neraca akan sinkron setelah jurnal
+   otomatis dibangun (lihat temuan #21)."
+3. Paling rendah risiko & tercepat, tapi menunda penyelesaian nyata.
+
+**Rekomendasi (bukan keputusan final):** Opsi C dulu sebagai jembatan
+(transparan, tidak menyesatkan RAT/pengawas), sambil menyiapkan Opsi A
+dengan matang (bukan tergesa-gesa) sebagai solusi permanen. Opsi B sebaiknya
+dihindari kecuali benar-benar mendesak, karena bisa menyesatkan (angka
+"balance" tapi sebenarnya masih ada gap struktural).
+
+**Yang perlu dicek dulu sebelum eksekusi Opsi A/B:**
+- Apakah `processMonthlyPayrollBatch` (sudah diperbaiki N+1-nya di temuan
+  #17) sudah membuat jurnal utk angsuran `salary_cut`? Kalau sudah, itu bisa
+  jadi TEMPLATE pola jurnal yang konsisten dipakai utk modul lain.
+- Pemetaan kode akun COA lengkap (`chart_of_accounts`) — belum diinventaris
+  semua kode yang relevan (bank, kas, piutang pinjaman, persediaan, HPP,
+  pendapatan penjualan, pendapatan bunga, dll).
