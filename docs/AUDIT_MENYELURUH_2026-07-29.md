@@ -398,3 +398,123 @@ cause sama, solusi sama, tidak perlu item roadmap terpisah).
 **Priority 3 (Medium)** - tambah:
 8. **ACC-07** - Klarifikasi status PPN penjualan dengan bagian
    keuangan/pajak koperasi sebelum diputuskan perlu implementasi atau tidak.
+
+
+---
+
+## ADDENDUM 2 — Audit Lanjutan (29 Juli 2026, sesi ke-3)
+
+### BUG-06 — "Manipulasi Harga Terdeteksi" Adalah Proteksi Palsu — Harga & Diskon POS 100% Dipercaya dari Client
+**Modul:** POS
+**File:** `src/lib/validations/index.ts` (baris 116-136, `posCheckoutSchema`),
+`src/lib/actions/pos.ts` (baris 17-20)
+**Function:** `posCheckoutSchema`, `processPosCheckout`
+**Baris Kode:** `validations/index.ts:119-135`, `pos.ts:17-20`
+
+**Penyebab:**
+```ts
+// validations/index.ts — TIDAK ADA batas minimum/validasi terhadap DB:
+price: z.string().or(z.number()).transform(Number),      // bisa 0, negatif, berapa pun
+discount: z.string().or(z.number()).transform(Number),   // bisa sebesar apa pun, tanpa cap
+
+// pos.ts — "proteksi" yang ada:
+const calculatedGrandTotal = validated.cart.reduce((sum, item) => sum + (item.price * item.qty), 0) - validated.discount;
+if (validated.grandTotal !== calculatedGrandTotal) {
+  throw new Error("Manipulasi harga terdeteksi.");
+}
+```
+Pengecekan ini **hanya memverifikasi konsistensi aritmatika** antar angka
+yang SEMUANYA berasal dari client (`price`, `discount`, `grandTotal`) — tidak
+pernah membandingkan `item.price` terhadap `products.price`/`products.member_price`
+yang sebenarnya tersimpan di database. Kode DI DALAM transaksi memang
+mengambil data produk asli dari DB (`tx.products.findUnique(...)`), TAPI
+hasilnya cuma dipakai untuk mencatat `purchase_price` (harga pokok/HPP), **tidak
+pernah dipakai untuk mengoreksi/validasi `item.price` (harga jual) yang
+tersimpan ke `order_items.unit_price`**.
+
+**Dampak:** Siapa pun yang bisa memodifikasi request ke server (lewat
+DevTools browser, proxy/intercept, atau frontend yang dimodifikasi) bisa
+mengirim `item.price = 1` untuk produk apa pun (atau bahkan 0/negatif — tidak
+ada validasi `.positive()` atau `.min()`), dengan `grandTotal` yang dihitung
+konsisten dari harga palsu itu — transaksi akan **lolos** semua validasi
+server, tercatat sebagai order "paid" yang sah, stok terpotong normal, tapi
+uang yang masuk jauh di bawah (atau nol dari) nilai barang sebenarnya. Nama
+variabel & pesan error ("Manipulasi harga terdeteksi") secara aktif
+**menyesatkan** siapa pun yang membaca kode dan mengira ini sudah aman.
+
+**Cara Reproduksi:**
+1. Buka halaman kasir, buka DevTools browser (Network tab / atau intercept
+   proxy seperti Burp/mitmproxy).
+2. Tambah produk apa pun ke keranjang, checkout seperti biasa.
+3. Sebelum request terkirim, ubah nilai `price` tiap item di payload jadi
+   `1`, dan sesuaikan `subtotal`/`grandTotal` supaya konsisten secara
+   aritmatika (`subtotal = 1 × qty`, `grandTotal = subtotal - discount`).
+4. Kirim — transaksi **berhasil diproses**, order tercatat "paid", stok
+   terpotong penuh, tapi nilai transaksi cuma Rp1 per item.
+
+**Risiko:** **Kritis — jalur fraud finansial langsung, tanpa jejak deteksi.**
+Ini bukan cuma bug teknis, ini celah yang bisa dieksploitasi kasir nakal
+ATAU pihak luar yang berhasil mengakses endpoint checkout, dengan kerugian
+finansial riil dan tanpa alarm apa pun di sistem (order tetap terlihat "sah").
+
+**Solusi (arah):**
+1. **JANGAN PERNAH percaya `item.price` dari client untuk nilai final.**
+   Di dalam transaksi, setelah `tx.products.findUnique(...)`, gunakan
+   `product.member_price ?? product.price` (harga ASLI dari database, sesuai
+   status keanggotaan) sebagai `unit_price` yang benar-benar disimpan ke
+   `order_items`, bukan `item.price` dari request.
+2. Hitung ulang `subtotal`/`grandTotal` di SERVER berdasarkan harga asli DB,
+   bukan cuma validasi "konsisten dengan angka yang dikirim client" — client
+   boleh kirim `price` untuk keperluan TAMPILAN saja di frontend, tapi server
+   HARUS menghitung ulang dari sumber kebenaran (database), lalu (opsional)
+   tetap cross-check dengan yang dikirim client untuk deteksi anomali/UI
+   bug, bukan sebagai satu-satunya validasi.
+3. Untuk `discount`: validasi terhadap rule promosi/voucher yang benar-benar
+   aktif (tabel `promotions`) — bukan angka bebas dari client. Kalau
+   memang ada kebutuhan diskon manual oleh kasir/pengurus, batasi dengan
+   role check + cap persentase maksimum + audit log wajib.
+
+**Prioritas:** **P1 — Critical (tertinggi di seluruh audit ini)** — lebih
+mendesak dari BUG-01 (retur) karena ini exploitable secara aktif di jalur
+transaksi normal sehari-hari, bukan cuma gap fitur.
+
+---
+
+### DB-03 — Verifikasi Positif: Tabel Finansial Kritis Terlindungi dari Cascade Delete
+**Modul:** Database
+**File:** `prisma/schema.prisma`
+
+Diperiksa 22 relasi `onDelete: Cascade` di seluruh schema. Tabel finansial
+inti yang menyimpan riwayat transaksi anggota (`loans`, `loan_applications`,
+`savings`, `saving_transactions`, `shu_distributions`, `ppob_transactions`)
+**semuanya TIDAK** cascade dari `members` — artinya penghapusan baris
+`members` akan **diblokir** oleh Postgres (default RESTRICT) selama anggota
+tsb masih punya riwayat transaksi apa pun. Ini perilaku yang BENAR untuk
+integritas audit trail koperasi. Yang cascade cuma `loyalty_memberships` &
+`rat_attendances` (bukan data finansial kritis). **Tidak ada tindakan
+diperlukan** — dicatat sebagai bagian cakupan audit yang sudah diverifikasi
+aman.
+
+---
+
+## UPDATE RINGKASAN (Kumulatif Sesi 1 + Addendum 1 + Addendum 2)
+
+| Kategori | Total |
+|---|---|
+| Bug Kritis | **4** (tambah BUG-06) |
+| Bug Sedang | 6 |
+| Bug Ringan | 4 |
+| Kesalahan Akuntansi | 7 |
+| Kesalahan Database | 2 |
+| Perlu Klarifikasi Bisnis | 1 |
+| Potensi Fraud (baru diidentifikasi eksplisit) | **1 — BUG-06 adalah jalur fraud paling konkret di seluruh audit** |
+
+## UPDATE ROADMAP — Priority 1 (Critical), urutan pengerjaan direvisi
+
+1. **BUG-06** — Perbaiki validasi harga/diskon POS (server harus hitung dari
+   harga asli database, bukan percaya input client). **Dikerjakan PALING
+   PERTAMA** — ini jalur eksploitasi aktif yang bisa terjadi kapan saja
+   selama sistem dipakai transaksi sungguhan.
+2. **BUG-01/ACC-02** — Retur toko: stok + jurnal pembalik + status order.
+3. **ACC-01/ACC-05** — Neraca & Arus Kas Imbalanced: mulai dari jurnal
+   otomatis pencairan pinjaman (ACC-04).
