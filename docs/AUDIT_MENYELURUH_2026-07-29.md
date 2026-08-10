@@ -518,3 +518,95 @@ aman.
 2. **BUG-01/ACC-02** — Retur toko: stok + jurnal pembalik + status order.
 3. **ACC-01/ACC-05** — Neraca & Arus Kas Imbalanced: mulai dari jurnal
    otomatis pencairan pinjaman (ACC-04).
+
+
+---
+
+## ADDENDUM 3 — Audit Lanjutan (29 Juli 2026, sesi ke-4)
+
+### BUG-07 — Pola Sistemik: Tidak Ada Jalur "Undo" yang Benar di Seluruh Siklus Order (Cancel Online Order Juga Tidak Restore Stok/Uang)
+**Modul:** POS / Penjualan Online
+**File:** `src/lib/actions/online-orders.ts`
+**Function:** `updateOnlineOrderStatus` (baris 214-239), dibandingkan dengan
+`createOnlineOrder` (baris 22-140)
+**Baris Kode:** 225-232
+
+**Penyebab:** `createOnlineOrder` memotong stok secara atomik saat order
+dibuat (`tx.products.updateMany({ where: { stock: { gte: qty } }, data: {
+stock: { decrement: qty } } })` — pola yang benar). TAPI `updateOnlineOrderStatus`,
+satu-satunya fungsi yang bisa mengubah status jadi `"cancelled"`, **cuma
+menulis ulang kolom `order_status`** — tidak ada logic apa pun yang
+mengembalikan stok, membatalkan pembayaran, atau membuat jurnal pembalik.
+Fungsi ini juga menerima keempat status (`confirmed/processing/delivered/cancelled`)
+tanpa validasi alur transisi (state machine) — order yang sudah `"delivered"`
+bisa saja di-set ke `"cancelled"` atau balik ke `"confirmed"` tanpa
+penghalang logis apa pun.
+
+**Ini memperkuat pola yang sama dengan BUG-01 (retur toko):** di SELURUH
+siklus hidup order (baik lewat kasir POS `pos.ts` maupun online
+`online-orders.ts`), sistem konsisten BENAR saat MENCATAT transaksi maju
+(checkout, potong stok, catat bayar) — tapi **tidak pernah punya jalur balik
+yang benar** (cancel, retur, refund, void) untuk modul mana pun. Bahkan
+untuk POS kasir langsung (`pos.ts`), tidak ditemukan fungsi cancel/void sama
+sekali di seluruh file — artinya transaksi kasir yang salah input TIDAK
+BISA dibatalkan lewat jalur resmi apa pun selain retur yang juga rusak
+(BUG-01).
+
+**Dampak:**
+- Stok yang "dibatalkan" secara online tetap hilang dari catatan selamanya
+  (sama seperti BUG-01, tapi utk jalur pesanan online).
+- Kalau order online yang sudah `paid` (lewat status `"delivered"` yang
+  otomatis set `payment_status: "paid"`) dibatalkan, tidak ada refund
+  tercatat di mana pun.
+- Tidak ada state-machine validation berarti kesalahan input administratif
+  (klik status yang salah) bisa mengubah riwayat order secara tidak logis
+  tanpa ada penghalang sistem.
+
+**Cara Reproduksi:**
+1. Buat online order, biarkan sampai `"delivered"` (stok terpotong,
+   `payment_status` jadi "paid").
+2. Panggil `updateOnlineOrderStatus(orderId, "cancelled")`.
+3. Cek `products.stock` — **tidak kembali**. Cek ada refund/jurnal — **tidak
+   ada apa pun**. `payment_status` juga tidak ikut berubah (tetap "paid"
+   meski order berstatus "cancelled" — order terlihat lunas & batal
+   sekaligus, kontradiktif).
+
+**Risiko:** Tinggi — sama seperti BUG-01, ini pola sistemik yang berdampak
+ke SEMUA jalur pembatalan order di aplikasi, bukan cuma satu titik.
+Digabung dengan BUG-01, ini berarti **tidak ada satu pun jalur "batal
+transaksi" yang benar-benar bekerja dengan benar di seluruh aplikasi.**
+
+**Solusi (arah):** Sama dengan BUG-01 — `updateOnlineOrderStatus` untuk
+transisi ke `"cancelled"` harus, dalam satu `$transaction`: kembalikan stok
+(increment + `stock_movements` + `stock_balances`), balikkan `payment_status`
+ke `"unpaid"`/buat refund kalau sudah terbayar, dan (setelah ACC-01
+selesai) buat jurnal pembalik. Tambahkan juga validasi state-machine
+sederhana (mis. `delivered` tidak boleh langsung ke `confirmed`, dst.)
+
+**Prioritas:** **P1 — Critical** (digabung dalam satu inisiatif perbaikan
+dengan BUG-01, karena akar masalah & solusinya sama — "lifecycle order
+lengkap: cancel/retur/refund harus benar-benar reversible").
+
+---
+
+## UPDATE RINGKASAN (Kumulatif Final Sesi 1-4)
+
+| Kategori | Total |
+|---|---|
+| Bug Kritis | **5** (BUG-01, BUG-06, BUG-07, + 2 dari sesi 1) |
+| Bug Sedang | 6 |
+| Bug Ringan | 4 |
+| Kesalahan Akuntansi | 7 |
+| Kesalahan Database | 2 |
+| Perlu Klarifikasi Bisnis | 1 |
+
+## UPDATE ROADMAP — Priority 1 (Critical), revisi final urutan
+
+1. **BUG-06** — Validasi harga/diskon POS terhadap database (jalur fraud
+   aktif, paling mendesak).
+2. **BUG-01 + BUG-07 (digabung satu inisiatif)** — Bangun ulang siklus
+   "pembatalan transaksi" (retur POS + cancel online order) supaya benar-benar
+   mengembalikan stok & uang, plus tambahkan validasi state-machine status
+   order.
+3. **ACC-01/ACC-04/ACC-05** — Jurnal otomatis (Neraca & Arus Kas Imbalanced),
+   mulai dari pencairan pinjaman.
