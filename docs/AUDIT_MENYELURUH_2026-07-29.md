@@ -734,3 +734,95 @@ sebelum bisa diimplementasi — actionable setelah BUG-08 selesai).
 **Priority 3 (Medium)** — tambah:
 10. **BUG-09** — Rumus denda otomatis (setelah BUG-08 selesai & tarif resmi
     ditentukan).
+
+
+---
+
+## ADDENDUM 5 — Audit Lanjutan (29 Juli 2026, sesi ke-6)
+
+### BUG-10 — `deleteMember` Hard Delete, Padahal Skema Sudah Sediakan Kolom Soft-Delete
+**Modul:** Pendaftaran Anggota
+**File:** `src/lib/actions/members.ts`
+**Function:** `deleteMember` (baris 415-451)
+**Baris Kode:** 425-428
+
+**Penyebab:**
+```ts
+if (member?.users) {
+  await prisma.user.delete({ where: { id: member.users.id } });   // HARD DELETE
+}
+await prisma.member.delete({ where: { id: BigInt(memberId) } });   // HARD DELETE
+```
+Model `members` di `prisma/schema.prisma` (baris 652) **sudah punya kolom
+`deleted_at DateTime?`** — jelas didesain untuk pola soft-delete (umum &
+diharapkan di sistem finansial/koperasi untuk kebutuhan audit trail &
+retensi data). TAPI `deleteMember()` sama sekali tidak memakainya — memanggil
+`.delete()` langsung (hapus permanen dari database), bukan
+`.update({ data: { deleted_at: new Date(), status: ... } })`.
+
+**Dampak:** Kalau seorang admin/superadmin menghapus anggota yang KEBETULAN
+belum punya riwayat transaksi apa pun (anggota baru daftar, belum sempat
+setor simpanan/ambil pinjaman/belanja — kondisi yang sangat mungkin terjadi
+di anggota baru), maka **NIK, nama, seluruh data pribadi anggota tsb hilang
+permanen tanpa jejak** — tidak ada cara mengembalikan, tidak ada di
+`audit_logs` selain snapshot ringkas (`member_code`, `nik`, `full_name`,
+dll. yang dicatat SEBELUM dihapus — jadi tercatat di log, tapi row aslinya
+sudah tidak bisa di-restore/di-query lewat relasi normal).
+Untuk anggota yang SUDAH punya riwayat transaksi, penghapusan akan gagal
+karena constraint foreign key (RESTRICT, sudah diverifikasi aman di DB-03)
+— tapi pesan errornya digeneralisasi ("Gagal menghapus anggota. Pastikan
+tidak ada transaksi terkait.") sehingga admin tidak selalu tahu PASTI itu
+sebabnya vs error lain.
+
+**Cara Reproduksi:**
+1. Daftarkan anggota baru, jangan buat transaksi apa pun untuknya.
+2. Panggil `deleteMember(id)`.
+3. Anggota hilang permanen dari tabel `members` — hanya tersisa jejak di
+   `audit_logs` (kalau ada yang secara sadar mengecek log itu).
+
+**Risiko:** Sedang-Tinggi — potensi kehilangan data permanen yang tidak
+perlu terjadi (skema sudah sedia mekanisme yang lebih aman, cuma tidak
+dipakai). Untuk lembaga yang diaudit tahunan, "penghapusan permanen data
+anggota" adalah red flag standar yang akan ditanyakan auditor (apa
+kebijakan retensi data anggota, dan apakah konsisten diterapkan).
+
+**Solusi (arah):** Ganti `deleteMember` jadi soft-delete: `prisma.member.update({
+where: { id }, data: { deleted_at: new Date(), status: "inactive" } })`,
+dan `user.update({ data: { is_active: false } })` alih-alih hard delete.
+Pastikan semua query anggota aktif (`getMembers`, dashboard, dll.) sudah
+filter `deleted_at: null` (perlu dicek terpisah — belum diverifikasi apakah
+query LAIN yang membaca `members` sudah konsisten mengecualikan yang
+soft-deleted, mengingat field ini SUDAH ada di skema tapi mungkin belum
+dipakai di mana pun).
+
+**Prioritas:** **P2 — High**
+
+---
+
+## UPDATE RINGKASAN (Kumulatif Final Sesi 1-6)
+
+| Kategori | Total |
+|---|---|
+| Bug Kritis | 5 |
+| Bug Sedang | **8** (tambah BUG-10) |
+| Bug Ringan | 4 |
+| Kesalahan Akuntansi | 7 |
+| Kesalahan Database | 2 |
+| Perlu Klarifikasi Bisnis | 2 |
+| Potensi Kehilangan Data | **1 baru diidentifikasi eksplisit (BUG-10)** |
+
+## UPDATE ROADMAP — Priority 2 (High), tambah:
+11. **BUG-10** — Ganti `deleteMember` jadi soft-delete (`deleted_at`), audit
+    semua query anggota untuk pastikan konsisten filter data yang sudah
+    "dihapus".
+
+---
+
+## CATATAN METODOLOGI (untuk audit lanjutan berikutnya)
+
+Sesi ini sempat ada 2 false lead yang diverifikasi ulang dan TIDAK
+dimasukkan laporan (supaya laporan tetap akurat, bukan asal banyak):
+tenor pinjaman ternyata sudah tervalidasi benar (bukan bug division-by-zero),
+dan index `orders` ternyata sudah lengkap (kesalahan piping PowerShell
+saat pengecekan pertama, bukan bug nyata di skema). Dicatat di sini sebagai
+bentuk transparansi metodologi audit.
