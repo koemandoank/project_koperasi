@@ -610,3 +610,127 @@ lengkap: cancel/retur/refund harus benar-benar reversible").
    order.
 3. **ACC-01/ACC-04/ACC-05** — Jurnal otomatis (Neraca & Arus Kas Imbalanced),
    mulai dari pencairan pinjaman.
+
+
+---
+
+## ADDENDUM 4 — Audit Lanjutan (29 Juli 2026, sesi ke-5)
+
+### BUG-08 — Status "Overdue" Tidak Pernah Otomatis Diset — Tidak Ada Deteksi Jatuh Tempo Otomatis
+**Modul:** Pinjaman / Angsuran
+**File:** Seluruh codebase (`git grep` menyeluruh untuk penulisan status
+`"overdue"`)
+**Function:** Tidak ada — inilah masalahnya, fungsinya tidak ada.
+
+**Penyebab:** Status `"overdue"` dipakai luas sebagai **kondisi FILTER/BACA**
+di banyak file (`loan-payments.ts`, `payroll.ts`, `executive-dashboard.ts`,
+`buku-besar.ts`, `accounts.ts`, dll — total 13+ referensi baca), seolah-olah
+ini state yang lazim terjadi di data. TAPI ditelusuri secara menyeluruh:
+**tidak ada satu baris kode pun** yang benar-benar MENULIS
+`status: "overdue"` ke `loan_schedules` atau `loans`. Tidak ada cron job,
+tidak ada scheduled function, tidak ada trigger database, tidak ada
+pengecekan `due_date < NOW()` yang mengubah status secara otomatis di mana
+pun.
+
+**Dampak:**
+- Cicilan yang telat dibayar **selamanya tercatat sebagai "pending"**
+  (bukan "overdue"), tidak peduli sudah berapa lama lewat jatuh tempo.
+- Semua laporan/dashboard yang query `status: { in: ["pending", "partial",
+  "overdue"] }` (termasuk yang dipakai payroll batch, dashboard eksekutif,
+  buku besar) **tidak pernah benar-benar menangkap apa pun di kategori
+  "overdue"** — bagian filter itu jadi dead code secara efektif karena
+  datanya tidak pernah ada.
+- Tidak ada aging report (0-30 hari, 31-60 hari, dst.) yang bisa diandalkan
+  untuk piutang bermasalah — auditor koperasi lazim meminta laporan umur
+  piutang, dan sistem ini tidak punya dasar data untuk itu.
+- Terkait erat dengan temuan berikutnya (BUG-09) — karena tidak ada deteksi
+  overdue otomatis, perhitungan denda pun jadi sepenuhnya bergantung ke
+  manusia.
+
+**Cara Reproduksi:**
+1. Buat pinjaman, biarkan `due_date` cicilan pertama lewat tanpa dibayar
+   (mis. mundurkan tanggal sistem, atau tunggu tanggal aslinya lewat).
+2. Cek `loan_schedules.status` untuk cicilan itu — **tetap `"pending"`**,
+   tidak pernah berubah jadi `"overdue"` meski sudah lewat jatuh tempo
+   berbulan-bulan.
+
+**Risiko:** Tinggi — untuk koperasi simpan pinjam, deteksi piutang
+bermasalah (NPL/non-performing loan) adalah fungsi inti yang wajib ada
+untuk kepatuhan & kesehatan keuangan. Tanpa ini, manajemen risiko kredit
+sepenuhnya bergantung pada review manual, rawan terlewat.
+
+**Solusi (arah):** Buat scheduled job (cron, mirip pola
+`/api/cron/backup`/`/api/cron/payroll` yang sudah ada) yang jalan harian,
+mengecek semua `loan_schedules` dengan `due_date < NOW()` dan `status IN
+('pending','partial')`, lalu update ke `'overdue'`. Sekaligus update status
+`loans` induknya kalau perlu (`loans.status = 'overdue'` kalau ada cicilan
+overdue).
+
+**Prioritas:** **P2 — High**
+
+---
+
+### BUG-09 — Denda Keterlambatan (Penalty) 100% Input Manual, Tidak Ada Rumus Otomatis
+**Modul:** Angsuran
+**File:** `src/lib/actions/loan-payments.ts`
+**Function:** `recordLoanPayment`
+**Baris Kode:** 19-38 (parameter `penaltyAmount`, default `0`, murni dari
+input caller)
+
+**Penyebab:** `penaltyAmount` diterima sebagai parameter bebas dari
+pemanggil fungsi (form input kasir/pengurus) — **tidak ada formula
+otomatis** yang menghitung denda berdasarkan jumlah hari telat × tarif
+tertentu (mis. "0,5% per hari dari sisa pokok" atau sejenisnya, yang lazim
+di koperasi simpan pinjam). Konsisten dengan BUG-08: karena tidak ada
+deteksi overdue otomatis, tidak ada dasar (jumlah hari telat) untuk
+menghitung denda secara sistematis sekalipun formula-nya ada.
+
+**Dampak:** Konsistensi & keadilan perhitungan denda 100% bergantung ke
+kasir/pengurus yang input manual — berpotensi:
+- Inkonsistensi antar anggota (anggota A kena denda, anggota B dengan
+  keterlambatan sama tidak, tergantung siapa yang input & suasana hati).
+- Tidak ada jejak audit "kenapa denda segini" — nilai `penaltyAmount` bisa
+  berapa pun tanpa validasi terhadap rumus resmi apa pun.
+- Potensi disalahgunakan: kasir bisa set denda 0 untuk "menghapus" denda
+  anggota tertentu secara sepihak tanpa approval berjenjang.
+
+**Cara Reproduksi:** Panggil `recordLoanPayment` dengan `penaltyAmount`
+berapa pun (termasuk 0 untuk pinjaman yang jelas-jelas telat lama) — sistem
+menerima tanpa validasi/pertanyaan.
+
+**Risiko:** Sedang — bukan bug yang merusak sistem, tapi kelemahan kontrol
+internal & konsistensi kebijakan yang nyata untuk lembaga keuangan.
+
+**Solusi (arah, butuh keputusan bisnis tarif denda dulu):** Setelah BUG-08
+selesai (ada deteksi overdue otomatis + jumlah hari telat terhitung), buat
+fungsi `calculateLatePenalty(schedule)` yang menghitung denda otomatis
+berdasarkan rumus resmi koperasi (perlu didefinisikan: persentase harian?
+flat per hari? capped maksimum?), tampilkan sebagai SARAN/default di form
+pembayaran (bukan langsung dipaksakan, supaya pengurus tetap bisa
+override dengan alasan tercatat kalau ada kasus khusus).
+
+**Prioritas:** **P3 — Medium** (butuh keputusan bisnis soal rumus denda
+sebelum bisa diimplementasi — actionable setelah BUG-08 selesai).
+
+---
+
+## UPDATE RINGKASAN (Kumulatif Final Sesi 1-5)
+
+| Kategori | Total |
+|---|---|
+| Bug Kritis | 5 |
+| Bug Sedang | **7** (tambah BUG-08) |
+| Bug Ringan | 4 |
+| Kesalahan Akuntansi | 7 |
+| Kesalahan Database | 2 |
+| Perlu Klarifikasi Bisnis | **2** (tambah BUG-09, butuh rumus denda resmi) |
+
+## UPDATE ROADMAP
+
+**Priority 2 (High)** — tambah:
+9. **BUG-08** — Bangun cron deteksi overdue otomatis (pola sama dengan
+   cron backup/payroll yang sudah ada).
+
+**Priority 3 (Medium)** — tambah:
+10. **BUG-09** — Rumus denda otomatis (setelah BUG-08 selesai & tarif resmi
+    ditentukan).
