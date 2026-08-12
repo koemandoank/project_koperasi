@@ -826,3 +826,185 @@ tenor pinjaman ternyata sudah tervalidasi benar (bukan bug division-by-zero),
 dan index `orders` ternyata sudah lengkap (kesalahan piping PowerShell
 saat pengecekan pertama, bukan bug nyata di skema). Dicatat di sini sebagai
 bentuk transparansi metodologi audit.
+
+
+---
+
+## ADDENDUM 6 — Audit Lanjutan (29 Juli 2026, sesi ke-7, final)
+
+### BUG-11 — `distributeSHUMassal` N+1 Query Tanpa Timeout Override (Lebih Parah dari #17)
+**Modul:** SHU
+**File:** `src/lib/actions/shu-calculation.ts`
+**Function:** `distributeSHUMassal` (baris 627+), `processIndividualMemberShu` (baris 542+)
+**Baris Kode:** 643 (`$transaction` tanpa opsi), 672-675 (loop per-anggota)
+
+**Penyebab:** Sama persis dengan pola temuan #17 (payroll, sudah closed) —
+`for (const m of report.members) { await processIndividualMemberShu(...) }`
+di dalam `prisma.$transaction(async (tx) => {...})`. `processIndividualMemberShu`
+melakukan ~4 query per anggota (`shu_distributions.upsert`, `savings.findUnique`,
+`savings.update`, kemungkinan `saving_transactions.create`). **BEDA dari
+payroll**: transaksi ini **tidak punya `{ timeout, maxWait }` sama sekali**
+— pakai default Prisma **5 detik** (payroll setidaknya sudah diberi 30
+detik eksplisit sebelum diperbaiki).
+
+**Dampak:** Dengan 120 anggota aktif saat ini, ~480 query sequential dalam
+jendela waktu 5 detik **hampir pasti melebihi timeout** — transaksi
+`distributeSHUMassal` (proses tahunan paling penting di koperasi simpan
+pinjam — pembagian SHU ke seluruh anggota) berisiko GAGAL TOTAL/ROLLBACK
+kalau benar-benar dijalankan sekarang dengan skala data saat ini.
+
+**Sisi positif yang ditemukan:** Fungsi ini justru **sudah benar** soal
+membuat jurnal otomatis (ada logic pembuatan `chart_of_accounts` &
+jurnal untuk distribusi SHU) — ini bisa jadi TEMPLATE POLA yang sudah
+terbukti untuk menyelesaikan ACC-01 (Neraca Imbalanced) di modul lain
+(POS, pinjaman), asal masalah performanya diperbaiki dulu.
+
+**Cara Reproduksi:** Panggil `distributeSHUMassal(2026)` dengan kondisi data
+saat ini (120 anggota aktif) — amati apakah selesai dalam 5 detik atau
+timeout.
+
+**Risiko:** Kritis — ini proses tahunan yang HARUS berhasil sekali setahun
+untuk kepatuhan RAT; kegagalannya bukan sekadar bug teknis tapi bisa
+menghambat kewajiban koperasi ke anggotanya.
+
+**Solusi (arah, pola SUDAH terbukti dari fix #17):** Ganti loop per-anggota
+jadi bulk operation (kumpulkan semua `shu_distributions` jadi satu
+`createMany`, semua update `savings` jadi agregasi per member lalu
+`updateMany` per kelompok nilai unik atau tetap per-member tapi di LUAR
+transaksi utama untuk bagian yang tidak butuh atomicity ketat, atau
+tambahkan `{ timeout: 60000, maxWait: 15000 }` sebagai mitigasi cepat
+sambil bulk-fix dikerjakan).
+
+**Prioritas:** **P1 — Critical** (proses SHU tahunan, kegagalannya
+berdampak langsung ke kewajiban koperasi ke SELURUH anggota sekaligus).
+
+---
+
+### CATATAN — Tutup Tahun (Annual Closing) Tidak Ada Sebagai Proses Terpisah
+**Modul:** Akuntansi
+
+Ditelusuri seluruh codebase — hanya ada `performMonthlyClosing` (tutup buku
+BULANAN, sudah diverifikasi aman di audit proaktif sebelumnya). **Tidak ada
+fungsi "tutup tahun" terpisah** yang melakukan closing entries formal
+(menutup akun pendapatan/beban ke laba ditahan, mengunci seluruh tahun,
+dll.). Tidak dikategorikan sebagai "bug" karena bisa jadi memang belum
+diperlukan/didesain sengaja (tutup buku bulan Desember dianggap cukup) —
+**dicatat sebagai gap desain yang perlu klarifikasi kebutuhan bisnis**,
+bukan actionable tanpa keputusan lebih dulu.
+
+**Prioritas:** P4 — Low (perlu klarifikasi kebutuhan dulu sebelum jadi item roadmap).
+
+---
+
+## RINGKASAN FINAL (Kumulatif Seluruh Sesi Audit, 1-7)
+
+| Kategori | Total |
+|---|---|
+| **Bug Kritis** | **6** (BUG-01, BUG-06, BUG-07, BUG-11, + 2 dari sesi 1) |
+| **Bug Sedang** | **8** |
+| **Bug Ringan** | 4 |
+| **Kesalahan Akuntansi** | 7 |
+| **Kesalahan Database** | 2 |
+| **Perlu Klarifikasi Bisnis** | 3 (ACC-07/PPN, BUG-09/tarif denda, Tutup Tahun) |
+| **Potensi Kehilangan Data** | 1 (BUG-10) |
+| **Potensi Fraud** | 1 (BUG-06 — paling konkret) |
+
+---
+
+# RENCANA PERBAIKAN STEP-BY-STEP MENYELURUH
+
+> Disusun berdasarkan urutan DEPENDENSI teknis (bukan cuma prioritas
+> berdiri sendiri) — beberapa fix harus selesai dulu sebelum fix lain bisa
+> dikerjakan dengan aman. Setiap step mencantumkan: apa yang dikerjakan,
+> kenapa urutannya di situ, cara verifikasi sebelum lanjut ke step
+> berikutnya, dan estimasi risiko pengerjaan.
+
+## FASE 0 — Persiapan (sebelum menyentuh kode apa pun)
+**Tujuan:** pastikan ada jaring pengaman sebelum mulai perbaikan di database yang sudah berisi data nyata.
+
+0.1. Backup penuh database (di luar mekanisme backup aplikasi yang ada — `pg_dump` manual atau snapshot Neon) sebelum FASE 1 dimulai.
+0.2. Siapkan lingkungan staging/testing terpisah kalau memungkinkan (audit sebelumnya bekerja langsung di DB yang sama dengan production — disarankan sekarang mulai ada environment terpisah untuk testing fix, mengingat skala perbaikan yang akan dikerjakan cukup besar).
+0.3. Tetapkan satu orang/PIC sebagai code reviewer independen untuk tiap fix P1 (Critical) sebelum di-merge ke main — mengingat sifat perbaikan ini menyentuh alur uang langsung.
+
+## FASE 1 — Critical: Tutup Celah Fraud Aktif (Kerjakan Duluan, Terpisah dari yang Lain)
+**Kenapa duluan:** BUG-06 adalah satu-satunya temuan yang merupakan jalur eksploitasi AKTIF (bisa dipakai kapan saja selama sistem berjalan) — beda dari temuan lain yang sifatnya gap/kelemahan desain. Tidak ada dependensi ke fix lain, bisa dikerjakan independen & segera.
+
+1.1. **BUG-06** — `pos.ts`: ganti `item.price` dari client jadi `product.member_price ?? product.price` dari database sebagai sumber kebenaran harga jual. Hitung ulang `subtotal`/`grandTotal` di server dari harga DB, bukan cuma validasi konsistensi angka client.
+1.2. Terapkan pola sama untuk `discount` — validasi terhadap `promotions` yang benar-benar aktif, atau batasi dengan role+cap+audit log kalau diskon manual oleh kasir.
+1.3. **Verifikasi:** buat test case checkout dengan `price` dimanipulasi manual (seperti cara reproduksi di BUG-06) — pastikan sekarang DITOLAK atau harga dikoreksi otomatis ke harga DB, bukan lolos.
+1.4. Audit ulang: cek apakah `online-orders.ts` (`createOnlineOrder`) punya kelemahan yang sama (belum diverifikasi eksplisit — HANYA `pos.ts` yang sudah dikonfirmasi rinci di audit ini, `online-orders.ts` perlu dicek pola serupa sebagai bagian dari step ini).
+
+## FASE 2 — Critical: Siklus "Undo" Transaksi (Retur, Cancel, Refund)
+**Kenapa di sini:** BUG-01 & BUG-07 adalah pola sistemik yang sama (satu inisiatif), dan HARUS selesai sebelum FASE 3 (jurnal otomatis) karena kalau jurnal otomatis dibangun duluan tanpa siklus undo yang benar, retur/cancel yang terjadi SETELAHNYA akan menghasilkan jurnal yang juga tidak lengkap (bug baru di atas fix baru).
+
+2.1. Desain ulang state-machine status order (POS & online) — tentukan transisi valid (`pending → confirmed → delivered`, atau `→ cancelled` dari state mana saja yang masih boleh, `delivered` tidak boleh mundur, dst.).
+2.2. **BUG-01** — `approveOrderReturn`/`createOrderReturn` (`pos-transactions.ts`): tambah dalam satu transaksi — kembalikan stok (increment + `stock_movements` + `stock_balances`), update `orders.payment_status`/`order_status` pada order asli, catat refund (kredit balik `savings` kalau metode bayar terkait saldo).
+2.3. **BUG-07** — `updateOnlineOrderStatus` (`online-orders.ts`): tambah logic sama untuk transisi ke `"cancelled"` — kembalikan stok, balikkan status pembayaran, validasi state-machine dari 2.1.
+2.4. **Verifikasi:** simulasikan siklus penuh order → retur/cancel untuk kedua jalur (POS & online), pastikan `products.stock` kembali ke angka semula, `orders.payment_status` konsisten dengan status akhir.
+
+## FASE 3 — Critical: Jurnal Otomatis & Neraca Balance (Inisiatif Terbesar)
+**Kenapa di sini:** butuh FASE 1 & 2 selesai dulu (supaya jurnal yang dibangun tidak langsung punya lubang dari sisi harga palsu atau retur yang tidak lengkap). Ini fase paling besar — disarankan dipecah lagi jadi sub-langkah bertahap, bukan sekali jalan.
+
+3.1. Inventarisasi lengkap `chart_of_accounts` — pastikan semua kode akun yang dibutuhkan (Bank, Kas, Piutang Pinjaman, Persediaan, HPP, Pendapatan Penjualan, Pendapatan Bunga, Simpanan Wajib/Sukarela sebagai liability) sudah terdefinisi konsisten. **Gunakan pola jurnal SHU (`distributeSHUMassal`, sudah terbukti benar) sebagai REFERENSI konkret**, bukan mulai dari nol.
+3.2. **ACC-04** — Tambah jurnal otomatis di `updateLoanStatus` (`loans.ts`) saat pinjaman dicairkan: Debit Piutang Anggota, Kredit Kas/Bank. **Kerjakan ini duluan** di antara semua modul jurnal karena nilainya biasanya paling besar per transaksi.
+3.3. Tambah jurnal otomatis di `recordLoanPayment` (`loan-payments.ts`) & bagian angsuran `processMonthlyPayrollBatch` (`payroll.ts`) — cek dulu apakah payroll SUDAH bikin jurnal (perlu diverifikasi ulang, ada indikasi sebagian sudah dari kerja sesi sebelumnya) sebagai referensi tambahan.
+3.4. Tambah jurnal otomatis di `pos.ts` (`processPosCheckout`) — Debit Kas/Piutang, Kredit Pendapatan Penjualan; plus Debit HPP/Kredit Persediaan (baru bisa akurat setelah FASE 5/ACC-06 selesai, karena HPP butuh `purchase_price` yang benar).
+3.5. Guard idempotency: pastikan tiap transaksi cuma dijurnal SEKALI (tambah field `journal_entry_id` atau flag serupa di `orders`/`loan_payments`/dsb.) — supaya proses historis (data lama yang belum terjurnal) bisa di-backfill terpisah tanpa duplikasi ke depan.
+3.6. **Verifikasi bertahap per sub-langkah** (3.2 dulu, cek Neraca membaik sebagian, baru 3.3, dst.) — JANGAN tunggu semua modul selesai baru dicek sekali, supaya kalau ada kesalahan gampang dilacak modul mana penyebabnya.
+3.7. Setelah semua modul konsisten, putuskan strategi data historis: backfill jurnal utk transaksi lama (kompleks, akurat) vs jurnal penyesuaian satu kali menutup gap historis (cepat, kurang granular) — lihat Opsi A/B/C yang sudah didokumentasikan di temuan #21 asli.
+
+## FASE 4 — Critical: Perbaiki N+1/Timeout di Proses Batch Tahunan
+**Kenapa di sini:** independen dari fase lain secara teknis, tapi **BUG-11 harus selesai SEBELUM SHU tahun berjalan benar-benar dijalankan** (kemungkinan berdekatan waktu dengan RAT) — prioritaskan sejajar dengan FASE 3, bukan menunggu FASE 3 selesai total.
+
+4.1. **BUG-11** — `distributeSHUMassal`/`processIndividualMemberShu`: ganti loop per-anggota jadi bulk query (pola sama seperti fix #17 payroll — kumpulkan data dulu dengan query batch, baru `createMany`/`updateMany`), ATAU minimal tambah `{ timeout: 60000, maxWait: 15000 }` sebagai mitigasi cepat sambil bulk-fix menyusul.
+4.2. **Verifikasi:** jalankan `distributeSHUMassal` dengan skala data saat ini (120+ anggota), pastikan selesai tanpa timeout.
+
+## FASE 5 — High: Akurasi Laporan Keuangan Toko
+5.1. **ACC-06** — Implementasi Weighted Average Cost untuk `products.purchase_price`, di-update tiap Good Receipt selesai diproses (`procurement.ts`).
+5.2. **Verifikasi:** buat 2 PO dengan harga berbeda untuk produk yang sama, pastikan `purchase_price` ter-update sesuai rumus rata-rata tertimbang setelah masing-masing diterima.
+
+## FASE 6 — High: Kontrol Internal & Integritas Data Operasional
+**Catatan:** item-item di fase ini independen satu sama lain, bisa dikerjakan paralel oleh anggota tim berbeda kalau ada lebih dari satu developer.
+
+6.1. **BUG-02/ACC-03** — Perbaiki pembulatan cicilan pinjaman (cicilan terakhir menyerap sisa pembulatan).
+6.2. **BUG-03** — Validasi overpayment di `recordLoanPayment`.
+6.3. **BUG-04** — Idempotency key untuk checkout POS & pembayaran cicilan (cegah double-submit).
+6.4. **BUG-08** — Cron deteksi overdue otomatis (pola sama dengan cron backup/payroll yang sudah ada).
+6.5. **BUG-10** — Ganti `deleteMember` jadi soft-delete, audit ulang semua query anggota supaya konsisten filter `deleted_at`.
+
+## FASE 7 — Medium: Keputusan Bisnis Dulu, Baru Implementasi
+Item-item ini **TIDAK bisa langsung dikerjakan** — butuh keputusan/klarifikasi dari pengurus/manajemen koperasi dulu:
+
+7.1. **BUG-05/#20** — `saving_deduct` di POS: aktifkan resmi (Opsi A) atau bersihkan (Opsi B)?
+7.2. **BUG-09** — Rumus denda keterlambatan resmi (persentase harian? flat? cap maksimum?) — baru bisa diimplementasi setelah BUG-08 (deteksi overdue) selesai DAN rumus ditentukan.
+7.3. **ACC-07** — Status PKP koperasi untuk PPN penjualan — konsultasi ke bagian pajak.
+7.4. **DB-01** — Kebutuhan retur sebagian (`order_return_items`) — tergantung kebutuhan operasional riil.
+7.5. **Tutup Tahun** — apakah perlu proses closing tahunan formal terpisah dari tutup bulanan Desember?
+
+## FASE 8 — Low: Audit Lanjutan & Pembersihan Teknis
+8.1. Audit sistematis code duplication/dead code/unused function (belum dilakukan sepanjang audit ini — butuh sesi terpisah dengan tooling khusus, mis. `ts-prune` untuk unused exports).
+8.2. Audit Buku Besar & rekonsiliasi kas harian secara mendalam (di luar cakupan Laporan Arus Kas yang sudah diperiksa).
+8.3. Uji ketahanan concurrent/locking di bawah beban nyata (load testing) — belum pernah dilakukan.
+8.4. Review menyeluruh JWT/session config di luar yang sudah diverifikasi (rotasi token, dsb.).
+
+---
+
+## URUTAN EKSEKUSI RINGKAS (kalau harus dikerjakan satu-satu berurutan, bukan paralel)
+
+```
+FASE 0 (persiapan)
+  → FASE 1 (BUG-06, tutup fraud aktif)
+  → FASE 2 (BUG-01 + BUG-07, siklus undo)
+  → FASE 3 (jurnal otomatis) ⟷ FASE 4 (BUG-11, timeout SHU) [bisa paralel]
+  → FASE 5 (ACC-06, HPP akurat)
+  → FASE 6 (kontrol internal, bisa paralel per item)
+  → FASE 7 (nunggu keputusan bisnis, bisa jalan kapan saja begitu keputusan ada)
+  → FASE 8 (audit lanjutan, kapan saja, tidak mendesak)
+```
+
+**Estimasi kompleksitas relatif** (bukan estimasi waktu pasti, karena
+tergantung kapasitas tim): FASE 3 (jurnal otomatis) adalah yang PALING
+besar & berisiko — disarankan dipecah lagi jadi beberapa PR terpisah per
+modul (3.2, 3.3, 3.4 masing-masing PR sendiri dengan testing terpisah),
+bukan satu PR raksasa. Semua fase P1 (1, 2, 3, 4) sebaiknya diselesaikan
+sebelum RAT/pembagian SHU tahun berjalan berikutnya dijalankan sungguhan.
