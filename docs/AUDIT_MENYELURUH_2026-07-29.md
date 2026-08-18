@@ -1008,3 +1008,61 @@ besar & berisiko — disarankan dipecah lagi jadi beberapa PR terpisah per
 modul (3.2, 3.3, 3.4 masing-masing PR sendiri dengan testing terpisah),
 bukan satu PR raksasa. Semua fase P1 (1, 2, 3, 4) sebaiknya diselesaikan
 sebelum RAT/pembagian SHU tahun berjalan berikutnya dijalankan sungguhan.
+
+
+---
+
+## LOG EKSEKUSI — FASE 1 SELESAI (29 Juli 2026)
+
+**Status: ✅ FASE 1 (BUG-06) — Selesai & Terverifikasi**
+
+### Yang dikerjakan
+1. **`src/lib/actions/pos.ts`**: harga jual (`unit_price`) sekarang WAJIB
+   diambil dari `products.price`/`products.member_price` di database di
+   dalam transaksi, bukan dari `item.price` yang dikirim client. `discount`
+   divalidasi (`>= 0` dan `<= subtotal riil`) sebelum dipakai. `subtotal`/
+   `grand_total` yang tersimpan ke `orders` dihitung ulang dari harga
+   database, bukan dari angka client.
+2. **`src/lib/actions/online-orders.ts`**: pola sama diterapkan ke
+   `createOnlineOrder` — sebelumnya bahkan tanpa pengecekan konsistensi
+   sama sekali, sekarang harga & limit paylater dihitung dari `realSubtotal`
+   (database), bukan `item.price` client.
+
+### Insiden selama pengerjaan (dicatat transparan)
+Saat menulis ulang `online-orders.ts`, sempat **tidak sengaja memotong
+file** — fungsi `getOnlineOrders` dan `updateOnlineOrderStatus` (100 baris
+terakhir file) hilang karena penulisan ulang cuma mencakup fungsi
+`createOnlineOrder` tapi menimpa seluruh file. **Terdeteksi segera** lewat
+verifikasi baca-ulang file setelah menulis (bukan langsung lanjut tanpa
+cek), dipulihkan dengan mengambil versi asli dari `git show HEAD:...`
+(file sudah ter-commit sebelumnya, jadi tidak ada kerja yang hilang),
+digabung dengan bagian yang sudah diperbaiki. File akhir 269 baris,
+diverifikasi utuh lewat pembacaan penuh sebelum lanjut ke tahap kompilasi.
+**Pelajaran:** untuk pengeditan fungsi tunggal di file besar ke depan,
+lebih aman pakai edit di lokasi spesifik daripada menulis ulang seluruh
+file, kecuali benar-benar diniatkan mengganti seluruh isi.
+
+### Verifikasi
+- `npx tsc --noEmit`: 0 error (dicek 2x, sebelum & sesudah pemulihan file).
+- `npm run build` production penuh: sukses (`Compiled successfully`), semua
+  route ter-generate termasuk `/toko/kasir` dan halaman terkait online order.
+- Data sampel produk dicek langsung ke database: `member_price` terisi
+  dengan benar (bukan `null`) untuk produk yang diuji, mengonfirmasi logic
+  fallback (`member_price ?? price`) akan berfungsi sesuai desain.
+- **Belum diuji end-to-end dengan transaksi checkout nyata** (butuh sesi
+  login kasir/anggota asli) — hanya diverifikasi lewat kompilasi + review
+  logic + spot-check data.
+
+### Belum dikerjakan di FASE 1 (dicatat, bukan diabaikan)
+- Validasi `discount` masih berupa cap sederhana (`0 <= discount <=
+  subtotal`), BELUM terhubung ke rule promosi resmi di tabel `promotions`
+  — kalau kasir input diskon manual, sistem masih menerima berapa pun
+  dalam batas subtotal, tanpa cross-check ke voucher/promo aktif. Ini
+  mitigasi PARSIAL untuk BUG-06 (menutup celah harga jadi 0/negatif, tapi
+  belum menutup celah "diskon manual sembarangan oleh kasir").
+
+**Commit:** `85cde04` (kode) — sudah di-push ke `origin/main`.
+
+**Langkah selanjutnya (FASE 2):** siklus "undo" transaksi — BUG-01 (retur
+toko) & BUG-07 (cancel online order) — sesuai urutan di Rencana Perbaikan
+Step-by-Step di atas.
