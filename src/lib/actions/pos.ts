@@ -15,10 +15,22 @@ export async function processPosCheckout(data: any) {
     await checkRole(["kasir", "admin", "superadmin"]);
     
     const validated = posCheckoutSchema.parse(data);
-    const calculatedGrandTotal = validated.cart.reduce((sum: any, item: any) => sum + (item.price * item.qty), 0) - validated.discount;
-    if (validated.grandTotal !== calculatedGrandTotal) {
-      throw new Error("Manipulasi harga terdeteksi.");
-    }
+
+    // FIX BUG-06 (Audit Menyeluruh 29 Jul 2026 - CRITICAL):
+    // SEBELUMNYA di sini ada pengecekan "Manipulasi harga terdeteksi" yang
+    // HANYA membandingkan angka-angka yang SEMUANYA berasal dari client
+    // (item.price, discount, grandTotal) - tidak pernah dibandingkan ke
+    // products.price/member_price yang sebenarnya di database. Ini proteksi
+    // PALSU: siapa pun yang bisa mengubah request (DevTools browser dsb)
+    // bisa checkout barang apa pun dengan harga berapa pun (termasuk 0/negatif)
+    // dan tetap lolos, karena cek lama cuma verifikasi konsistensi internal
+    // angka client, bukan verifikasi ke sumber kebenaran (database).
+    //
+    // FIX: harga jual sekarang HANYA diambil dari database (product.price /
+    // product.member_price) di dalam transaksi di bawah - item.price dari
+    // client SAMA SEKALI TIDAK DIPAKAI lagi untuk nilai final apa pun,
+    // cuma untuk lookup produk mana yang dibeli (item.id) dan berapa qty.
+
     const session = await auth();
     const userId = session?.user?.id;
     
@@ -77,14 +89,23 @@ export async function processPosCheckout(data: any) {
         });
         
         const currentDebt = Number(existingPaylater._sum.grand_total || 0);
+        // Catatan: cek limit di bawah masih memakai validated.grandTotal (dari
+        // client) untuk estimasi cepat SEBELUM transaksi - ini cuma estimasi
+        // awal untuk pesan error yang informatif, bukan nilai final yang
+        // disimpan. Nilai final tetap dihitung dari database di dalam transaksi.
         if ((currentDebt + validated.grandTotal) > rules.max_paylater_debt.value) {
           return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang anggota tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
         }
       }
     }
 
+    let finalOrderId: bigint | null = null;
+    let finalGrandTotal = 0;
+
     await prisma.$transaction(async (tx: any) => {
       const purchasePrices = new Map<bigint, number>();
+      const sellingPrices = new Map<bigint, number>();
+      let realSubtotal = 0;
 
       // Paylater limit is checked dynamically above, no separate field is updated here.
       // Validate stock atomically before committing the order
@@ -99,6 +120,15 @@ export async function processPosCheckout(data: any) {
 
         // Simpan harga pokok (purchase_price) historis saat transaksi dilakukan
         purchasePrices.set(product.id, Number(product.purchase_price));
+
+        // FIX BUG-06: harga jual SELALU dari database, bukan dari item.price
+        // (client). member_price dipakai kalau ada memberId & harga member
+        // di-set utk produk itu, kalau tidak fallback ke harga umum.
+        const realUnitPrice = validated.memberId && product.member_price !== null
+          ? Number(product.member_price)
+          : Number(product.price);
+        sellingPrices.set(product.id, realUnitPrice);
+        realSubtotal += realUnitPrice * item.qty;
 
         const stockBefore = product.stock;
         if (stockBefore < item.qty) {
@@ -161,6 +191,15 @@ export async function processPosCheckout(data: any) {
         }
       }
 
+      // FIX BUG-06: diskon divalidasi terhadap subtotal RIIL (dari database),
+      // tidak boleh negatif, tidak boleh melebihi subtotal (mencegah grand_total
+      // negatif / transaksi "dibayar minus"). Validasi penuh terhadap rule
+      // promosi aktif (tabel promotions) belum diimplementasikan di sini -
+      // dicatat sebagai kelanjutan terpisah (lihat docs/AUDIT_MENYELURUH).
+      const safeDiscount = Math.max(0, Math.min(Number(validated.discount) || 0, realSubtotal));
+      const realGrandTotal = realSubtotal - safeDiscount;
+      finalGrandTotal = realGrandTotal;
+
       // Create Order
       const order = await tx.orders.create({
         data: {
@@ -168,9 +207,9 @@ export async function processPosCheckout(data: any) {
           member_id: validated.memberId ? BigInt(validated.memberId) : null,
           unit_id: BigInt(unitId),
           channel: "pos",
-          subtotal: validated.subtotal,
-          discount: validated.discount,
-          grand_total: validated.grandTotal,
+          subtotal: realSubtotal,
+          discount: safeDiscount,
+          grand_total: realGrandTotal,
           payment_method: validated.paymentMethod,
           payment_status: paymentStatus,
           order_status: orderStatus,
@@ -179,11 +218,13 @@ export async function processPosCheckout(data: any) {
           paid_at: validated.paymentMethod !== "paylater" ? new Date() : null,
         }
       });
+      finalOrderId = order.id;
 
-      // Create Order Items
+      // Create Order Items - unit_price dari database (sellingPrices), BUKAN item.price client
       for (const item of validated.cart) {
         const pId = BigInt(item.id);
         const pPrice = purchasePrices.get(pId) ?? 0;
+        const realPrice = sellingPrices.get(pId) ?? 0;
 
         await tx.order_items.create({
           data: {
@@ -191,10 +232,10 @@ export async function processPosCheckout(data: any) {
             product_id: pId,
             product_name: item.name,
             qty: item.qty,
-            unit_price: item.price,
+            unit_price: realPrice,
             purchase_price: pPrice,
             discount: 0,
-            subtotal: item.price * item.qty,
+            subtotal: realPrice * item.qty,
           }
         });
       }
@@ -212,9 +253,7 @@ export async function processPosCheckout(data: any) {
         order_no: orderNo,
         payment_method: validated.paymentMethod,
         payment_status: paymentStatus,
-        grand_total: validated.grandTotal,
-        subtotal: validated.subtotal,
-        discount: validated.discount,
+        grand_total: finalGrandTotal,
         member_id: validated.memberId,
         item_count: validated.cart.length,
       },

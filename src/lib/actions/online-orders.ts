@@ -46,47 +46,74 @@ export async function createOnlineOrder(data: {
     const count = await prisma.orders.count()
     const orderNo = `ONL-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(count + 1).padStart(4, "0")}`
 
-    const subtotal = data.cart.reduce((s: any, i: any) => s + i.price * i.qty, 0)
-    const grandTotal = subtotal
+    // FIX BUG-06 (Audit Menyeluruh 29 Jul 2026 - CRITICAL, sama seperti pos.ts):
+    // SEBELUMNYA subtotal/grandTotal/unit_price SEPENUHNYA dari item.price
+    // (client) tanpa verifikasi apa pun ke database - bahkan lebih rentan dari
+    // pos.ts karena TIDAK ADA pengecekan konsistensi sama sekali. Anggota yang
+    // mengubah request bisa checkout produk apa pun dengan harga berapa pun.
+    // FIX: harga jual sekarang WAJIB diambil dari products.member_price/price
+    // di database (dilakukan di dalam transaksi di bawah), item.price dari
+    // client tidak dipakai lagi untuk nilai final apa pun.
 
     const noteText = [
       data.deliveryType === "delivery" ? `[ANTAR ke: ${data.deliveryAddress || "-"}]` : "[AMBIL SENDIRI / NITIP]",
       data.note || ""
     ].filter(Boolean).join(" | ")
 
-    // CHECK PAYLATER LIMIT
-    if (data.paymentMethod === "paylater") {
-      const { getLoanRules } = await import('./loan-rules');
-      const rules = await getLoanRules();
-      
-      if (rules.max_paylater_debt?.enabled) {
-        const existingPaylater = await prisma.orders.aggregate({
-          where: {
-            member_id: user.members.id,
-            payment_method: "paylater",
-            payment_status: "unpaid",
-            order_status: { not: "cancelled" }
-          },
-          _sum: { grand_total: true }
-        });
-        
-        const currentDebt = Number(existingPaylater._sum.grand_total || 0);
-        if ((currentDebt + grandTotal) > rules.max_paylater_debt.value) {
-          return { success: false, error: `Limit Bayar Tempo ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).` };
-        }
-      }
-    }
+    let finalGrandTotal = 0
 
     await prisma.$transaction(async (tx: any) => {
+      const sellingPrices = new Map<bigint, number>()
+      let realSubtotal = 0
+
+      // Ambil harga ASLI dari database utk semua produk di keranjang SEBELUM
+      // membuat order, supaya subtotal/grand_total final sudah benar.
+      for (const item of parsedCart) {
+        const product = await tx.products.findUnique({ where: { id: BigInt(item.id) } })
+        if (!product) {
+          throw new Error(`Produk "${item.name}" tidak ditemukan.`)
+        }
+        const realUnitPrice = product.member_price !== null
+          ? Number(product.member_price)
+          : Number(product.price)
+        sellingPrices.set(product.id, realUnitPrice)
+        realSubtotal += realUnitPrice * item.qty
+      }
+
+      // CHECK PAYLATER LIMIT - pakai realSubtotal (dari DB), bukan dari client
+      if (data.paymentMethod === "paylater") {
+        const { getLoanRules } = await import('./loan-rules')
+        const rules = await getLoanRules()
+
+        if (rules.max_paylater_debt?.enabled) {
+          const existingPaylater = await tx.orders.aggregate({
+            where: {
+              member_id: user.members!.id,
+              payment_method: "paylater",
+              payment_status: "unpaid",
+              order_status: { not: "cancelled" }
+            },
+            _sum: { grand_total: true }
+          })
+
+          const currentDebt = Number(existingPaylater._sum.grand_total || 0)
+          if ((currentDebt + realSubtotal) > rules.max_paylater_debt.value) {
+            throw new Error(`Limit Bayar Tempo ditolak: Sisa batas hutang Anda tidak mencukupi (Maksimal akumulasi Rp ${rules.max_paylater_debt.value.toLocaleString('id-ID')}).`)
+          }
+        }
+      }
+
+      finalGrandTotal = realSubtotal
+
       const order = await tx.orders.create({
         data: {
           order_no: orderNo,
           member_id: user.members!.id,
           unit_id: unitId,
           channel: "online",
-          subtotal,
+          subtotal: realSubtotal,
           discount: 0,
-          grand_total: grandTotal,
+          grand_total: realSubtotal,
           payment_method: data.paymentMethod,
           payment_status: data.paymentMethod === "paylater" ? "unpaid" : "unpaid",
           order_status: "pending",
@@ -97,15 +124,17 @@ export async function createOnlineOrder(data: {
       })
 
       for (const item of parsedCart) {
+        const realPrice = sellingPrices.get(BigInt(item.id)) ?? 0
+
         await tx.order_items.create({
           data: {
             order_id: order.id,
             product_id: BigInt(item.id),
             product_name: item.name,
             qty: item.qty,
-            unit_price: item.price,
+            unit_price: realPrice,
             discount: 0,
-            subtotal: item.price * item.qty,
+            subtotal: realPrice * item.qty,
           }
         })
         
@@ -237,3 +266,4 @@ export async function updateOnlineOrderStatus(
     return { success: false, error: "Gagal update status pesanan" }
   }
 }
+
