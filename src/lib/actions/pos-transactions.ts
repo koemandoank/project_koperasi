@@ -459,6 +459,19 @@ export async function createOrderReturn(
 
     if (!order) throw new Error('Order not found')
 
+    // FIX BUG-01 (Audit Menyeluruh 29 Jul 2026): cegah retur ganda utk order
+    // yang sama - sebelumnya tidak ada pengecekan sama sekali, order bisa
+    // diretur berkali-kali.
+    const existingReturn = await prisma.order_returns.findFirst({
+      where: {
+        order_id: orderId,
+        return_status: { in: ['pending', 'approved', 'completed'] },
+      },
+    })
+    if (existingReturn) {
+      throw new Error(`Order ini sudah punya retur (${(existingReturn as any).return_no}, status: ${existingReturn.return_status}). Tidak bisa membuat retur baru untuk order yang sama.`)
+    }
+
     // Generate return number
     const returnNo = `RET-${Date.now()}`
 
@@ -509,28 +522,125 @@ export async function approveOrderReturn(returnId: bigint) {
     const session = await auth()
     if (!session?.user?.id) throw new Error('Unauthorized')
 
-    const updated = await prisma.order_returns.update({
-      where: { id: returnId },
-      data: {
-        return_status: 'approved',
-        approved_at: new Date(),
-      },
-      include: {
-        orders: true,
-      },
+    // FIX BUG-01 (Audit Menyeluruh 29 Jul 2026 - CRITICAL): sebelumnya fungsi
+    // ini HANYA mengubah return_status jadi "approved" tanpa efek nyata apa
+    // pun - stok tidak dikembalikan, orders.payment_status/order_status tidak
+    // diupdate, tidak ada pembalikan keuangan. Sekarang dijalankan dalam satu
+    // transaksi: kembalikan stok (increment + stock_movements + stock_balances)
+    // per item order, update status order asli, dan set return_status jadi
+    // "completed" (bukan cuma "approved") karena efeknya benar2 dieksekusi.
+    // CATATAN: pembalikan jurnal akuntansi BELUM ditambahkan di sini - itu
+    // menyusul di FASE 3 (jurnal otomatis, lihat docs/AUDIT_MENYELURUH),
+    // karena POS sendiri belum punya jurnal otomatis utk transaksi maju
+    // (ACC-01), jadi retur belum bisa membalikkan sesuatu yang belum ada.
+
+    const result = await prisma.$transaction(async (tx: any) => {
+      const orderReturn = await tx.order_returns.findUnique({
+        where: { id: returnId },
+        include: { orders: { include: { order_items: true } } },
+      })
+      if (!orderReturn) throw new Error('Data retur tidak ditemukan.')
+      if (orderReturn.return_status !== 'pending') {
+        throw new Error(`Retur ini sudah berstatus "${orderReturn.return_status}", tidak bisa diproses ulang.`)
+      }
+
+      const order = orderReturn.orders
+      const defaultLocation = await tx.warehouse_locations.findFirst({
+        where: { is_active: true },
+        orderBy: { id: 'asc' },
+      })
+
+      // Kembalikan stok untuk setiap item di order yang diretur
+      for (const item of order.order_items) {
+        const product = await tx.products.findUnique({ where: { id: item.product_id } })
+        if (!product) continue // produk mungkin sudah dihapus, lewati tapi jangan gagalkan seluruh retur
+
+        const stockBefore = product.stock
+        const stockAfter = stockBefore + item.qty
+
+        await tx.products.update({
+          where: { id: item.product_id },
+          data: { stock: { increment: item.qty } },
+        })
+
+        await tx.stock_movements.create({
+          data: {
+            product_id:   item.product_id,
+            type:         'in',
+            qty:          item.qty,
+            stock_before: stockBefore,
+            stock_after:  stockAfter,
+            reference:    (orderReturn as any).return_no,
+            note:         `Retur barang - ${order.order_no}`,
+            created_by:   BigInt(session.user.id),
+            created_at:   new Date(),
+          },
+        })
+
+        if (defaultLocation) {
+          await tx.stock_balances.upsert({
+            where: {
+              product_id_location_id: {
+                product_id:  item.product_id,
+                location_id: defaultLocation.id,
+              },
+            },
+            update: {
+              qty_on_hand:   { increment: item.qty },
+              qty_available: { increment: item.qty },
+              updated_at:    new Date(),
+            },
+            create: {
+              product_id:    item.product_id,
+              location_id:   defaultLocation.id,
+              qty_on_hand:   Math.max(0, stockAfter),
+              qty_reserved:  0,
+              qty_available: Math.max(0, stockAfter),
+              updated_at:    new Date(),
+            },
+          })
+        }
+      }
+
+      // Update status order asli - refleksikan bahwa order ini sudah diretur
+      await tx.orders.update({
+        where: { id: order.id },
+        data: {
+          payment_status: 'refunded',
+          order_status: 'cancelled',
+        },
+      })
+
+      // Retur selesai dieksekusi penuh -> "completed", bukan cuma "approved"
+      const updated = await tx.order_returns.update({
+        where: { id: returnId },
+        data: {
+          return_status: 'completed',
+          approved_at: new Date(),
+        },
+        include: { orders: true },
+      })
+
+      return updated
     })
 
     revalidatePath('/dashboard/toko/kasir')
+    revalidatePath('/toko/produk')
 
     await logAudit({
       action: 'APPROVE',
       modelType: 'order_returns',
       modelId: Number(returnId),
       oldValues: { return_status: 'pending' },
-      newValues: { return_status: 'approved', return_no: (updated as any).return_no, refund_amount: Number((updated as any).refund_amount) },
+      newValues: {
+        return_status: 'completed',
+        return_no: (result as any).return_no,
+        refund_amount: Number((result as any).refund_amount),
+        note: 'Stok dikembalikan, order ditandai refunded/cancelled',
+      },
     })
 
-    return { success: true, data: updated }
+    return { success: true, data: result }
   } catch (error) {
     return {
       success: false,

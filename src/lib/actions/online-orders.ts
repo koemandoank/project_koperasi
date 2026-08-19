@@ -239,6 +239,11 @@ export async function getOnlineOrders(status?: string, page?: number, pageSize?:
   }
 }
 
+// FIX BUG-07 (Audit Menyeluruh 29 Jul 2026 - CRITICAL): urutan tahapan order
+// online yang sah, dipakai untuk mencegah transisi status yang tidak logis
+// (mis. "delivered" mundur ke "confirmed"). Index lebih besar = lebih maju.
+const ORDER_STAGE_SEQUENCE = ["pending", "confirmed", "processing", "delivered"] as const
+
 /** Kasir konfirmasi/selesaikan pesanan online */
 export async function updateOnlineOrderStatus(
   orderId: number,
@@ -251,19 +256,114 @@ export async function updateOnlineOrderStatus(
     const session = await auth()
     if (!session?.user?.id) return { success: false, error: "Tidak terautentikasi" }
 
-    await prisma.orders.update({
-      where: { id: BigInt(orderId) },
-      data: {
-        order_status: status,
-        paid_at: status === "delivered" ? new Date() : undefined,
-        payment_status: status === "delivered" ? "paid" : undefined,
+    // FIX BUG-07 (Audit Menyeluruh 29 Jul 2026 - CRITICAL): sebelumnya fungsi
+    // ini cuma menulis ulang order_status TANPA efek nyata apa pun ketika
+    // status baru = "cancelled" - stok yang sudah dipotong saat order dibuat
+    // (createOnlineOrder) TIDAK PERNAH dikembalikan, payment_status juga
+    // tidak ikut dikoreksi. Juga tidak ada validasi transisi status sama
+    // sekali (order "delivered" bisa di-set ke status apa pun tanpa penghalang).
+    // Sekarang: (1) validasi transisi - tidak boleh maju dari "delivered",
+    // tidak boleh cancel order yang sudah "delivered" (harus lewat proses
+    // retur di pos-transactions.ts, bukan cancel); (2) kalau status baru =
+    // "cancelled", kembalikan stok & koreksi payment_status dalam satu transaksi.
+
+    const result = await prisma.$transaction(async (tx: any) => {
+      const order = await tx.orders.findUnique({
+        where: { id: BigInt(orderId) },
+        include: { order_items: true },
+      })
+      if (!order) throw new Error("Pesanan tidak ditemukan.")
+
+      const currentIdx = ORDER_STAGE_SEQUENCE.indexOf(order.order_status as any)
+      const targetIdx = ORDER_STAGE_SEQUENCE.indexOf(status as any)
+
+      if (order.order_status === "cancelled") {
+        throw new Error("Pesanan ini sudah dibatalkan sebelumnya, tidak bisa diubah lagi.")
       }
+      if (order.order_status === "delivered" && status === "cancelled") {
+        throw new Error("Pesanan yang sudah 'delivered' tidak bisa langsung dibatalkan - gunakan proses retur (Menu Kasir > Retur) supaya stok & pembayaran dikoreksi dengan benar.")
+      }
+      if (status !== "cancelled" && currentIdx !== -1 && targetIdx !== -1 && targetIdx < currentIdx) {
+        throw new Error(`Tidak bisa mengubah status mundur dari "${order.order_status}" ke "${status}".`)
+      }
+
+      if (status === "cancelled") {
+        const defaultLocation = await tx.warehouse_locations.findFirst({
+          where: { is_active: true },
+          orderBy: { id: "asc" },
+        })
+
+        for (const item of order.order_items) {
+          const product = await tx.products.findUnique({ where: { id: item.product_id } })
+          if (!product) continue
+
+          const stockBefore = product.stock
+          const stockAfter = stockBefore + item.qty
+
+          await tx.products.update({
+            where: { id: item.product_id },
+            data: { stock: { increment: item.qty } },
+          })
+
+          await tx.stock_movements.create({
+            data: {
+              product_id:   item.product_id,
+              type:         "in",
+              qty:          item.qty,
+              stock_before: stockBefore,
+              stock_after:  stockAfter,
+              reference:    order.order_no,
+              note:         `Pembatalan pesanan online - ${order.order_no}`,
+              created_by:   BigInt(session.user.id),
+              created_at:   new Date(),
+            },
+          })
+
+          if (defaultLocation) {
+            await tx.stock_balances.upsert({
+              where: {
+                product_id_location_id: {
+                  product_id:  item.product_id,
+                  location_id: defaultLocation.id,
+                },
+              },
+              update: {
+                qty_on_hand:   { increment: item.qty },
+                qty_available: { increment: item.qty },
+                updated_at:    new Date(),
+              },
+              create: {
+                product_id:    item.product_id,
+                location_id:   defaultLocation.id,
+                qty_on_hand:   Math.max(0, stockAfter),
+                qty_reserved:  0,
+                qty_available: Math.max(0, stockAfter),
+                updated_at:    new Date(),
+              },
+            })
+          }
+        }
+      }
+
+      const updated = await tx.orders.update({
+        where: { id: BigInt(orderId) },
+        data: {
+          order_status: status,
+          paid_at: status === "delivered" ? new Date() : undefined,
+          payment_status:
+            status === "delivered" ? "paid" :
+            status === "cancelled" ? "unpaid" :
+            undefined,
+        }
+      })
+      return updated
     })
+
     revalidatePath("/toko/pesanan")
-    return { success: true }
+    revalidatePath("/toko/produk")
+    return { success: true, data: result }
   } catch (error) {
     console.error("updateOnlineOrderStatus error:", error)
-    return { success: false, error: "Gagal update status pesanan" }
+    return { success: false, error: error instanceof Error ? error.message : "Gagal update status pesanan" }
   }
 }
-
