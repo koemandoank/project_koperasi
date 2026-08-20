@@ -1066,3 +1066,57 @@ file, kecuali benar-benar diniatkan mengganti seluruh isi.
 **Langkah selanjutnya (FASE 2):** siklus "undo" transaksi — BUG-01 (retur
 toko) & BUG-07 (cancel online order) — sesuai urutan di Rencana Perbaikan
 Step-by-Step di atas.
+
+
+---
+
+## LOG EKSEKUSI — FASE 2 SELESAI (29 Juli 2026)
+
+**Status: ✅ FASE 2 (BUG-01 + BUG-07) — Selesai & Terverifikasi**
+
+### Yang dikerjakan
+1. **`src/lib/actions/pos-transactions.ts`** (`createOrderReturn` +
+   `approveOrderReturn`): sebelum ditulis ulang, seluruh 612 baris file
+   dibaca utuh dulu (pelajaran dari insiden FASE 1) supaya tidak ada fungsi
+   lain yang hilang. Perubahan:
+   - `createOrderReturn`: tambah pengecekan retur ganda (tolak kalau order
+     yang sama sudah punya retur berstatus pending/approved/completed).
+   - `approveOrderReturn`: dijalankan dalam `$transaction` - kembalikan
+     stok per item (`products.stock` increment + `stock_movements` +
+     `stock_balances` upsert), update `orders.payment_status` jadi
+     `"refunded"` dan `order_status` jadi `"cancelled"` pada order asli,
+     `return_status` jadi `"completed"` (bukan cuma `"approved"` karena
+     sekarang efeknya benar-benar dieksekusi, bukan cuma status).
+   - Pembalikan jurnal akuntansi **sengaja belum ditambahkan** - itu bagian
+     FASE 3, karena POS sendiri belum punya jurnal maju (ACC-01) untuk
+     dibalikkan.
+2. **`src/lib/actions/online-orders.ts`** (`updateOnlineOrderStatus`): file
+   dibaca utuh dulu (369 baris) sebelum ditulis ulang. Perubahan:
+   - Tambah state-machine sederhana (`ORDER_STAGE_SEQUENCE`): tolak
+     transisi mundur, tolak cancel dari status `"delivered"` (harus lewat
+     proses retur, bukan cancel), tolak aksi apa pun kalau sudah
+     `"cancelled"`.
+   - Transisi ke `"cancelled"`: kembalikan stok (pola sama seperti
+     `approveOrderReturn`), koreksi `payment_status` jadi `"unpaid"`.
+
+### Verifikasi
+- File dibaca ulang segera setelah ditulis (baris terakhir + jumlah baris
+  dicek) untuk pastikan TIDAK terpotong seperti insiden FASE 1 - keduanya
+  konfirmasi utuh (`pos-transactions.ts` 722 baris berakhir dengan penutup
+  fungsi yang benar, `online-orders.ts` 369 baris demikian juga).
+- `npx tsc --noEmit`: 0 error.
+- `npm run build` production penuh: sukses (`Compiled successfully`), semua
+  route ter-generate.
+- Prasyarat data dicek langsung ke database: `warehouse_locations` aktif
+  ada (`Rak Toko Utama`), ada order sample yang valid untuk simulasi retur
+  di masa depan.
+- **Belum diuji end-to-end dengan retur/cancel transaksi nyata** (butuh
+  sesi login kasir/pengurus asli) - hanya diverifikasi lewat kompilasi +
+  review logic + spot-check prasyarat data.
+
+**Commit:** `fc8f191` — sudah di-push ke `origin/main`.
+
+**Langkah selanjutnya (FASE 3 — inisiatif terbesar):** jurnal otomatis
+untuk pencairan pinjaman (ACC-04), lalu diperluas ke pembayaran cicilan
+dan POS. Disarankan dipecah jadi beberapa commit terpisah per modul
+(sesuai catatan di Rencana Perbaikan di atas), bukan sekali jalan.
